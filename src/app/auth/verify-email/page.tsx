@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/firebase/auth/use-user";
-import { sendEmailVerification, getAuth } from "firebase/auth";
+import { sendEmailVerification, getAuth, signOut } from "firebase/auth";
 import { useFirebase } from "@/firebase/provider";
 import { toast } from "@/hooks/use-toast";
 import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function VerifyEmailPage() {
   const { app } = useFirebase();
@@ -34,20 +34,25 @@ export default function VerifyEmailPage() {
       });
       router.push("/");
     }
-  }, [user, router]);
+  }, [user?.emailVerified, router]);
 
 
   // Periodically check the user's email verification status.
   useEffect(() => {
     const interval = setInterval(async () => {
       if (user) {
+        // The useUser hook's onIdTokenChanged listener will not fire on user.reload(),
+        // so we manually trigger a state update by checking emailVerified.
         await user.reload();
-        // The useUser hook will update its state, triggering the effect above
+        if (user.emailVerified) {
+          // This will trigger the useEffect above to redirect.
+          router.push('/');
+        }
       }
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, router]);
 
   // Countdown timer for resend button
   useEffect(() => {
