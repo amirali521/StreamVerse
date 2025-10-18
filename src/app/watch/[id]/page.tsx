@@ -10,6 +10,7 @@ import { Download, PlayCircle } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
+import { convertGoogleDriveUrl } from "@/lib/utils";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -102,7 +103,8 @@ export default function WatchPage() {
     notFound();
   }
   
-  const videoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
+  const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
+  const videoUrl = rawVideoUrl ? convertGoogleDriveUrl(rawVideoUrl) : "";
   const videoTitle = item.type === 'movie' ? item.title : `${item.title} - ${selectedEpisode?.title}`;
 
   return (
