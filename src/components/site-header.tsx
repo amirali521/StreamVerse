@@ -19,12 +19,13 @@ import { useFirebase } from "@/firebase/provider";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
-  SheetTitle,
   SheetTrigger,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { useState } from "react";
+import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -49,7 +50,8 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 function UserNav() {
   const { app } = useFirebase();
-  const { user, claims, loaded } = useUser();
+  const { user, loaded } = useUser();
+  const { isAdmin } = useAdminStatus();
 
   const handleSignOut = async () => {
     if (!app) return;
@@ -96,7 +98,7 @@ function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {claims?.admin && (
+        {isAdmin && (
           <DropdownMenuItem asChild>
             <Link href="/admin">Admin</Link>
           </DropdownMenuItem>
@@ -114,7 +116,8 @@ function UserNav() {
 }
 
 function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
-  const { user, claims, loaded } = useUser();
+  const { user, loaded } = useUser();
+  const { isAdmin } = useAdminStatus();
   const { app } = useFirebase();
   const handleSignOut = async () => {
     if (!app) return;
@@ -176,7 +179,7 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
           <DropdownMenuSeparator />
           {loaded && user && (
             <>
-              {claims?.admin && <Link href="/admin" className="font-bold text-lg" onClick={() => setOpen(false)}>Admin</Link>}
+              {isAdmin && <Link href="/admin" className="font-bold text-lg" onClick={() => setOpen(false)}>Admin</Link>}
               <Link href="#" className="font-bold text-lg" onClick={() => setOpen(false)}>Profile</Link>
               <button onClick={() => {
                 handleSignOut();

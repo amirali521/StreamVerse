@@ -1,7 +1,9 @@
 
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useUser } from "@/firebase/auth/use-user";
+import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -25,16 +27,13 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { claims, loaded } = useUser();
+  const { isAdmin, isLoading } = useAdminStatus();
 
-  if (!loaded) {
-    // You can return a loading spinner or a blank page here
+  if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
   
-  // A simple check if user is not admin.
-  // For more complex scenarios, you might use middleware or higher-order components.
-  if (!claims?.admin) {
+  if (!isAdmin) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-background">
         <div className="text-center">

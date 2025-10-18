@@ -1,3 +1,4 @@
+
 // src/firebase/auth/use-user.tsx
 'use client';
 
@@ -10,7 +11,6 @@ import {
 } from 'react';
 import {
   onAuthStateChanged,
-  onIdTokenChanged,
   type User,
 } from 'firebase/auth';
 import { useFirebase } from '../provider';
@@ -18,16 +18,12 @@ import { getAuth } from 'firebase/auth';
 
 export type UserContextType = {
   user: User | null;
-  claims: any;
   loaded: boolean;
-  protectedPaths: string[];
 };
 
 export const UserContext = createContext<UserContextType>({
   user: null,
-  claims: null,
   loaded: false,
-  protectedPaths: [],
 });
 
 export const useUser = (): UserContextType => {
@@ -40,11 +36,9 @@ export const useUser = (): UserContextType => {
 
 export function UserProvider(props: {
   children: ReactNode;
-  protectedPaths?: string[];
 }) {
   const { app } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
-  const [claims, setClaims] = useState<any>(null);
   const [loaded, setLoaded] = useState<boolean>(false);
   const auth = app ? getAuth(app) : null;
 
@@ -54,23 +48,13 @@ export function UserProvider(props: {
       return;
     }
 
-    const authStateChanged = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoaded(true);
     });
 
-    const idTokenChanged = onIdTokenChanged(auth, async (user) => {
-      if (!user) {
-        setClaims(null);
-        return;
-      }
-      const token = await user.getIdTokenResult();
-      setClaims(token.claims);
-    });
-
     return () => {
-      authStateChanged();
-      idTokenChanged();
+      unsubscribe();
     };
   }, [auth]);
 
@@ -78,9 +62,7 @@ export function UserProvider(props: {
     <UserContext.Provider
       value={{
         user,
-        claims,
         loaded,
-        protectedPaths: props.protectedPaths ?? [],
       }}
     >
       {props.children}

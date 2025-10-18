@@ -1,25 +1,32 @@
 
 "use client";
 
-import { useUser } from "@/firebase/auth/use-user";
+import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import { useUser } from "@/firebase/auth/use-user";
 
 export default function AdminPage() {
-  const { user, claims, loaded } = useUser();
+  const { user, loaded: userLoaded } = useUser();
+  const { isAdmin, isLoading: adminLoading } = useAdminStatus();
   const router = useRouter();
 
+  const loaded = userLoaded && !adminLoading;
+
   useEffect(() => {
-    if (loaded && !claims?.admin) {
+    if (loaded && !isAdmin) {
       router.push("/");
     }
-  }, [user, claims, loaded, router]);
+     if (userLoaded && !user) {
+      router.push("/admin/login");
+    }
+  }, [user, userLoaded, isAdmin, loaded, router]);
 
-  if (!loaded || !claims?.admin) {
+  if (!loaded || !isAdmin) {
     return <div>Loading...</div>;
   }
 

@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { useFirebase } from "@/firebase/provider";
+import { doc, getDoc } from "firebase/firestore";
+import { useFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
@@ -35,6 +36,7 @@ const formSchema = z.object({
 
 export default function AdminLoginPage() {
   const { app } = useFirebase();
+  const firestore = useFirestore();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,12 +47,15 @@ export default function AdminLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!app) return;
+    if (!app || !firestore) return;
     const auth = getAuth(app);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const idTokenResult = await userCredential.user.getIdTokenResult();
-      if (idTokenResult.claims.admin) {
+      
+      const userDocRef = doc(firestore, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists() && userDoc.data()?.admin === true) {
         toast({
           title: "Admin Login Successful",
           description: "Welcome back!",
