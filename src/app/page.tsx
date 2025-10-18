@@ -68,13 +68,15 @@ export default function Home() {
     fetchContent();
   }, [firestore]);
 
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading content...</div>;
+  }
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full h-[40vh] md:h-[50vh] text-white">
-        {loading || newReleases.length === 0 ? (
-          <div className="w-full h-full bg-secondary animate-pulse" />
-        ) : (
+        {newReleases.length > 0 ? (
           <Carousel
             opts={{ loop: true }}
             className="w-full h-full"
@@ -116,27 +118,29 @@ export default function Home() {
             <CarouselPrevious className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
             <CarouselNext className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
           </Carousel>
+        ) : (
+          <div className="w-full h-full bg-secondary flex items-center justify-center">
+            <p className="text-muted-foreground">No recent content to display.</p>
+          </div>
         )}
       </section>
 
       {/* Content Sections */}
       <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">
-        {loading ? (
-           <div className="text-center text-muted-foreground">Loading content...</div>
+        {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 ? (
+          <div className="text-center text-muted-foreground">
+            <p>No content has been added yet.</p>
+            <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
+          </div>
         ) : (
           <>
             {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
             {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
             {popularDramas.length > 0 && <ContentCarousel title="Popular Dramas" items={popularDramas} />}
-            {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 && (
-              <div className="text-center text-muted-foreground">
-                <p>No content has been added yet.</p>
-                <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
-              </div>
-            )}
           </>
         )}
       </div>
     </div>
   );
 }
+
