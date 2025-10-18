@@ -196,7 +196,14 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                   <div className="flex justify-end mb-4">
                                       <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
                                           <DialogTrigger asChild>
-                                              <Button variant="outline" onClick={() => { setSelectedSeason(season.seasonNumber); setNewEpisodeTitle(""); setNewEpisodeUrl(""); setAddEpisodeOpen(true); }}>
+                                              <Button variant="outline" onClick={() => { 
+                                                setSelectedSeason(season.seasonNumber); 
+                                                const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
+                                                const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
+                                                setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`); 
+                                                setNewEpisodeUrl(""); 
+                                                setAddEpisodeOpen(true); 
+                                              }}>
                                                   <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
                                               </Button>
                                           </DialogTrigger>
@@ -204,7 +211,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                               <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
                                               <div className="grid gap-4 py-4">
                                                   <Label htmlFor="episode-title">Title</Label>
-                                                  <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} placeholder={`Episode ${(season.episodes?.length || 0) + 1}`} />
+                                                  <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
                                                   <Label htmlFor="episode-url">Video URL</Label>
                                                   <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
                                               </div>
@@ -314,7 +321,7 @@ export default function ManageContentPage() {
 
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full">Loading content...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading content...</div>;
   }
 
   return (
@@ -394,3 +401,4 @@ export default function ManageContentPage() {
   );
 }
 
+    
