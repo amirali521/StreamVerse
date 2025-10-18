@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/firebase/auth/use-user";
-import { getAuth, sendEmailVerification } from "firebase/auth";
+import { sendEmailVerification } from "firebase/auth";
 import { useFirebase } from "@/firebase/provider";
 import { toast } from "@/hooks/use-toast";
 import { Mail } from "lucide-react";
@@ -24,6 +24,10 @@ export default function VerifyEmailPage() {
         description: "Your email has been successfully verified. Welcome!",
       });
       router.push("/");
+    }
+    // If the user is not logged in, they shouldn't be here.
+    if (loaded && !user) {
+      router.push("/login");
     }
   }, [user, loaded, router]);
 
@@ -71,17 +75,11 @@ export default function VerifyEmailPage() {
     }
   };
 
-  // If user data is still loading, show a loading message
-  if (!loaded) {
+  // If user data is still loading, or we are redirecting, show a loading message
+  if (!loaded || !user) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
   
-  // If the user is not logged in, they shouldn't be here.
-  if (!user) {
-    router.push("/login");
-    return null;
-  }
-
   // If user is already verified, they will be redirected by the useEffect. 
   // We can show a message while that happens.
   if (user.emailVerified) {
