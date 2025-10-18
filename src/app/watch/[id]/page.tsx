@@ -10,7 +10,7 @@ import { Download, PlayCircle } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
-import { createEmbedUrl } from "@/lib/utils";
+import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -106,15 +106,16 @@ export default function WatchPage() {
   }
   
   const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
-  const videoUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
+  const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
+  const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
   const videoTitle = item.type === 'movie' ? item.title : `${item.title} - ${selectedEpisode?.title}`;
 
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="bg-background/80 rounded-lg overflow-hidden">
-            {videoUrl ? (
-                <VideoPlayer src={videoUrl} />
+            {embedUrl ? (
+                <VideoPlayer src={embedUrl} />
             ) : (
                 <div className="aspect-video bg-black flex items-center justify-center">
                     <p className="text-muted-foreground">Select an episode to play.</p>
@@ -136,9 +137,9 @@ export default function WatchPage() {
                 {item.description}
             </p>
 
-            {videoUrl && !videoUrl.includes('youtube.com') && (
+            {downloadUrl && !downloadUrl.includes('youtube.com') && (
               <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
-                  <a href={videoUrl} download target="_blank" rel="noopener noreferrer">
+                  <a href={downloadUrl} download>
                       <Download className="mr-2" />
                       Download Video
                   </a>

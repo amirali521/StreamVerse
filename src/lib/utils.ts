@@ -31,3 +31,20 @@ export function createEmbedUrl(url: string): string {
   // Return the original URL if it's a direct video link but not a recognized service
   return url;
 }
+
+export function createDownloadUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return "";
+  }
+
+  // Check for Google Drive URL and create a download link
+  const fileIdMatch = url.match(/[-\w]{25,}/);
+  if (fileIdMatch) {
+    const fileId = fileIdMatch[0];
+    // Construct the direct download URL
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+  
+  // For other URLs, assume it's a direct link and return it as is
+  return url;
+}
