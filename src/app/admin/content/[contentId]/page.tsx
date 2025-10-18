@@ -1,24 +1,30 @@
-
 "use client";
 
 import { useFirestore } from "@/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { notFound, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Edit, Trash2, PlusCircle } from "lucide-react";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -28,12 +34,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import Image from "next/image";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Data structures from backend.json
 interface Episode {
   episodeNumber: number;
   title: string;
@@ -56,308 +68,327 @@ interface Content {
   seasons?: Season[];
 }
 
-export default function EditContentPage({ params: { contentId } }: { params: { contentId: string } }) {
+// Edit Modal for Web Series / Dramas
+function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
+    const firestore = useFirestore();
+    const [seasons, setSeasons] = useState<Season[]>(contentItem.seasons || []);
+    const [isAddEpisodeOpen, setAddEpisodeOpen] = useState(false);
+    const [isEditEpisodeOpen, setEditEpisodeOpen] = useState(false);
+    const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+    const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
+    const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
+    const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
+
+    const handleAddSeason = async () => {
+        if (!firestore) return;
+        const newSeasonNumber = seasons.length + 1;
+        const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
+        const updatedSeasons = [...seasons, newSeason];
+
+        try {
+            const docRef = doc(firestore, "content", contentItem.id);
+            await updateDoc(docRef, { seasons: updatedSeasons });
+            setSeasons(updatedSeasons);
+            onUpdate({ ...contentItem, seasons: updatedSeasons });
+            toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been added.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: error.message });
+        }
+    };
+    
+    const handleAddEpisode = async () => {
+        if (!firestore || selectedSeason === null || !newEpisodeTitle || !newEpisodeUrl) return;
+
+        const updatedSeasons = seasons.map(s => {
+            if (s.seasonNumber === selectedSeason) {
+                const newEpisodeNumber = (s.episodes?.length || 0) + 1;
+                const newEpisode: Episode = {
+                    episodeNumber: newEpisodeNumber,
+                    title: newEpisodeTitle,
+                    videoUrl: newEpisodeUrl
+                };
+                return { ...s, episodes: [...s.episodes, newEpisode] };
+            }
+            return s;
+        });
+
+        try {
+            const docRef = doc(firestore, "content", contentItem.id);
+            await updateDoc(docRef, { seasons: updatedSeasons });
+            setSeasons(updatedSeasons);
+            onUpdate({ ...contentItem, seasons: updatedSeasons });
+            toast({ title: "Episode Added", description: `${newEpisodeTitle} has been added to Season ${selectedSeason}.` });
+            setAddEpisodeOpen(false);
+            setNewEpisodeTitle("");
+            setNewEpisodeUrl("");
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: error.message });
+        }
+    };
+
+    const handleEditEpisode = async () => {
+        if (!firestore || selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeUrl) return;
+        
+        const updatedSeasons = seasons.map(s => {
+            if (s.seasonNumber === selectedSeason) {
+                const updatedEpisodes = s.episodes.map(e => 
+                    e.episodeNumber === selectedEpisode.episodeNumber 
+                    ? { ...e, title: newEpisodeTitle, videoUrl: newEpisodeUrl }
+                    : e
+                );
+                return { ...s, episodes: updatedEpisodes };
+            }
+            return s;
+        });
+
+        try {
+            const docRef = doc(firestore, "content", contentItem.id);
+            await updateDoc(docRef, { seasons: updatedSeasons });
+            setSeasons(updatedSeasons);
+            onUpdate({ ...contentItem, seasons: updatedSeasons });
+            toast({ title: "Episode Updated" });
+            setEditEpisodeOpen(false);
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Error", description: e.message });
+        }
+    };
+    
+    const handleDeleteEpisode = async (seasonNumber: number, episode: Episode) => {
+        if (!firestore) return;
+
+        const updatedSeasons = seasons.map(s => {
+            if (s.seasonNumber === seasonNumber) {
+                const filteredEpisodes = s.episodes.filter(e => e.episodeNumber !== episode.episodeNumber);
+                const renumberedEpisodes = filteredEpisodes.map((ep, index) => ({ ...ep, episodeNumber: index + 1 }));
+                return { ...s, episodes: renumberedEpisodes };
+            }
+            return s;
+        });
+
+        try {
+            const docRef = doc(firestore, "content", contentItem.id);
+            await updateDoc(docRef, { seasons: updatedSeasons });
+            setSeasons(updatedSeasons);
+            onUpdate({ ...contentItem, seasons: updatedSeasons });
+            toast({ title: "Episode Deleted" });
+        } catch(e: any) {
+            toast({ variant: "destructive", title: "Error", description: e.message });
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Manage: {contentItem.title}</DialogTitle>
+                    <DialogDescription>Add, edit, or remove seasons and episodes for this {contentItem.type}.</DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow overflow-y-auto pr-4">
+                  <div className="flex justify-end mb-4">
+                      <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                  </div>
+                  <Accordion type="single" collapsible className="w-full">
+                      {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
+                          <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
+                              <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
+                              <AccordionContent>
+                                  <div className="flex justify-end mb-4">
+                                      <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
+                                          <DialogTrigger asChild>
+                                              <Button variant="outline" onClick={() => { setSelectedSeason(season.seasonNumber); setNewEpisodeTitle(""); setNewEpisodeUrl(""); setAddEpisodeOpen(true); }}>
+                                                  <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
+                                              </Button>
+                                          </DialogTrigger>
+                                          <DialogContent>
+                                              <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
+                                              <div className="grid gap-4 py-4">
+                                                  <Label htmlFor="episode-title">Title</Label>
+                                                  <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} placeholder={`Episode ${(season.episodes?.length || 0) + 1}`} />
+                                                  <Label htmlFor="episode-url">Video URL</Label>
+                                                  <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                              </div>
+                                              <DialogFooter>
+                                                  <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
+                                                  <Button onClick={handleAddEpisode}>Save Episode</Button>
+                                              </DialogFooter>
+                                          </DialogContent>
+                                      </Dialog>
+                                  </div>
+                                  <div className="space-y-2">
+                                      {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
+                                          <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                              <p>Ep {episode.episodeNumber}: {episode.title}</p>
+                                              <div className="flex items-center gap-2">
+                                                  <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
+                                                      <DialogTrigger asChild>
+                                                          <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
+                                                              <Edit className="h-4 w-4" />
+                                                          </Button>
+                                                      </DialogTrigger>
+                                                      <DialogContent>
+                                                          <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <Label htmlFor="edit-episode-title">Title</Label>
+                                                                <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                                <Label htmlFor="edit-episode-url">Video URL</Label>
+                                                                <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
+                                                            </div>
+                                                          <DialogFooter>
+                                                              <Button variant="outline" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
+                                                              <Button onClick={handleEditEpisode}>Save Changes</Button>
+                                                          </DialogFooter>
+                                                      </DialogContent>
+                                                  </Dialog>
+                                                  <AlertDialog>
+                                                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                      <AlertDialogContent>
+                                                          <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}".</AlertDialogDescription></AlertDialogHeader>
+                                                          <AlertDialogFooter>
+                                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                              <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
+                                                          </AlertDialogFooter>
+                                                      </AlertDialogContent>
+                                                  </AlertDialog>
+                                              </div>
+                                          </div>
+                                      ))}
+                                      {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes yet.</p>}
+                                  </div>
+                              </AccordionContent>
+                          </AccordionItem>
+                      ))}
+                      {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
+                  </Accordion>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
+export default function ManageContentPage() {
   const firestore = useFirestore();
-  const router = useRouter();
-  const [content, setContent] = useState<Content | null>(null);
+  const [contentList, setContentList] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingContent, setEditingContent] = useState<Content | null>(null);
 
-  // State for modals
-  const [isAddSeasonOpen, setAddSeasonOpen] = useState(false);
-  const [isAddEpisodeOpen, setAddEpisodeOpen] = useState(false);
-  const [isEditEpisodeOpen, setEditEpisodeOpen] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
-  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
-  const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
-  const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
-
+  const fetchContent = async () => {
+    if (!firestore) return;
+    setLoading(true);
+    const contentCollection = collection(firestore, "content");
+    const contentSnapshot = await getDocs(contentCollection);
+    const contents = contentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+    setContentList(contents);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!firestore || !contentId) return;
-    const fetchContent = async () => {
-      setLoading(true);
-      const docRef = doc(firestore, "content", contentId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setContent({ id: docSnap.id, ...docSnap.data() } as Content);
-      } else {
-        notFound();
-      }
-      setLoading(false);
-    };
     fetchContent();
-  }, [firestore, contentId]);
-
-  const handleAddSeason = async () => {
-    if (!firestore || !content) return;
-    const currentSeasons = content.seasons || [];
-    const newSeasonNumber = currentSeasons.length + 1;
-    const newSeason = { seasonNumber: newSeasonNumber, episodes: [] };
-
+  }, [firestore]);
+  
+  const handleDelete = async (id: string, title: string) => {
+    if (!firestore) return;
     try {
-      const docRef = doc(firestore, "content", content.id);
-      await updateDoc(docRef, {
-        seasons: arrayUnion(newSeason),
-      });
-      setContent({
-        ...content,
-        seasons: [...currentSeasons, newSeason],
-      });
-      toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been added.` });
-      setAddSeasonOpen(false);
+        await deleteDoc(doc(firestore, "content", id));
+        setContentList(contentList.filter(c => c.id !== id));
+        toast({
+            title: "Content Deleted",
+            description: `${title} has been successfully deleted.`,
+        });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    }
-  };
-
-  const handleAddEpisode = async () => {
-    if (!firestore || !content || selectedSeason === null || !newEpisodeTitle || !newEpisodeUrl) return;
-    
-    const season = content.seasons?.find(s => s.seasonNumber === selectedSeason);
-    if (!season) return;
-
-    const newEpisodeNumber = (season.episodes?.length || 0) + 1;
-    const newEpisode: Episode = {
-        episodeNumber: newEpisodeNumber,
-        title: newEpisodeTitle,
-        videoUrl: newEpisodeUrl
-    };
-
-    const updatedSeasons = content.seasons?.map(s => {
-        if (s.seasonNumber === selectedSeason) {
-            return { ...s, episodes: [...s.episodes, newEpisode] };
-        }
-        return s;
-    });
-
-    try {
-        const docRef = doc(firestore, "content", content.id);
-        await updateDoc(docRef, { seasons: updatedSeasons });
-        setContent({ ...content, seasons: updatedSeasons });
-        toast({ title: "Episode Added", description: `${newEpisode.title} has been added to Season ${selectedSeason}.` });
-        setAddEpisodeOpen(false);
-        setNewEpisodeTitle("");
-        setNewEpisodeUrl("");
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message });
+        toast({
+            variant: "destructive",
+            title: "Error Deleting Content",
+            description: error.message || "Could not delete content.",
+        });
     }
   };
   
-  const handleEditEpisode = async () => {
-     if (!firestore || !content || selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeUrl) return;
-
-    const updatedSeasons = content.seasons?.map(s => {
-        if (s.seasonNumber === selectedSeason) {
-            const updatedEpisodes = s.episodes.map(e => 
-                e.episodeNumber === selectedEpisode.episodeNumber 
-                ? { ...e, title: newEpisodeTitle, videoUrl: newEpisodeUrl }
-                : e
-            );
-            return { ...s, episodes: updatedEpisodes };
-        }
-        return s;
-    });
-
-    try {
-        const docRef = doc(firestore, "content", content.id);
-        await updateDoc(docRef, { seasons: updatedSeasons });
-        setContent({ ...content, seasons: updatedSeasons });
-        toast({ title: "Episode Updated", description: `Episode ${selectedEpisode.episodeNumber} has been updated.` });
-        setEditEpisodeOpen(false);
-        setNewEpisodeTitle("");
-        setNewEpisodeUrl("");
-        setSelectedEpisode(null);
-    } catch(e: any) {
-        toast({ variant: "destructive", title: "Error", description: e.message });
-    }
+  const handleUpdate = (updatedContent: Content) => {
+    setContentList(contentList.map(c => c.id === updatedContent.id ? updatedContent : c));
   };
 
-  const handleDeleteEpisode = async (seasonNumber: number, episode: Episode) => {
-    if (!firestore || !content) return;
-
-    const season = content.seasons?.find(s => s.seasonNumber === seasonNumber);
-    if (!season) return;
-
-    const updatedSeasons = content.seasons?.map(s => {
-        if (s.seasonNumber === seasonNumber) {
-             // Filter out the episode and then re-assign episode numbers
-            const filteredEpisodes = s.episodes.filter(e => e.episodeNumber !== episode.episodeNumber);
-            const renumberedEpisodes = filteredEpisodes.map((ep, index) => ({ ...ep, episodeNumber: index + 1 }));
-            return { ...s, episodes: renumberedEpisodes };
-        }
-        return s;
-    });
-
-    try {
-        const docRef = doc(firestore, "content", content.id);
-        await updateDoc(docRef, { seasons: updatedSeasons });
-        setContent({ ...content, seasons: updatedSeasons });
-        toast({ title: "Episode Deleted", description: `Episode ${episode.episodeNumber} from Season ${seasonNumber} has been deleted.` });
-    } catch(e: any) {
-        toast({ variant: "destructive", title: "Error", description: e.message });
-    }
-  };
 
   if (loading) {
-    return <div className="container py-10">Loading...</div>;
-  }
-
-  if (!content) {
-    return notFound();
-  }
-  
-  if (content.type === 'movie') {
-      return (
-        <div className="container py-10">
-            <Card className="max-w-4xl mx-auto">
-                <CardHeader>
-                    <CardTitle>Manage Content: {content.title}</CardTitle>
-                    <CardDescription>Movies do not have seasons or episodes. Edit the main content details if needed.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={() => router.push('/admin/content')}>Back to Content List</Button>
-                </CardContent>
-            </Card>
-        </div>
-      )
+    return <div className="flex items-center justify-center h-full">Loading content...</div>;
   }
 
   return (
     <div className="container py-10">
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-3xl font-headline">{content.title}</CardTitle>
-              <CardDescription className="mt-2">
-                Manage seasons and episodes for this {content.type}.
-              </CardDescription>
-            </div>
-            <Image src={content.bannerImageUrl} alt={content.title} width={150} height={225} className="rounded-md object-cover aspect-[2/3]" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-end mb-6">
-            <Dialog open={isAddSeasonOpen} onOpenChange={setAddSeasonOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add {content.seasons && content.seasons.length > 0 ? 'Another' : ''} Season
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Season</DialogTitle>
-                  <DialogDescription>
-                    This will add Season { (content.seasons?.length || 0) + 1 } to {content.title}.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddSeasonOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAddSeason}>Add Season</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Manage Content</CardTitle>
+        <CardDescription>View, edit, or delete existing content in the catalog.</CardDescription>
+      </CardHeader>
+      <CardContent>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {contentList.length === 0 ? (
+            <TableRow>
+                <TableCell colSpan={3} className="text-center h-24">No content found.</TableCell>
+            </TableRow>
+          ) : (
+            contentList.map(content => (
+                <TableRow key={content.id}>
+                <TableCell className="font-medium">{content.title}</TableCell>
+                <TableCell className="capitalize">{content.type}</TableCell>
+                <TableCell className="text-right">
+                    {content.type !== 'movie' && (
+                        <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                        </Button>
+                    )}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete "{content.title}".
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
+                                Delete
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </TableCell>
+                </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+      </CardContent>
+    </Card>
 
-          <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-             {content.seasons && content.seasons.sort((a, b) => a.seasonNumber - b.seasonNumber).map(season => (
-                <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
-                    <AccordionTrigger className="text-xl">
-                        Season {season.seasonNumber}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <div className="flex justify-end mb-4">
-                            <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => {
-                                if (!isOpen) { setAddEpisodeOpen(false); setSelectedSeason(null); }
-                            }}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" onClick={() => { setSelectedSeason(season.seasonNumber); setAddEpisodeOpen(true); }}>
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="episode-title" className="text-right">Title</Label>
-                                            <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} className="col-span-3" placeholder={`Episode ${(season.episodes?.length || 0) + 1}`} />
-                                        </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="episode-url" className="text-right">Video URL</Label>
-                                            <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} className="col-span-3" placeholder="https://drive.google.com/..." />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button variant="outline" onClick={() => { setAddEpisodeOpen(false); setSelectedSeason(null); }}>Cancel</Button>
-                                        <Button onClick={handleAddEpisode}>Save Episode</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                        <div className="space-y-2">
-                            {season.episodes && season.episodes.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                                <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                    <p>Episode {episode.episodeNumber}: {episode.title}</p>
-                                    <div className="flex items-center gap-2">
-                                        <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => { if (!isOpen) setEditEpisodeOpen(false)}}>
-                                            <DialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => {
-                                                    setSelectedSeason(season.seasonNumber);
-                                                    setSelectedEpisode(episode);
-                                                    setNewEpisodeTitle(episode.title);
-                                                    setNewEpisodeUrl(episode.videoUrl);
-                                                    setEditEpisodeOpen(true);
-                                                }}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                     <DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="grid gap-4 py-4">
-                                                    <div className="grid grid-cols-4 items-center gap-4">
-                                                        <Label htmlFor="edit-episode-title" className="text-right">Title</Label>
-                                                        <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} className="col-span-3" />
-                                                    </div>
-                                                    <div className="grid grid-cols-4 items-center gap-4">
-                                                        <Label htmlFor="edit-episode-url" className="text-right">Video URL</Label>
-                                                        <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} className="col-span-3" />
-                                                    </div>
-                                                </div>
-                                                <DialogFooter>
-                                                     <Button variant="outline" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
-                                                     <Button onClick={handleEditEpisode}>Save Changes</Button>
-                                                </DialogFooter>
-                                            </DialogContent>
-                                        </Dialog>
+    {editingContent && editingContent.type !== 'movie' && (
+        <EditSeriesModal 
+            isOpen={!!editingContent}
+            onOpenChange={(open) => !open && setEditingContent(null)}
+            contentItem={editingContent}
+            onUpdate={handleUpdate}
+        />
+    )}
 
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                             {(!season.episodes || season.episodes.length === 0) && (
-                                <p className="text-sm text-muted-foreground text-center py-4">No episodes yet. Add one to get started.</p>
-                            )}
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-             ))}
-             {(!content.seasons || content.seasons.length === 0) && (
-                <div className="text-center py-8">
-                    <p className="text-muted-foreground">No seasons found for this content.</p>
-                    <p className="text-muted-foreground">Add a season to begin adding episodes.</p>
-                </div>
-            )}
-          </Accordion>
-        </CardContent>
-      </Card>
     </div>
   );
 }
-
-    

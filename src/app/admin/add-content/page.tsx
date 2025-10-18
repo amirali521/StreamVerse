@@ -89,16 +89,13 @@ export default function AddContentPage() {
 
 
     try {
-      const docRef = await addDoc(collection(firestore, "content"), contentData);
+      await addDoc(collection(firestore, "content"), contentData);
       toast({
         title: "Content Added",
-        description: `${values.title} has been added. You can now add episodes.`,
+        description: `${values.title} has been successfully added.`,
       });
-      if (values.type === 'movie') {
-        router.push("/admin/content");
-      } else {
-        router.push(`/admin/content/${docRef.id}`);
-      }
+      router.push(`/admin/content`);
+
     } catch (error: any) {
       toast({
         variant: "destructive",
