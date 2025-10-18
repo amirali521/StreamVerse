@@ -91,7 +91,9 @@ export default function WatchPage() {
       setLoading(false);
     }
     
-    getContentItem(id);
+    if (id) {
+      getContentItem(id);
+    }
   }, [id, firestore]);
   
 
