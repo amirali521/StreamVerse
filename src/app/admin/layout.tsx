@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useUser } from "@/firebase/auth/use-user";
 
-function FilmReelIcon(props: React.SVGProps<SVGSVGElement>) {
+function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -17,15 +17,7 @@ function FilmReelIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
     >
       <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="3" />
-      <line x1="8" y1="2" x2="8" y2="4" />
-      <line x1="16" y1="2" x2="16" y2="4" />
-      <line x1="8" y1="20" x2="8" y2="22" />
-      <line x1="16" y1="20" x2="16" y2="22" />
-      <line x1="2" y1="8" x2="4" y2="8" />
-      <line x1="2" y1="16" x2="4" y2="16" />
-      <line x1="20" y1="8" x2="22" y2="8" />
-      <line x1="20" y1="16" x2="22" y2="16" />
+      <polygon points="10 8 16 12 10 16 10 8" />
     </svg>
   );
 }
@@ -59,7 +51,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="w-full max-w-md space-y-8">
         <div className="flex justify-center">
             <Link href="/" className="flex items-center space-x-2 text-foreground">
-                <FilmReelIcon className="h-8 w-8" />
+                <LogoIcon className="h-8 w-8" />
                 <span className="font-bold font-headline text-3xl">StreamVerse</span>
             </Link>
         </div>
