@@ -18,34 +18,34 @@ export default function VerifyEmailPage() {
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(0);
 
-  // Redirect if user is not loaded or not logged in
+  // Redirect if user is not loaded or not logged in, but give a moment for user state to load.
   useEffect(() => {
     if (loaded && !user) {
       router.push("/login");
     }
   }, [user, loaded, router]);
-
-  // Redirect if user is already verified
+  
+  // This is the main effect for handling verified users.
   useEffect(() => {
     if (user?.emailVerified) {
       toast({
         title: "Email Verified",
-        description: "Your email is verified. Welcome!",
+        description: "Your email has been verified. Welcome!",
       });
       router.push("/");
     }
-  }, [user?.emailVerified, router]);
+  }, [user, router]);
 
 
   // Periodically check the user's email verification status.
   useEffect(() => {
     const interval = setInterval(async () => {
       if (user) {
-        // The useUser hook's onIdTokenChanged listener will not fire on user.reload(),
-        // so we manually trigger a state update by checking emailVerified.
+        // user.reload() is essential to get the latest user state from Firebase.
         await user.reload();
+        // After reloading, the `onIdTokenChanged` listener in useUser will fire if there's a change,
+        // which will update the user object and trigger the effect above to redirect.
         if (user.emailVerified) {
-          // This will trigger the useEffect above to redirect.
           router.push('/');
         }
       }
@@ -103,7 +103,7 @@ export default function VerifyEmailPage() {
   const handleLogout = async () => {
     if (!app) return;
     const auth = getAuth(app);
-    await auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
   

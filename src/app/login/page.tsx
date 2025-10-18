@@ -47,13 +47,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (loaded && user) {
-      if(user.emailVerified) {
-        router.push("/");
-      } else {
-        // If user is somehow logged in but not verified, send to verification page.
-        router.push("/auth/verify-email");
-      }
+    // This effect now only handles redirecting an already logged-in and verified user.
+    // The unverified user flow is handled entirely within onSubmit.
+    if (loaded && user?.emailVerified) {
+      router.push("/");
     }
   }, [user, loaded, router]);
 
@@ -64,26 +61,23 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const signedInUser = userCredential.user;
 
-      if (!signedInUser.emailVerified) {
-        // Sign out the user immediately to prevent access
-        await signOut(auth);
-        
+      if (signedInUser.emailVerified) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        router.push("/");
+      } else {
+        // This is the critical part for unverified users.
+        await signOut(auth); // Log them out immediately.
         toast({
             variant: "destructive",
             title: "Email Not Verified",
-            description: "Please check your inbox and verify your email before logging in.",
+            description: "Please verify your email before logging in.",
         });
-        
-        // Redirect to verification page
+        // Redirect them to the page where they can resend the verification.
         router.push(`/auth/verify-email`);
-        return;
       }
-
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      // The useEffect hook will handle the redirect to "/" for verified users
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -93,7 +87,7 @@ export default function LoginPage() {
     }
   }
   
-  if (!loaded || (loaded && user)) {
+  if (!loaded || (loaded && user?.emailVerified)) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>
   }
 
