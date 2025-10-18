@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase/auth/use-user";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -35,6 +36,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { app } = useFirebase();
   const router = useRouter();
+  const { user } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,16 +50,19 @@ export default function LoginPage() {
     const auth = getAuth(app);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
+      const signedInUser = userCredential.user;
 
-      if (!user.emailVerified) {
+      if (!signedInUser.emailVerified) {
         toast({
             variant: "destructive",
             title: "Email Not Verified",
-            description: "Please verify your email before logging in.",
+            description: "Please verify your email before logging in. We've re-sent a verification email.",
         });
-        await auth.signOut(); // Sign out the user
-        router.push("/auth/verify-email"); // Redirect to verification page
+        
+        // Pass user info to verification page
+        // Storing user in a global state or passing through router query could be an option
+        // For simplicity, we assume the verification page can get the user context
+        router.push("/auth/verify-email");
         return;
       }
 
@@ -73,6 +78,11 @@ export default function LoginPage() {
         description: error.message,
       });
     }
+  }
+  
+  if (user) {
+    router.push("/");
+    return <div className="flex min-h-screen items-center justify-center">Redirecting...</div>
   }
 
   return (
