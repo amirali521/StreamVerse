@@ -38,9 +38,13 @@ export default function Home() {
         const newReleasesQuery = query(contentCol, orderBy('createdAt', 'desc'), limit(10));
         setNewReleases(await fetchAndMap(newReleasesQuery));
         
-        // Popular Dramas: type === 'drama', highest rated
-        const popularDramasQuery = query(contentCol, where('type', '==', 'drama'), orderBy('imdbRating', 'desc'), limit(10));
-        setPopularDramas(await fetchAndMap(popularDramasQuery));
+        // Popular Dramas: Fetch all dramas, then sort and slice on the client
+        const dramasQuery = query(contentCol, where('type', '==', 'drama'));
+        const allDramas = await fetchAndMap(dramasQuery);
+        const sortedDramas = allDramas
+            .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
+            .slice(0, 10);
+        setPopularDramas(sortedDramas);
 
       } catch (error) {
         console.error("Error fetching homepage content:", error);
