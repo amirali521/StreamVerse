@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useFirestore } from "@/firebase";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -71,6 +71,8 @@ export default function AddContentPage() {
         type: values.type,
         bannerImageUrl: values.bannerImageUrl,
         imdbRating: values.imdbRating || 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
     };
 
     if (values.type === 'movie') {
@@ -89,12 +91,16 @@ export default function AddContentPage() {
 
 
     try {
-      await addDoc(collection(firestore, "content"), contentData);
+      const docRef = await addDoc(collection(firestore, "content"), contentData);
       toast({
         title: "Content Added",
         description: `${values.title} has been successfully added.`,
       });
-      router.push(`/admin/content`);
+      if (values.type === 'movie') {
+          router.push(`/admin/content`);
+      } else {
+          router.push(`/admin/content`);
+      }
 
     } catch (error: any) {
       toast({

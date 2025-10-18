@@ -1,32 +1,32 @@
+
 import Image from "next/image";
 import Link from "next/link";
-import { type ContentItem } from "@/lib/data";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { type Content } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ContentCarouselProps {
   title: string;
-  items: ContentItem[];
+  items: Content[];
 }
 
-function ContentCard({ item }: { item: ContentItem }) {
-  const placeholder = PlaceHolderImages.find(p => p.id === item.imageId);
+function ContentCard({ item }: { item: Content }) {
   return (
     <Link href={`/watch/${item.id}`} className="block group">
       <Card className="w-[200px] md:w-[240px] border-0 bg-transparent shadow-none overflow-hidden">
         <CardContent className="p-0">
           <div className="aspect-[2/3] relative rounded-lg overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-105">
-            {placeholder ? (
+            {item.bannerImageUrl ? (
               <Image
-                src={placeholder.imageUrl}
+                src={item.bannerImageUrl}
                 alt={item.title}
                 fill
                 sizes="(max-width: 768px) 200px, 240px"
                 className="object-cover"
-                data-ai-hint={placeholder.imageHint}
               />
             ) : (
-              <div className="w-full h-full bg-secondary"></div>
+              <div className="w-full h-full bg-secondary flex items-center justify-center">
+                <span className="text-muted-foreground text-xs text-center">No Image</span>
+              </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>

@@ -27,6 +27,45 @@
       },
       "required": ["displayName", "email"]
     },
+    "Episode": {
+      "title": "Episode",
+      "description": "Represents a single episode within a season.",
+      "type": "object",
+      "properties": {
+        "episodeNumber": {
+          "type": "number",
+          "description": "The number of the episode."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the episode."
+        },
+        "videoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Google Drive URL for the episode video."
+        }
+      },
+      "required": ["episodeNumber", "title", "videoUrl"]
+    },
+    "Season": {
+      "title": "Season",
+      "description": "Represents a season of a web series or drama.",
+      "type": "object",
+      "properties": {
+        "seasonNumber": {
+          "type": "number",
+          "description": "The number of the season."
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Episode"
+          }
+        }
+      },
+      "required": ["seasonNumber", "episodes"]
+    },
     "Content": {
       "title": "Content",
       "description": "Represents a movie, web series, or drama.",
@@ -50,17 +89,34 @@
           "format": "uri",
           "description": "URL for the banner image."
         },
-        "googleDriveVideoUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Google Drive URL for the video."
-        },
         "imdbRating": {
           "type": "number",
           "description": "IMDb rating for the content."
+        },
+        "googleDriveVideoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Google Drive URL for the video (for movies only)."
+        },
+        "seasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Season"
+          },
+          "description": "Seasons for web series or dramas."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the content was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the content was last updated."
         }
       },
-      "required": ["title", "description", "type", "bannerImageUrl", "googleDriveVideoUrl", "imdbRating"]
+      "required": ["title", "description", "type", "bannerImageUrl", "createdAt", "updatedAt"]
     }
   },
   "auth": {
