@@ -61,6 +61,7 @@ function EpisodeSelector({
                       setSelectedEpisode(null);
                     }
                   }}
+                  className="transition-colors duration-200"
                 >
                   S{String(season.seasonNumber).padStart(2, '0')}
                 </Button>
@@ -75,7 +76,7 @@ function EpisodeSelector({
                   key={episode.episodeNumber}
                   variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'outline'}
                   size="sm"
-                  className="aspect-square p-0"
+                  className="aspect-square p-0 transition-colors duration-200"
                   onClick={() => setSelectedEpisode(episode)}
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
