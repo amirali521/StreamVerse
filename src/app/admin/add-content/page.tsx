@@ -34,19 +34,22 @@ import { useFirestore } from "@/firebase";
 import { addDoc, collection } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
   type: z.enum(["movie", "webseries", "drama"]),
   bannerImageUrl: z.string().url("Please enter a valid URL."),
-  googleDriveVideoUrl: z.string().url("Please enter a valid Google Drive URL."),
-  imdbRating: z.coerce.number().min(0).max(10),
+  googleDriveVideoUrl: z.string().optional(),
+  imdbRating: z.coerce.number().min(0).max(10).optional(),
 });
 
 export default function AddContentPage() {
   const firestore = useFirestore();
   const router = useRouter();
+  const [contentType, setContentType] = useState<"movie" | "webseries" | "drama">("movie");
+
   const form = useForm<z.infer<typeof contentSchema>>({
     resolver: zodResolver(contentSchema),
     defaultValues: {
@@ -61,13 +64,41 @@ export default function AddContentPage() {
 
   async function onSubmit(values: z.infer<typeof contentSchema>) {
     if (!firestore) return;
+    
+    let contentData: any = {
+        title: values.title,
+        description: values.description,
+        type: values.type,
+        bannerImageUrl: values.bannerImageUrl,
+        imdbRating: values.imdbRating || 0,
+    };
+
+    if (values.type === 'movie') {
+        if (!values.googleDriveVideoUrl) {
+            toast({
+                variant: "destructive",
+                title: "Validation Error",
+                description: "Google Drive Video URL is required for movies.",
+            });
+            return;
+        }
+        contentData.googleDriveVideoUrl = values.googleDriveVideoUrl;
+    } else {
+        contentData.seasons = [];
+    }
+
+
     try {
-      await addDoc(collection(firestore, "content"), values);
+      const docRef = await addDoc(collection(firestore, "content"), contentData);
       toast({
         title: "Content Added",
-        description: `${values.title} has been added successfully.`,
+        description: `${values.title} has been added. You can now add episodes.`,
       });
-      router.push("/admin");
+      if (values.type === 'movie') {
+        router.push("/admin/content");
+      } else {
+        router.push(`/admin/content/${docRef.id}`);
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -124,7 +155,10 @@ export default function AddContentPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Content Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        setContentType(value as "movie" | "webseries" | "drama");
+                    }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a content type" />
@@ -153,22 +187,26 @@ export default function AddContentPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="googleDriveVideoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Google Drive Video URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://drive.google.com/..." {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      This will be converted for streaming and download.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              
+              {contentType === 'movie' && (
+                 <FormField
+                    control={form.control}
+                    name="googleDriveVideoUrl"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Google Drive Video URL</FormLabel>
+                        <FormControl>
+                        <Input placeholder="https://drive.google.com/..." {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          This will be converted for streaming and download.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="imdbRating"

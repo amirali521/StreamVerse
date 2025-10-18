@@ -4,10 +4,10 @@
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import { Film, ListVideo, PlusCircle } from "lucide-react";
 import { useUser } from "@/firebase/auth/use-user";
 
 export default function AdminPage() {
@@ -27,43 +27,42 @@ export default function AdminPage() {
   }, [user, userLoaded, isAdmin, loaded, router]);
 
   if (!loaded || !isAdmin) {
-    return <div>Loading...</div>;
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
   return (
     <div className="container py-10">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
-        <Button asChild>
-          <Link href="/admin/add-content">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Content
-          </Link>
-        </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Add New Content</CardTitle>
+            <PlusCircle className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <CardDescription>Add a new movie, web series, or drama to the catalog.</CardDescription>
+            <Button asChild className="mt-4">
+              <Link href="/admin/add-content">
+                Add Content
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Manage Content</CardTitle>
+            <ListVideo className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p>Add, edit, or delete movies, web series, and dramas.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>View and manage user accounts.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>View content performance and user engagement.</p>
+            <CardDescription>Edit existing content, add seasons, and manage episodes.</CardDescription>
+            <Button asChild className="mt-4">
+              <Link href="/admin/content">
+                Manage Content
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
