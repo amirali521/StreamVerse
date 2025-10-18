@@ -60,7 +60,7 @@ export default function Home() {
 
         // 1. Get New Releases: Sort all content by `updatedAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
-        setNewReleases(sortedNewReleases.slice(0, 10));
+        setNewReleases(sortedNewReleases);
 
         // 2. Get Trending: Sort all content by IMDb rating
         const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
