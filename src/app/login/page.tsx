@@ -47,7 +47,20 @@ export default function LoginPage() {
     if (!app) return;
     const auth = getAuth(app);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        toast({
+            variant: "destructive",
+            title: "Email Not Verified",
+            description: "Please verify your email before logging in.",
+        });
+        await auth.signOut(); // Sign out the user
+        router.push("/auth/verify-email"); // Redirect to verification page
+        return;
+      }
+
       toast({
         title: "Login Successful",
         description: "You have been logged in.",

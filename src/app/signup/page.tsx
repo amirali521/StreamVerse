@@ -4,7 +4,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useFirebase } from "@/firebase/provider";
 import { useRouter } from "next/navigation";
 import { doc, setDoc } from "firebase/firestore";
@@ -65,11 +65,13 @@ export default function SignupPage() {
         photoURL: user.photoURL
       });
 
+      await sendEmailVerification(user);
+
       toast({
         title: "Account Created",
-        description: "Your account has been successfully created.",
+        description: "A verification email has been sent to your address.",
       });
-      router.push("/");
+      router.push("/auth/verify-email");
     } catch (error: any) {
       toast({
         variant: "destructive",
