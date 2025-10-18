@@ -8,7 +8,7 @@ export function SiteFooter() {
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center space-x-2">
-            <Image src="https://placehold.co/24x24/png?text=SV" alt="StreamVerse Logo" width={24} height={24} />
+            <Image src="https://adswatchearner.42web.io/uploads/img_68f3cf716f2541.06711705.png" alt="StreamVerse Logo" width={24} height={24} />
             <span className="font-bold font-headline text-xl">StreamVerse</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">

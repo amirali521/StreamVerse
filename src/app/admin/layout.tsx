@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="w-full max-w-md space-y-8">
         <div className="flex justify-center">
             <Link href="/" className="flex items-center space-x-2 text-foreground">
-                <Image src="https://placehold.co/32x32/png?text=SV" alt="StreamVerse Logo" width={32} height={32} />
+                <Image src="https://adswatchearner.42web.io/uploads/img_68f3cf716f2541.06711705.png" alt="StreamVerse Logo" width={32} height={32} />
                 <span className="font-bold font-headline text-3xl">StreamVerse</span>
             </Link>
         </div>

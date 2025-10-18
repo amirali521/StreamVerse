@@ -171,7 +171,7 @@ export function SiteHeader() {
         <MobileNav open={open} setOpen={setOpen} />
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Image src="https://placehold.co/32x32/png?text=SV" alt="StreamVerse Logo" width={32} height={32} />
+            <Image src="https://adswatchearner.42web.io/uploads/img_68f3cf716f2541.06711705.png" alt="StreamVerse Logo" width={32} height={32} />
             <span className="font-bold font-headline text-xl">StreamVerse</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
