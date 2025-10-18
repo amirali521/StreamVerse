@@ -72,7 +72,7 @@ export default function Home() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full h-[40vh] md:h-[50vh] text-white">
-        {loading && newReleases.length === 0 ? (
+        {loading || newReleases.length === 0 ? (
           <div className="w-full h-full bg-secondary animate-pulse" />
         ) : (
           <Carousel
