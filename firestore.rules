@@ -1,0 +1,96 @@
+/**
+ * @fileoverview Firestore Security Rules for Prototyping.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes security by enforcing strict ownership and role-based access control.
+ * It is designed for the prototyping phase, so data shape validation is relaxed to allow for rapid iteration.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores public user profile information, accessible only to the owning user.
+ * - /content/{contentId}: Stores content metadata (movies, web series, dramas), accessible only to admin users.
+ *
+ * Key Security Decisions:
+ * - User profiles are private and only accessible to the owning user. Listing users is disallowed.
+ * - Content creation, modification, and deletion are restricted to users with the 'admin' claim.
+ * - Data shape validation is minimized to enable rapid prototyping but can be added as needed.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' creates their profile.
+     * @allow (get) User with ID 'user123' reads their own profile.
+     * @allow (update) User with ID 'user123' updates their own profile.
+     * @allow (delete) User with ID 'user123' deletes their own profile.
+     * @deny (create) User with ID 'user456' tries to create a profile for 'user123'.
+     * @deny (get) User with ID 'user456' tries to read 'user123' profile.
+     * @deny (update) User with ID 'user456' tries to update 'user123' profile.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isOwner(userId) && request.resource.data.email is string && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.email == resource.data.email;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to content items (movies, web series, dramas).
+     * @path /content/{contentId}
+     * @allow (create) Admin user creates a new content item.
+     * @allow (get) Any user can retrieve content.
+     * @allow (update) Admin user updates a content item.
+     * @allow (delete) Admin user deletes a content item.
+     * @deny (create) Non-admin user attempts to create content.
+     * @deny (update) Non-admin user attempts to update content.
+     * @deny (delete) Non-admin user attempts to delete content.
+     * @principle Enforces admin-only access for content creation, modification, and deletion.
+     */
+    match /content/{contentId} {
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the current user is signed in.
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the document.
+     * @param {string} userId - The user ID to compare against the request's auth UID.
+     * @return {bool} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the existing document.
+     * @param {string} userId - The user ID to compare against the existing document's ID.
+     * @return {bool} True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the current user has the 'admin' claim.
+     * @return {bool} True if the user is an admin, false otherwise.
+     */
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+  }
+}

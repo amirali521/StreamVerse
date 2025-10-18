@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -14,8 +15,9 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="10 8 16 12 10 16 10 8" />
+      <path d="M7.5 4.5L16.5 12L7.5 19.5V4.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M3.5 19.5V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M20.5 19.5V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
