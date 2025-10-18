@@ -56,8 +56,7 @@ interface Content {
   seasons?: Season[];
 }
 
-export default function EditContentPage({ params }: { params: { contentId: string } }) {
-  const { contentId } = params;
+export default function EditContentPage({ params: { contentId } }: { params: { contentId: string } }) {
   const firestore = useFirestore();
   const router = useRouter();
   const [content, setContent] = useState<Content | null>(null);
