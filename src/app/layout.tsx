@@ -1,9 +1,11 @@
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
+import { WatchPageLayout } from "@/components/watch-page-layout";
 
 export const metadata: Metadata = {
   title: "StreamVerse",
@@ -25,12 +27,14 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <FirebaseClientProvider>
-          <SiteHeader />
-          <main className="flex-grow">{children}</main>
-          <SiteFooter />
+          <WatchPageLayout>
+            {children}
+          </WatchPageLayout>
           <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>
   );
 }
+
+    

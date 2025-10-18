@@ -2,27 +2,30 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import { useFirestore } from "@/firebase";
-import { doc, getDoc, collection, getDocs, limit, query, where } from "firebase/firestore";
-import type { Content } from "@/lib/types";
+import { doc, getDoc, collection, getDocs, limit, query, where, type Timestamp } from "firebase/firestore";
+import type { Content as ContentType, Season } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, ThumbsUp, PlusCircle } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Download, PlayCircle } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
+import { VideoPlayer } from "@/components/video-player";
+
+// A version of the Content type for client-side processing with JS Dates
+type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
+  id: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
 
 export default function WatchPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
-  const [item, setItem] = useState<Content | null>(null);
-  const [related, setRelated] = useState<Content[]>([]);
+  const [item, setItem] = useState<ClientContent | null>(null);
+  const [related, setRelated] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<{ title: string; videoUrl: string} | null>(null);
 
   useEffect(() => {
     async function getContentItem(id: string) {
@@ -38,19 +41,49 @@ export default function WatchPage({ params }: { params: { id: string } }) {
         return;
       }
       
-      const fetchedItem = { id: contentSnap.id, ...contentSnap.data() } as Content;
+      const data = contentSnap.data();
+      const fetchedItem = { 
+        id: contentSnap.id, 
+        ...data,
+        createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(0),
+        updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : new Date(0),
+      } as ClientContent;
+      
       setItem(fetchedItem);
 
+      // Default selections for series/drama
+      if (fetchedItem.type !== 'movie' && fetchedItem.seasons && fetchedItem.seasons.length > 0) {
+        const sortedSeasons = [...fetchedItem.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
+        const firstSeason = sortedSeasons[0];
+        setSelectedSeason(firstSeason);
+        if (firstSeason.episodes && firstSeason.episodes.length > 0) {
+          const sortedEpisodes = [...firstSeason.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
+          setSelectedEpisode(sortedEpisodes[0]);
+        }
+      }
+
+
       // Fetch related content
-      const relatedQuery = query(
-          collection(firestore, 'content'), 
-          where('type', '==', fetchedItem.type),
-          where('__name__', '!=', fetchedItem.id),
-          limit(10)
-      );
-      const relatedSnapshot = await getDocs(relatedQuery);
-      const relatedItems = relatedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
-      setRelated(relatedItems);
+      if (fetchedItem.type) {
+        const relatedQuery = query(
+            collection(firestore, 'content'), 
+            where('type', '==', fetchedItem.type),
+            where('__name__', '!=', fetchedItem.id),
+            limit(10)
+        );
+        const relatedSnapshot = await getDocs(relatedQuery);
+        const relatedItems = relatedSnapshot.docs.map(doc => {
+            const relData = doc.data();
+            return {
+                id: doc.id,
+                ...relData,
+                createdAt: relData.createdAt ? (relData.createdAt as Timestamp).toDate() : new Date(0),
+                updatedAt: relData.updatedAt ? (relData.updatedAt as Timestamp).toDate() : new Date(0),
+            } as ClientContent
+        });
+        setRelated(relatedItems);
+      }
+
       setLoading(false);
     }
     
@@ -59,116 +92,97 @@ export default function WatchPage({ params }: { params: { id: string } }) {
   
 
   if (loading) {
-      return <div className="flex items-center justify-center h-screen">Loading...</div>
+      return <div className="flex items-center justify-center h-screen bg-black text-white">Loading...</div>
   }
 
   if (!item) {
     notFound();
   }
   
-  const sortedSeasons = item.seasons?.sort((a, b) => a.seasonNumber - b.seasonNumber) || [];
+  const videoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
+  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - ${selectedEpisode?.title}`;
 
   return (
-    <div className="flex flex-col">
-      {/* Hero/Player Section */}
-      <div className="relative w-full h-[40vh] md:h-[60vh] bg-black flex items-center justify-center">
-        <div className="absolute inset-0">
-            <Image
-              src={item.bannerImageUrl}
-              alt={item.title}
-              fill
-              className="object-cover opacity-30"
-              priority
-            />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-        <div className="relative z-10 text-center">
-            {item.type === 'movie' && (
-                <>
-                    <PlayCircle className="h-24 w-24 text-white/70 hover:text-white transition-colors cursor-pointer" />
-                    <p className="mt-4 text-white/80 text-lg">Play Movie</p>
-                </>
+    <div className="bg-black min-h-screen text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-background/80 rounded-lg overflow-hidden">
+            {videoUrl ? (
+                <VideoPlayer src={videoUrl} />
+            ) : (
+                <div className="aspect-video bg-black flex items-center justify-center">
+                    <p className="text-muted-foreground">Select an episode to play.</p>
+                </div>
             )}
         </div>
-      </div>
+        
+        <div className="py-6">
+            <h1 className="text-3xl md:text-4xl font-headline font-bold">{videoTitle}</h1>
 
-      {/* Content Details */}
-      <div className="container mx-auto py-8 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <h1 className="text-4xl md:text-5xl font-headline font-bold">{item.title}</h1>
-            <div className="flex items-center gap-4 mt-4 text-muted-foreground">
-              {item.imdbRating && (
-                <>
-                  <span>IMDb: {item.imdbRating}/10</span>
-                  <span>&#8226;</span>
-                </>
-              )}
-              <span className="capitalize">{item.type}</span>
-            </div>
-            <p className="mt-6 text-lg text-foreground/80 leading-relaxed">
-              {item.description}
+            {item.imdbRating && (
+                <div className="flex items-center gap-2 mt-2">
+                    <span className="font-bold text-yellow-400">IMDb:</span>
+                    <span>{item.imdbRating}/10</span>
+                </div>
+            )}
+            
+            <p className="mt-4 text-base text-foreground/70 max-w-3xl">
+                {item.description}
             </p>
-            <div className="mt-8 flex items-center gap-4">
-               {item.type === 'movie' && (
-                 <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <PlayCircle className="mr-2 h-6 w-6" /> Play
-                 </Button>
-               )}
-              <Button variant="outline" size="icon" className="h-12 w-12">
-                <PlusCircle className="h-6 w-6" />
-                <span className="sr-only">Add to My List</span>
+
+            {videoUrl && (
+              <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
+                  <a href={videoUrl} download target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-2" />
+                      Download Video
+                  </a>
               </Button>
-              <Button variant="outline" size="icon" className="h-12 w-12">
-                <ThumbsUp className="h-6 w-6" />
-                <span className="sr-only">Like</span>
-              </Button>
-            </div>
-          </div>
+            )}
         </div>
 
-        {item.type !== 'movie' && sortedSeasons.length > 0 && (
-            <>
-                <Separator className="my-12 md:my-16" />
-                <div className="max-w-4xl">
-                    <h2 className="text-3xl font-headline font-semibold mb-6">Seasons & Episodes</h2>
-                     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-                        {sortedSeasons.map((season) => (
-                            <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
-                                <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="space-y-4 pt-4">
-                                    {season.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map((episode) => (
-                                        <div key={episode.episodeNumber} className="flex items-center gap-4 p-3 bg-muted/50 rounded-md">
-                                            <div className="text-2xl font-bold text-primary">{String(episode.episodeNumber).padStart(2, '0')}</div>
-                                            <div className="flex-grow">
-                                                <h4 className="font-semibold">{episode.title}</h4>
-                                                <p className="text-sm text-muted-foreground truncate">{episode.videoUrl}</p>
-                                            </div>
-                                            <Button variant="ghost" size="icon">
-                                                <PlayCircle className="h-6 w-6" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes in this season yet.</p>}
-
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
-                </div>
-            </>
+        {item.type !== 'movie' && item.seasons && item.seasons.length > 0 && (
+          <div className="py-6">
+              <h2 className="text-2xl font-headline font-semibold mb-4">Seasons & Episodes</h2>
+              <div className="flex items-center gap-2 mb-4 border-b border-border pb-2 overflow-x-auto">
+                  {item.seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
+                      <Button 
+                        key={season.seasonNumber}
+                        variant={selectedSeason?.seasonNumber === season.seasonNumber ? 'secondary' : 'ghost'}
+                        onClick={() => setSelectedSeason(season)}
+                      >
+                          Season {season.seasonNumber}
+                      </Button>
+                  ))}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
+                      <button
+                        key={episode.episodeNumber}
+                        onClick={() => setSelectedEpisode(episode)}
+                        className={`p-4 rounded-lg text-left transition-colors ${selectedEpisode?.title === episode.title ? 'bg-secondary' : 'bg-muted/20 hover:bg-muted/40'}`}
+                      >
+                          <div className="flex items-center gap-4">
+                              <PlayCircle className="h-6 w-6 text-primary flex-shrink-0" />
+                              <div>
+                                  <h4 className="font-semibold">Ep {episode.episodeNumber}: {episode.title}</h4>
+                                  <p className="text-xs text-muted-foreground truncate">{item.title}</p>
+                              </div>
+                          </div>
+                      </button>
+                  ))}
+              </div>
+              {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-muted-foreground mt-4">No episodes in this season.</p>}
+          </div>
         )}
 
         {related.length > 0 && (
-            <>
-                <Separator className="my-12 md:my-16" />
-                <ContentCarousel title="More Like This" items={related} />
-            </>
+            <div className="py-12">
+              <ContentCarousel title="More Like This" items={related} />
+            </div>
         )}
-        
       </div>
     </div>
   );
 }
+
+    
