@@ -55,7 +55,8 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      await updateProfile(user, {
+      // We need to use the auth instance from the userCredential to ensure we're acting on the logged in user
+      await updateProfile(userCredential.user, {
         displayName: values.name,
       });
 
@@ -69,9 +70,12 @@ export default function SignupPage() {
 
       toast({
         title: "Account Created",
-        description: "A verification email has been sent to your address.",
+        description: "A verification email has been sent to your address. Please verify to log in.",
       });
+
+      // Redirect to the verification page
       router.push("/auth/verify-email");
+
     } catch (error: any) {
       toast({
         variant: "destructive",

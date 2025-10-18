@@ -9,7 +9,6 @@ import { toast } from "@/hooks/use-toast";
 import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 export default function VerifyEmailPage() {
   const { app } = useFirebase();
