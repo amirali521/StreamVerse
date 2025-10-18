@@ -16,6 +16,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 export default function Home() {
   const firestore = useFirestore();
@@ -79,15 +80,11 @@ export default function Home() {
           <Carousel
             opts={{ loop: true }}
             className="w-full h-full"
-            autoplay
             plugins={[
-              {
-                name: 'autoplay',
-                options: {
-                  delay: 5000,
-                  stopOnInteraction: true,
-                }
-              }
+              Autoplay({
+                delay: 5000,
+                stopOnInteraction: true,
+              }),
             ]}
           >
             <CarouselContent className="h-full">
