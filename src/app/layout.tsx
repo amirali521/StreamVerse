@@ -3,6 +3,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/toaster";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
   title: "StreamVerse",
@@ -23,10 +24,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
-        <SiteHeader />
-        <main className="flex-grow">{children}</main>
-        <SiteFooter />
-        <Toaster />
+        <FirebaseClientProvider>
+          <SiteHeader />
+          <main className="flex-grow">{children}</main>
+          <SiteFooter />
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );
