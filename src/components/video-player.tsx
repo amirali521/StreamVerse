@@ -10,13 +10,29 @@ interface VideoPlayerProps {
 export function VideoPlayer({ src }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const isYouTube = src.includes('youtube.com/embed');
+
   useEffect(() => {
-    // This effect ensures the video element is re-keyed and reloaded when the src changes
-    // which is important for switching episodes.
-    if (videoRef.current) {
+    if (!isYouTube && videoRef.current) {
       videoRef.current.load();
     }
-  }, [src]);
+  }, [src, isYouTube]);
+
+  if (isYouTube) {
+    return (
+      <div className="w-full aspect-video bg-black">
+        <iframe
+          key={src} // Re-mounts the component when src changes
+          src={src}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full"
+        ></iframe>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full aspect-video bg-black">
@@ -34,5 +50,3 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
     </div>
   );
 }
-
-    
