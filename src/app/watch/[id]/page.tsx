@@ -27,12 +27,14 @@ export default function WatchPage() {
 
   const [item, setItem] = useState<ClientContent | null>(null);
   const [related, setRelated] = useState<ClientContent[]>([]);
+  const [trending, setTrending] = useState<ClientContent[]>([]);
+  const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<{ title: string; videoUrl: string} | null>(null);
 
   useEffect(() => {
-    async function getContentItem(id: string) {
+    async function getContentData(id: string) {
       if (!firestore || !id) return;
       
       setLoading(true);
@@ -66,33 +68,40 @@ export default function WatchPage() {
         }
       }
 
+      // Fetch all other content for carousels
+      const allContentCol = collection(firestore, 'content');
+      const allContentSnapshot = await getDocs(allContentCol);
 
-      // Fetch related content
-      if (fetchedItem.type) {
-        const relatedQuery = query(
-            collection(firestore, 'content'), 
-            where('type', '==', fetchedItem.type),
-            where('__name__', '!=', fetchedItem.id),
-            limit(10)
-        );
-        const relatedSnapshot = await getDocs(relatedQuery);
-        const relatedItems = relatedSnapshot.docs.map(doc => {
-            const relData = doc.data();
+      const allContent: ClientContent[] = allContentSnapshot.docs
+        .filter(doc => doc.id !== fetchedItem.id) // Exclude the current item
+        .map(doc => {
+            const contentData = doc.data();
             return {
                 id: doc.id,
-                ...relData,
-                createdAt: relData.createdAt ? (relData.createdAt as Timestamp).toDate() : new Date(0),
-                updatedAt: relData.updatedAt ? (relData.updatedAt as Timestamp).toDate() : new Date(0),
+                ...contentData,
+                createdAt: contentData.createdAt ? (contentData.createdAt as Timestamp).toDate() : new Date(0),
+                updatedAt: contentData.updatedAt ? (contentData.updatedAt as Timestamp).toDate() : new Date(0),
             } as ClientContent
         });
-        setRelated(relatedItems);
-      }
+
+      // Related content (same type)
+      const relatedItems = allContent.filter(c => c.type === fetchedItem.type).slice(0, 10);
+      setRelated(relatedItems);
+
+      // New Releases
+      const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      setNewReleases(sortedNewReleases.slice(0, 10));
+
+      // Trending
+      const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+      setTrending(sortedTrending.slice(0, 10));
+
 
       setLoading(false);
     }
     
     if (id) {
-      getContentItem(id);
+      getContentData(id);
     }
   }, [id, firestore]);
   
@@ -155,7 +164,16 @@ export default function WatchPage() {
                       <Button 
                         key={season.seasonNumber}
                         variant={selectedSeason?.seasonNumber === season.seasonNumber ? 'secondary' : 'ghost'}
-                        onClick={() => setSelectedSeason(season)}
+                        onClick={() => {
+                          setSelectedSeason(season);
+                          // Select first episode of the season when season changes
+                          if (season.episodes && season.episodes.length > 0) {
+                             const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
+                             setSelectedEpisode(sortedEpisodes[0]);
+                          } else {
+                            setSelectedEpisode(null);
+                          }
+                        }}
                       >
                           Season {season.seasonNumber}
                       </Button>
@@ -182,12 +200,16 @@ export default function WatchPage() {
           </div>
         )}
 
-        {related.length > 0 && (
-            <div className="py-12">
-              <ContentCarousel title="More Like This" items={related} />
-            </div>
-        )}
+        <div className="space-y-16 py-12">
+            {related.length > 0 && (
+                <ContentCarousel title="More Like This" items={related} />
+            )}
+            {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
+        </div>
       </div>
     </div>
   );
 }
+
+    
