@@ -4,9 +4,10 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useFirebase } from "@/firebase/provider";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { app } = useFirebase();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loaded } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,6 +45,12 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (loaded && user) {
+      router.push("/");
+    }
+  }, [user, loaded, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!app) return;
@@ -53,22 +60,22 @@ export default function LoginPage() {
       const signedInUser = userCredential.user;
 
       if (!signedInUser.emailVerified) {
+        // Sign out the user immediately to prevent access
+        await signOut(auth);
+        
         toast({
             variant: "destructive",
             title: "Email Not Verified",
-            description: "Please verify your email before logging in. We've re-sent a verification email.",
+            description: "Please check your inbox and verify your email before logging in.",
         });
         
-        // Pass user info to verification page
-        // Storing user in a global state or passing through router query could be an option
-        // For simplicity, we assume the verification page can get the user context
-        router.push("/auth/verify-email");
+        router.push(`/auth/verify-email?email=${values.email}`);
         return;
       }
 
       toast({
         title: "Login Successful",
-        description: "You have been logged in.",
+        description: "Welcome back!",
       });
       router.push("/");
     } catch (error: any) {
@@ -80,9 +87,8 @@ export default function LoginPage() {
     }
   }
   
-  if (user) {
-    router.push("/");
-    return <div className="flex min-h-screen items-center justify-center">Redirecting...</div>
+  if (!loaded || user) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
   }
 
   return (
