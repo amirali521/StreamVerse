@@ -51,8 +51,7 @@ export default function LoginPage() {
       if(user.emailVerified) {
         router.push("/");
       } else {
-        // If user is logged in but not verified, send to verification page.
-        // This can happen if they close the tab after signing up.
+        // If user is somehow logged in but not verified, send to verification page.
         router.push("/auth/verify-email");
       }
     }
@@ -75,8 +74,8 @@ export default function LoginPage() {
             description: "Please check your inbox and verify your email before logging in.",
         });
         
-        // Pass email as query param to pre-fill on verify page if needed
-        router.push(`/auth/verify-email?email=${values.email}`);
+        // Redirect to verification page
+        router.push(`/auth/verify-email`);
         return;
       }
 
@@ -84,7 +83,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      // The useEffect hook will handle the redirect to "/"
+      // The useEffect hook will handle the redirect to "/" for verified users
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -94,7 +93,7 @@ export default function LoginPage() {
     }
   }
   
-  if (!loaded || user) {
+  if (!loaded || (loaded && user)) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>
   }
 
