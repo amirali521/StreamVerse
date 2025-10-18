@@ -5,8 +5,6 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 
 let app: App;
-let firestore: Firestore;
-let auth: Auth;
 
 if (!getApps().length) {
     app = initializeApp();
@@ -14,8 +12,8 @@ if (!getApps().length) {
     app = getApp();
 }
 
-firestore = getFirestore(app);
-auth = getAuth(app);
+const firestore: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app);
 
 
 export function initializeFirebase() {
