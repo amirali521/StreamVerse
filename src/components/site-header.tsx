@@ -38,7 +38,7 @@ function UserNav() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="hidden items-center gap-2 md:flex">
         <Button asChild variant="outline" size="sm">
           <Link href="/login">Log In</Link>
         </Button>
@@ -89,7 +89,7 @@ function UserNav() {
 }
 
 function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
-  const { user, claims } = useUser();
+  const { user, claims, loaded } = useUser();
   const { app } = useFirebase();
   const handleSignOut = async () => {
     if (!app) return;
@@ -139,7 +139,7 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
             Dramas
           </Link>
           <DropdownMenuSeparator />
-          {user && (
+          {loaded && user && (
             <>
               {claims?.admin && <Link href="/admin" className="font-bold text-lg" onClick={() => setOpen(false)}>Admin</Link>}
               <Link href="#" className="font-bold text-lg" onClick={() => setOpen(false)}>Profile</Link>
@@ -148,6 +148,12 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
                 setOpen(false);
               }} className="font-bold text-lg text-left">Logout</button>
             </>
+          )}
+          {loaded && !user && (
+            <div className="flex flex-col gap-4">
+              <Link href="/login" className="font-bold text-lg" onClick={() => setOpen(false)}>Login</Link>
+              <Link href="/signup" className="font-bold text-lg" onClick={() => setOpen(false)}>Sign up</Link>
+            </div>
           )}
         </nav>
       </SheetContent>
