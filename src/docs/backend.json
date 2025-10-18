@@ -116,7 +116,7 @@
             "description": "The timestamp when the content was last updated."
         }
       },
-      "required": ["title", "description", "type", "bannerImageUrl", "createdAt", "updatedAt"]
+      "required": ["title", "description", "type", "bannerImageUrl"]
     }
   },
   "auth": {

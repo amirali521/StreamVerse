@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,8 +19,8 @@ import Autoplay from "embla-carousel-autoplay";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export default function Home() {
@@ -48,17 +49,17 @@ export default function Home() {
         // Fetch all content and process it on the client
         const allContent: ClientContent[] = contentSnapshot.docs.map(doc => {
           const data = doc.data();
-          // Convert Firestore Timestamps to JS Dates
+          // Convert Firestore Timestamps to JS Dates, with a fallback for old data
           return {
             id: doc.id,
             ...data,
-            createdAt: (data.createdAt as Timestamp).toDate(),
-            updatedAt: (data.updatedAt as Timestamp).toDate(),
+            createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(0),
+            updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : new Date(0),
           } as ClientContent;
         });
 
         // 1. Get New Releases: Sort all content by `updatedAt` date
-        const sortedNewReleases = [...allContent].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        const sortedNewReleases = [...allContent].sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
         setNewReleases(sortedNewReleases.slice(0, 10));
 
         // 2. Get Trending: Sort all content by IMDb rating
