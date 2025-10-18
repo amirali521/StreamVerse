@@ -96,11 +96,7 @@ export default function AddContentPage() {
         title: "Content Added",
         description: `${values.title} has been successfully added.`,
       });
-      if (values.type === 'movie') {
-          router.push(`/admin/content`);
-      } else {
-          router.push(`/admin/content`);
-      }
+      router.push(`/admin/content`);
 
     } catch (error: any) {
       toast({
@@ -231,3 +227,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    

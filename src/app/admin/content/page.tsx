@@ -2,9 +2,8 @@
 "use client";
 
 import { useFirestore } from "@/firebase";
-import { collection, getDocs, doc, deleteDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -33,7 +32,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Accordion,
@@ -45,6 +43,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 
 // Data structures from backend.json
 interface Episode {
@@ -68,6 +71,106 @@ interface Content {
   googleDriveVideoUrl?: string;
   seasons?: Season[];
 }
+
+// Reusable form for editing content details
+const editContentSchema = z.object({
+  title: z.string().min(1, "Title is required."),
+  description: z.string().min(1, "Description is required."),
+  bannerImageUrl: z.string().url("Please enter a valid URL."),
+  imdbRating: z.coerce.number().min(0).max(10).optional(),
+  googleDriveVideoUrl: z.string().optional(),
+});
+
+function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
+    const firestore = useFirestore();
+    const form = useForm<z.infer<typeof editContentSchema>>({
+        resolver: zodResolver(editContentSchema),
+        defaultValues: {
+            title: contentItem.title,
+            description: contentItem.description,
+            bannerImageUrl: contentItem.bannerImageUrl,
+            imdbRating: contentItem.imdbRating || 0,
+            googleDriveVideoUrl: contentItem.googleDriveVideoUrl || "",
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof editContentSchema>) {
+        if (!firestore) return;
+
+        const updatedData: Partial<Content> = {
+            ...values,
+            imdbRating: values.imdbRating || 0,
+        };
+
+        if (contentItem.type === 'movie') {
+            if (!values.googleDriveVideoUrl) {
+                form.setError("googleDriveVideoUrl", { type: "manual", message: "Video URL is required for movies." });
+                return;
+            }
+            updatedData.googleDriveVideoUrl = values.googleDriveVideoUrl;
+        }
+
+        try {
+            const docRef = doc(firestore, "content", contentItem.id);
+            await updateDoc(docRef, updatedData);
+            onUpdate({ ...contentItem, ...updatedData });
+            toast({ title: "Content Updated", description: `${values.title} has been updated.` });
+            closeDialog();
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: error.message });
+        }
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField control={form.control} name="title" render={({ field }) => (
+                    <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
+                    <FormItem><FormLabel>Banner Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="imdbRating" render={({ field }) => (
+                    <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                {contentItem.type === 'movie' && (
+                    <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
+                        <FormItem><FormLabel>Google Drive Video URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                )}
+                <DialogFooter>
+                    <Button variant="outline" type="button" onClick={closeDialog}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    );
+}
+
+// Edit Modal for Movies
+function EditMovieModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Movie: {contentItem.title}</DialogTitle>
+                    <DialogDescription>Update the details for this movie.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <EditContentForm
+                    contentItem={contentItem}
+                    onUpdate={onUpdate}
+                    closeDialog={() => onOpenChange(false)}
+                  />
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 // Edit Modal for Web Series / Dramas
 function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
@@ -96,7 +199,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
             toast({ variant: "destructive", title: "Error", description: error.message });
         }
     };
-    
+
     const handleAddEpisode = async () => {
         if (!firestore || selectedSeason === null || !newEpisodeTitle || !newEpisodeUrl) return;
 
@@ -129,11 +232,11 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
 
     const handleEditEpisode = async () => {
         if (!firestore || selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeUrl) return;
-        
+
         const updatedSeasons = seasons.map(s => {
             if (s.seasonNumber === selectedSeason) {
-                const updatedEpisodes = s.episodes.map(e => 
-                    e.episodeNumber === selectedEpisode.episodeNumber 
+                const updatedEpisodes = s.episodes.map(e =>
+                    e.episodeNumber === selectedEpisode.episodeNumber
                     ? { ...e, title: newEpisodeTitle, videoUrl: newEpisodeUrl }
                     : e
                 );
@@ -153,7 +256,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
             toast({ variant: "destructive", title: "Error", description: e.message });
         }
     };
-    
+
     const handleDeleteEpisode = async (seasonNumber: number, episode: Episode) => {
         if (!firestore) return;
 
@@ -196,13 +299,13 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                   <div className="flex justify-end mb-4">
                                       <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
                                           <DialogTrigger asChild>
-                                              <Button variant="outline" onClick={() => { 
-                                                setSelectedSeason(season.seasonNumber); 
+                                              <Button variant="outline" onClick={() => {
+                                                setSelectedSeason(season.seasonNumber);
                                                 const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
                                                 const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
-                                                setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`); 
-                                                setNewEpisodeUrl(""); 
-                                                setAddEpisodeOpen(true); 
+                                                setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
+                                                setNewEpisodeUrl("");
+                                                setAddEpisodeOpen(true);
                                               }}>
                                                   <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
                                               </Button>
@@ -296,7 +399,7 @@ export default function ManageContentPage() {
   useEffect(() => {
     fetchContent();
   }, [firestore]);
-  
+
   const handleDelete = async (id: string, title: string) => {
     if (!firestore) return;
     try {
@@ -314,7 +417,7 @@ export default function ManageContentPage() {
         });
     }
   };
-  
+
   const handleUpdate = (updatedContent: Content) => {
     setContentList(contentList.map(c => c.id === updatedContent.id ? updatedContent : c));
   };
@@ -351,12 +454,10 @@ export default function ManageContentPage() {
                 <TableCell className="font-medium">{content.title}</TableCell>
                 <TableCell className="capitalize">{content.type}</TableCell>
                 <TableCell className="text-right">
-                    {content.type !== 'movie' && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                        </Button>
-                    )}
+                    <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                    </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -388,8 +489,17 @@ export default function ManageContentPage() {
       </CardContent>
     </Card>
 
+    {editingContent && editingContent.type === 'movie' && (
+        <EditMovieModal
+            isOpen={!!editingContent}
+            onOpenChange={(open) => !open && setEditingContent(null)}
+            contentItem={editingContent}
+            onUpdate={handleUpdate}
+        />
+    )}
+
     {editingContent && editingContent.type !== 'movie' && (
-        <EditSeriesModal 
+        <EditSeriesModal
             isOpen={!!editingContent}
             onOpenChange={(open) => !open && setEditingContent(null)}
             contentItem={editingContent}
