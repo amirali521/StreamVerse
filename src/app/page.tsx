@@ -46,8 +46,8 @@ export default function Home() {
         const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
         setTrending(await fetchAndMap(trendingQuery));
 
-        // New Releases: Most recently created
-        const newReleasesQuery = query(contentCol, orderBy('createdAt', 'desc'), limit(10));
+        // New Releases: Most recently updated
+        const newReleasesQuery = query(contentCol, orderBy('updatedAt', 'desc'), limit(10));
         setNewReleases(await fetchAndMap(newReleasesQuery));
         
         // Popular Dramas: Fetch all dramas, then sort and slice on the client
@@ -142,3 +142,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+    

@@ -2,7 +2,7 @@
 "use client";
 
 import { useFirestore } from "@/firebase";
-import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Table,
@@ -97,9 +97,10 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     async function onSubmit(values: z.infer<typeof editContentSchema>) {
         if (!firestore) return;
 
-        const updatedData: Partial<Content> = {
+        const updatedData: Partial<Content> & { updatedAt: any } = {
             ...values,
             imdbRating: values.imdbRating || 0,
+            updatedAt: serverTimestamp()
         };
 
         if (contentItem.type === 'movie') {
@@ -191,7 +192,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons });
+            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
             setSeasons(updatedSeasons);
             onUpdate({ ...contentItem, seasons: updatedSeasons });
             toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been added.` });
@@ -218,7 +219,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons });
+            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
             setSeasons(updatedSeasons);
             onUpdate({ ...contentItem, seasons: updatedSeasons });
             toast({ title: "Episode Added", description: `${newEpisodeTitle} has been added to Season ${selectedSeason}.` });
@@ -247,7 +248,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons });
+            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
             setSeasons(updatedSeasons);
             onUpdate({ ...contentItem, seasons: updatedSeasons });
             toast({ title: "Episode Updated" });
@@ -271,7 +272,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons });
+            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
             setSeasons(updatedSeasons);
             onUpdate({ ...contentItem, seasons: updatedSeasons });
             toast({ title: "Episode Deleted" });
@@ -510,5 +511,7 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
+    
 
     
