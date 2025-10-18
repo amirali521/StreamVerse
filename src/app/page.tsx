@@ -21,6 +21,9 @@ export default function Home() {
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
+  const [bollywood, setBollywood] = useState<ClientContent[]>([]);
+  const [hollywood, setHollywood] = useState<ClientContent[]>([]);
+  const [tollywood, setTollywood] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,6 +67,12 @@ export default function Home() {
         const sortedDramas = dramas.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
         setPopularDramas(sortedDramas.slice(0, 10));
 
+        // 4. Get content by specific categories
+        setBollywood(allContent.filter(item => item.categories?.includes('Bollywood')));
+        setHollywood(allContent.filter(item => item.categories?.includes('Hollywood')));
+        setTollywood(allContent.filter(item => item.categories?.includes('Tollywood')));
+
+
       } catch (error) {
         console.error("Error fetching homepage content:", error);
       } finally {
@@ -92,6 +101,9 @@ export default function Home() {
           <>
             {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
             {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+            {bollywood.length > 0 && <ContentCarousel title="Bollywood" items={bollywood} />}
+            {hollywood.length > 0 && <ContentCarousel title="Hollywood" items={hollywood} />}
+            {tollywood.length > 0 && <ContentCarousel title="Tollywood" items={tollywood} />}
             {popularDramas.length > 0 && <ContentCarousel title="Popular Dramas" items={popularDramas} />}
           </>
         )}
