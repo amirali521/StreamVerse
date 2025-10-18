@@ -1,9 +1,11 @@
 
+"use client";
+
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { initializeFirebase } from "@/firebase/server";
-import { doc, getDoc } from "firebase/firestore";
-import type { Content, Season } from "@/lib/types";
+import { useFirestore } from "@/firebase";
+import { doc, getDoc, collection, getDocs, limit, query, where } from "firebase/firestore";
+import type { Content } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, ThumbsUp, PlusCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -14,38 +16,51 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ContentCarousel } from "@/components/content-carousel";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
 
-async function getContentItem(id: string) {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return { item: null, related: [] };
+export default function WatchPage({ params }: { params: { id: string } }) {
+  const firestore = useFirestore();
+  const [item, setItem] = useState<Content | null>(null);
+  const [related, setRelated] = useState<Content[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const contentRef = doc(firestore, 'content', id);
-    const contentSnap = await getDoc(contentRef);
+  useEffect(() => {
+    async function getContentItem(id: string) {
+      if (!firestore) return;
+      
+      setLoading(true);
+      const contentRef = doc(firestore, 'content', id);
+      const contentSnap = await getDoc(contentRef);
 
-    if (!contentSnap.exists()) {
-        return { item: null, related: [] };
+      if (!contentSnap.exists()) {
+        setItem(null);
+        setLoading(false);
+        return;
+      }
+      
+      const fetchedItem = { id: contentSnap.id, ...contentSnap.data() } as Content;
+      setItem(fetchedItem);
+
+      // Fetch related content
+      const relatedQuery = query(
+          collection(firestore, 'content'), 
+          where('type', '==', fetchedItem.type),
+          where('__name__', '!=', fetchedItem.id),
+          limit(10)
+      );
+      const relatedSnapshot = await getDocs(relatedQuery);
+      const relatedItems = relatedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+      setRelated(relatedItems);
+      setLoading(false);
     }
     
-    const item = { id: contentSnap.id, ...contentSnap.data() } as Content;
+    getContentItem(params.id);
+  }, [params.id, firestore]);
+  
 
-    // Fetch related content (same type, excluding current item)
-    const relatedQuery = query(
-        collection(firestore, 'content'), 
-        where('type', '==', item.type),
-        where('__name__', '!=', item.id), // Exclude the current item
-        limit(10)
-    );
-    const relatedSnapshot = await getDocs(relatedQuery);
-    const related = relatedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
-
-
-    return { item, related };
-}
-
-
-export default async function WatchPage({ params }: { params: { id: string } }) {
-  const { item, related } = await getContentItem(params.id);
+  if (loading) {
+      return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
 
   if (!item) {
     notFound();
