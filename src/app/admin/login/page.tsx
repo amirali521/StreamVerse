@@ -23,6 +23,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { useFirebase } from "@/firebase/provider";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -30,6 +33,8 @@ const formSchema = z.object({
 });
 
 export default function AdminLoginPage() {
+  const { app } = useFirebase();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,12 +43,33 @@ export default function AdminLoginPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Login Submitted",
-      description: "In a real app, this would log the admin in.",
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!app) return;
+    const auth = getAuth(app);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const idTokenResult = await userCredential.user.getIdTokenResult();
+      if (idTokenResult.claims.admin) {
+        toast({
+          title: "Admin Login Successful",
+          description: "Welcome back!",
+        });
+        router.push("/admin");
+      } else {
+        await auth.signOut();
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "You do not have admin privileges.",
+        });
+      }
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: error.message,
+        });
+    }
   }
 
   return (

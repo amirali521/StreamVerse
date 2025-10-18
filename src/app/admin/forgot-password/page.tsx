@@ -24,12 +24,15 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ChevronLeft } from "lucide-react";
+import { useFirebase } from "@/firebase/provider";
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
 });
 
 export default function ForgotPasswordPage() {
+  const { app } = useFirebase();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -37,12 +40,22 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Password Reset Requested",
-      description: `If an account exists for ${values.email}, a reset link has been sent.`,
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!app) return;
+    const auth = getAuth(app);
+    try {
+      await sendPasswordResetEmail(auth, values.email);
+      toast({
+        title: "Password Reset Requested",
+        description: `If an account exists for ${values.email}, a reset link has been sent.`,
+      });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message || "Could not send password reset email.",
+        });
+    }
   }
 
   return (
