@@ -19,6 +19,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -38,14 +39,8 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M10 8.125a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-      <path d="M14 15.875a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-      <path d="M18.375 5.25a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-      <path d="M5.625 18.75a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-      <path d="m10 10-4.5 4.5" />
-      <path d="m18.375 7.25-4.5 4.5" />
-      <path d="m13.75 5.25-4.5 4.5" />
       <circle cx="12" cy="12" r="10" />
+      <polygon points="10 8 16 12 10 16 10 8" />
     </svg>
   );
 }
@@ -132,16 +127,22 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
           variant="ghost"
           className="mr-2 px-0 pl-4 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
         >
-          <Menu className="h-8 w-8" />
+          <Menu className="h-9 w-9" />
           <span className="sr-only">Toggle Menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="pr-0 pt-12">
-        <SheetTitle className="sr-only">Menu</SheetTitle>
-        <SheetDescription className="sr-only">
-          Site navigation and account options.
-        </SheetDescription>
-        <nav className="flex flex-col gap-4">
+      <SheetContent side="left" className="pr-0">
+        <SheetHeader className="p-4 text-left">
+          <Link href="/" className="flex items-center space-x-2" onClick={() => setOpen(false)}>
+            <LogoIcon className="h-8 w-8" />
+            <span className="font-bold font-headline text-xl">StreamVerse</span>
+          </Link>
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SheetDescription className="sr-only">
+            Site navigation and account options.
+          </SheetDescription>
+        </SheetHeader>
+        <nav className="flex flex-col gap-4 p-4">
         <Link
             href="/"
             className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
