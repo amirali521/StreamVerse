@@ -1,7 +1,7 @@
 
 import { ContentCarousel } from "@/components/content-carousel";
 import { initializeFirebase } from "@/firebase/server";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit, where } from "firebase/firestore";
 import type { Content } from "@/lib/types";
 
 async function getHomePageContent() {
@@ -23,12 +23,9 @@ async function getHomePageContent() {
   const newReleases = newReleasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
 
   // Popular Dramas: type === 'drama', highest rated
-  const popularDramasQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
+  const popularDramasQuery = query(contentCol, where('type', '==', 'drama'), orderBy('imdbRating', 'desc'), limit(10));
   const popularDramasSnapshot = await getDocs(popularDramasQuery);
-  // We filter client-side because Firestore doesn't support inequality filters on one field and ordering on another
-  const popularDramas = popularDramasSnapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() } as Content))
-    .filter(item => item.type === 'drama');
+  const popularDramas = popularDramasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
 
   return { trending, newReleases, popularDramas };
 }
