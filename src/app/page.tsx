@@ -1,10 +1,21 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useFirestore } from "@/firebase";
 import { collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function Home() {
   const firestore = useFirestore();
@@ -56,21 +67,61 @@ export default function Home() {
     fetchContent();
   }, [firestore]);
 
+  const heroItems = newReleases.slice(0, 4);
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full h-[60vh] md:h-[80vh] text-white bg-black">
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-12 lg:p-24">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold text-white drop-shadow-xl">
-              StreamVerse
-            </h1>
-            <p className="mt-4 text-lg md:text-xl text-white/90 drop-shadow-lg">
-              Your universe of movies, web series, and dramas. Explore trending content, new releases, and popular shows.
-            </p>
-          </div>
-        </div>
+      <section className="relative w-full h-[40vh] md:h-[50vh] text-white">
+        {loading && heroItems.length === 0 ? (
+          <div className="w-full h-full bg-secondary animate-pulse" />
+        ) : (
+          <Carousel
+            opts={{ loop: true }}
+            className="w-full h-full"
+            autoplay
+            plugins={[
+              {
+                name: 'autoplay',
+                options: {
+                  delay: 5000,
+                  stopOnInteraction: true,
+                }
+              }
+            ]}
+          >
+            <CarouselContent className="h-full">
+              {heroItems.map((item) => (
+                <CarouselItem key={item.id} className="h-full">
+                  <Link href={`/watch/${item.id}`} className="block h-full">
+                    <div className="relative h-full">
+                      <Image
+                        src={item.bannerImageUrl}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
+                      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-12 lg:p-24">
+                        <div className="max-w-2xl">
+                          <h1 className="text-4xl md:text-6xl font-headline font-bold text-white drop-shadow-xl">
+                            {item.title}
+                          </h1>
+                          <p className="mt-2 md:mt-4 text-sm md:text-lg text-white/90 drop-shadow-lg line-clamp-2">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
+            <CarouselNext className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
+          </Carousel>
+        )}
       </section>
 
       {/* Content Sections */}
