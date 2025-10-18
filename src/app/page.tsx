@@ -68,13 +68,11 @@ export default function Home() {
     fetchContent();
   }, [firestore]);
 
-  const heroItems = newReleases.slice(0, 4);
-
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full h-[40vh] md:h-[50vh] text-white">
-        {loading && heroItems.length === 0 ? (
+        {loading && newReleases.length === 0 ? (
           <div className="w-full h-full bg-secondary animate-pulse" />
         ) : (
           <Carousel
@@ -88,7 +86,7 @@ export default function Home() {
             ]}
           >
             <CarouselContent className="h-full">
-              {heroItems.map((item) => (
+              {newReleases.slice(0, 4).map((item) => (
                 <CarouselItem key={item.id} className="h-full">
                   <Link href={`/watch/${item.id}`} className="block h-full">
                     <div className="relative h-full">
@@ -142,6 +140,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-    
