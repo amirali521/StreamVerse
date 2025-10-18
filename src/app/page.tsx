@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useFirestore } from "@/firebase";
-import { collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
+import { collection, getDocs, type Timestamp } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
 import {
@@ -16,49 +16,59 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 
+// A version of the Content type for client-side processing with JS Dates
+type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export default function Home() {
   const firestore = useFirestore();
-  const [trending, setTrending] = useState<Content[]>([]);
-  const [newReleases, setNewReleases] = useState<Content[]>([]);
-  const [popularDramas, setPopularDramas] = useState<Content[]>([]);
+  const [trending, setTrending] = useState<ClientContent[]>([]);
+  const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
+  const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function getHomePageContent() {
       if (!firestore) {
-        setLoading(false);
-        return;
+        return; // Wait for firestore to be initialized
       }
 
+      setLoading(true);
       try {
-        setLoading(true);
         const contentCol = collection(firestore, 'content');
+        const contentSnapshot = await getDocs(contentCol);
 
-        const fetchAndMap = async (q: any) => {
-          const snapshot = await getDocs(q);
-          if (snapshot.empty) {
-            return [];
-          }
-          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
-        };
+        if (contentSnapshot.empty) {
+          setLoading(false);
+          return;
+        }
 
-        const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
-        const newReleasesQuery = query(contentCol, orderBy('updatedAt', 'desc'), limit(10));
-        const dramasQuery = query(contentCol, where('type', '==', 'drama'));
+        // Fetch all content and process it on the client
+        const allContent: ClientContent[] = contentSnapshot.docs.map(doc => {
+          const data = doc.data();
+          // Convert Firestore Timestamps to JS Dates
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: (data.createdAt as Timestamp).toDate(),
+            updatedAt: (data.updatedAt as Timestamp).toDate(),
+          } as ClientContent;
+        });
 
-        const [trendingRes, newReleasesRes, allDramasRes] = await Promise.all([
-            fetchAndMap(trendingQuery),
-            fetchAndMap(newReleasesQuery),
-            fetchAndMap(dramasQuery)
-        ]);
+        // 1. Get New Releases: Sort all content by `updatedAt` date
+        const sortedNewReleases = [...allContent].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        setNewReleases(sortedNewReleases.slice(0, 10));
+
+        // 2. Get Trending: Sort all content by IMDb rating
+        const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+        setTrending(sortedTrending.slice(0, 10));
         
-        const sortedDramas = allDramasRes
-            .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
-            .slice(0, 10);
-
-        setTrending(trendingRes);
-        setNewReleases(newReleasesRes);
-        setPopularDramas(sortedDramas);
+        // 3. Get Popular Dramas: Filter for dramas, then sort by rating
+        const dramas = allContent.filter(item => item.type === 'drama');
+        const sortedDramas = dramas.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+        setPopularDramas(sortedDramas.slice(0, 10));
 
       } catch (error) {
         console.error("Error fetching homepage content:", error);
