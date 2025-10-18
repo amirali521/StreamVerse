@@ -4,8 +4,9 @@
 import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/firestore";
-import type { Content as ContentType, Season } from "@/lib/types";
+import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, PlayCircle } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
@@ -19,6 +20,75 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   updatedAt?: Date;
 };
 
+function EpisodeSelector({ 
+  item,
+  selectedSeason,
+  setSelectedSeason,
+  selectedEpisode,
+  setSelectedEpisode
+}: {
+  item: ClientContent,
+  selectedSeason: Season | null,
+  setSelectedSeason: (season: Season | null) => void,
+  selectedEpisode: Episode | null,
+  setSelectedEpisode: (episode: Episode | null) => void
+}) {
+  if (!item.seasons || item.seasons.length === 0) return null;
+  
+  const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
+
+  return (
+    <Card className="bg-background/80">
+      <CardHeader>
+        <CardTitle className="text-xl">Resources</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Season</h3>
+            <div className="flex flex-wrap gap-2">
+              {sortedSeasons.map(season => (
+                <Button 
+                  key={season.seasonNumber} 
+                  size="sm"
+                  variant={selectedSeason?.seasonNumber === season.seasonNumber ? 'secondary' : 'outline'}
+                  onClick={() => {
+                    setSelectedSeason(season);
+                    if (season.episodes && season.episodes.length > 0) {
+                      const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
+                      setSelectedEpisode(sortedEpisodes[0]);
+                    } else {
+                      setSelectedEpisode(null);
+                    }
+                  }}
+                >
+                  S{String(season.seasonNumber).padStart(2, '0')}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
+            <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
+              {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
+                <Button 
+                  key={episode.episodeNumber}
+                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="aspect-square p-0"
+                  onClick={() => setSelectedEpisode(episode)}
+                >
+                  {String(episode.episodeNumber).padStart(2, '0')}
+                </Button>
+              ))}
+            </div>
+             {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes in this season.</p>}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function WatchPage() {
   const firestore = useFirestore();
@@ -31,7 +101,7 @@ export default function WatchPage() {
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
-  const [selectedEpisode, setSelectedEpisode] = useState<{ title: string; videoUrl: string} | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -88,19 +158,16 @@ export default function WatchPage() {
       const getRelatedContent = () => {
           const itemCategories = fetchedItem.categories || [];
           if (itemCategories.length > 0) {
-              // 1. Find items that match ALL categories
               const perfectMatches = allContent.filter(c => 
                   c.categories && itemCategories.every(cat => c.categories!.includes(cat))
               );
               if (perfectMatches.length > 0) return perfectMatches;
               
-              // 2. Find items that match ANY category
               const partialMatches = allContent.filter(c => 
                   c.categories && itemCategories.some(cat => c.categories!.includes(cat))
               );
               if (partialMatches.length > 0) return partialMatches;
           }
-          // 3. Fallback: Find items of the same type
           return allContent.filter(c => c.type === fetchedItem.type);
       };
 
@@ -135,99 +202,78 @@ export default function WatchPage() {
   const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
   const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
-  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - ${selectedEpisode?.title}`;
+  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`;
 
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-background/80 rounded-lg overflow-hidden">
-            {embedUrl ? (
-                <VideoPlayer src={embedUrl} />
-            ) : (
-                <div className="aspect-video bg-black flex items-center justify-center">
-                    <p className="text-muted-foreground">Select an episode to play.</p>
-                </div>
-            )}
-        </div>
-        
-        <div className="py-6">
-            <h1 className="text-3xl md:text-4xl font-headline font-bold">{videoTitle}</h1>
 
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2">
-              {item.imdbRating && (
-                  <div className="flex items-center gap-2">
-                      <span className="font-bold text-yellow-400">IMDb:</span>
-                      <span>{item.imdbRating}/10</span>
-                  </div>
-              )}
-              {item.categories && item.categories.length > 0 && (
-                <div className="flex items-center gap-2">
-                  {item.categories.map(category => (
-                    <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
-                  ))}
-                </div>
-              )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Player and Details */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-background/80 rounded-lg overflow-hidden">
+                {embedUrl ? (
+                    <VideoPlayer src={embedUrl} />
+                ) : (
+                    <div className="aspect-video bg-black flex items-center justify-center">
+                        <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
+                    </div>
+                )}
             </div>
             
-            <p className="mt-4 text-base text-foreground/70 max-w-3xl">
-                {item.description}
-            </p>
+            <div>
+                <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
+                 {item.type !== 'movie' && selectedEpisode && (
+                   <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
+                 )}
 
-            {downloadUrl && !downloadUrl.includes('youtube.com') && (
-              <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
-                  <a href={downloadUrl} download>
-                      <Download className="mr-2" />
-                      Download Video
-                  </a>
-              </Button>
-            )}
+
+                <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-4">
+                  {item.imdbRating && (
+                      <div className="flex items-center gap-2">
+                          <span className="font-bold text-yellow-400">IMDb:</span>
+                          <span>{item.imdbRating}/10</span>
+                      </div>
+                  )}
+                  {item.categories && item.categories.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {item.categories.map(category => (
+                        <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <p className="mt-4 text-base text-foreground/70 max-w-3xl">
+                    {item.description}
+                </p>
+
+                {downloadUrl && !downloadUrl.includes('youtube.com') && (
+                  <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
+                      <a href={downloadUrl} download>
+                          <Download className="mr-2" />
+                          Download Video
+                      </a>
+                  </Button>
+                )}
+            </div>
+          </div>
+
+          {/* Right Column: Episode Selector */}
+          {item.type !== 'movie' && (
+            <div className="lg:col-span-1">
+              <EpisodeSelector 
+                item={item}
+                selectedSeason={selectedSeason}
+                setSelectedSeason={setSelectedSeason}
+                selectedEpisode={selectedEpisode}
+                setSelectedEpisode={setSelectedEpisode}
+              />
+            </div>
+          )}
         </div>
 
-        {item.type !== 'movie' && item.seasons && item.seasons.length > 0 && (
-          <div className="py-6">
-              <h2 className="text-2xl font-headline font-semibold mb-4">Seasons & Episodes</h2>
-              <div className="flex items-center gap-2 mb-4 border-b border-border pb-2 overflow-x-auto">
-                  {item.seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
-                      <Button 
-                        key={season.seasonNumber}
-                        variant={selectedSeason?.seasonNumber === season.seasonNumber ? 'secondary' : 'ghost'}
-                        onClick={() => {
-                          setSelectedSeason(season);
-                          // Select first episode of the season when season changes
-                          if (season.episodes && season.episodes.length > 0) {
-                             const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
-                             setSelectedEpisode(sortedEpisodes[0]);
-                          } else {
-                            setSelectedEpisode(null);
-                          }
-                        }}
-                      >
-                          Season {season.seasonNumber}
-                      </Button>
-                  ))}
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                      <Button
-                        key={episode.episodeNumber}
-                        variant={selectedEpisode?.title === episode.title ? 'secondary' : 'ghost'}
-                        onClick={() => setSelectedEpisode(episode)}
-                        className="h-auto justify-start text-left"
-                      >
-                          <PlayCircle className="h-6 w-6 text-primary flex-shrink-0 mr-4" />
-                          <div>
-                              <h4 className="font-semibold">Ep {episode.episodeNumber}: {episode.title}</h4>
-                              <p className="text-xs text-muted-foreground truncate">{item.title}</p>
-                          </div>
-                      </Button>
-                  ))}
-              </div>
-              {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-muted-foreground mt-4">No episodes in this season.</p>}
-          </div>
-        )}
-
-        <div className="space-y-16 py-12">
+        <div className="space-y-16 py-12 mt-8">
             {related.length > 0 && (
                 <ContentCarousel title="More Like This" items={related} />
             )}
