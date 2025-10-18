@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Film, Search, Bell, User, Menu } from "lucide-react";
+import { Search, Bell, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/firebase/auth/use-user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,28 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState } from "react";
+
+function VintageCameraIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+      >
+        <path d="M6.26 2.56a2.5 2.5 0 0 0-2.31 1.18l-1.87 3.51a2.5 2.5 0 0 0 0 2.5l1.87 3.51a2.5 2.5 0 0 0 2.31 1.18h11.48a2.5 2.5 0 0 0 2.31-1.18l1.87-3.51a2.5 2.5 0 0 0 0-2.5l-1.87-3.51a2.5 2.5 0 0 0-2.31-1.18Z" />
+        <path d="M12 14.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+        <path d="M5.5 4.5h-3" />
+        <path d="M18.5 4.5h3" />
+        <path d="M3 9.5h-3" />
+        <path d="M21 9.5h3" />
+      </svg>
+    );
+  }
 
 function UserNav() {
   const { app } = useFirebase();
@@ -102,9 +124,9 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
       <SheetTrigger asChild>
         <Button
           variant="ghost"
-          className="mr-2 px-0 pl-2 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+          className="mr-2 px-0 pl-4 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
         >
-          <Menu className="h-7 w-7" />
+          <Menu className="h-8 w-8" />
           <span className="sr-only">Toggle Menu</span>
         </Button>
       </SheetTrigger>
@@ -170,7 +192,7 @@ export function SiteHeader() {
         <MobileNav open={open} setOpen={setOpen} />
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Film className="h-6 w-6 text-primary" />
+            <VintageCameraIcon className="h-6 w-6 text-primary" />
             <span className="font-bold font-headline text-xl">StreamVerse</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
