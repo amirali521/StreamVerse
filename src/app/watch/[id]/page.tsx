@@ -162,21 +162,20 @@ export default function WatchPage() {
                   ))}
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                      <button
+                      <Button
                         key={episode.episodeNumber}
+                        variant={selectedEpisode?.title === episode.title ? 'secondary' : 'ghost'}
                         onClick={() => setSelectedEpisode(episode)}
-                        className={`p-4 rounded-lg text-left transition-colors ${selectedEpisode?.title === episode.title ? 'bg-secondary' : 'bg-muted/20 hover:bg-muted/40'}`}
+                        className="h-auto justify-start text-left"
                       >
-                          <div className="flex items-center gap-4">
-                              <PlayCircle className="h-6 w-6 text-primary flex-shrink-0" />
-                              <div>
-                                  <h4 className="font-semibold">Ep {episode.episodeNumber}: {episode.title}</h4>
-                                  <p className="text-xs text-muted-foreground truncate">{item.title}</p>
-                              </div>
+                          <PlayCircle className="h-6 w-6 text-primary flex-shrink-0 mr-4" />
+                          <div>
+                              <h4 className="font-semibold">Ep {episode.episodeNumber}: {episode.title}</h4>
+                              <p className="text-xs text-muted-foreground truncate">{item.title}</p>
                           </div>
-                      </button>
+                      </Button>
                   ))}
               </div>
               {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-muted-foreground mt-4">No episodes in this season.</p>}
