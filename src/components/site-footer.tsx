@@ -1,23 +1,14 @@
 import Link from "next/link";
 
-function VintageCameraIcon(props: React.SVGProps<SVGSVGElement>) {
+function MovieCameraIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       {...props}
     >
-      <path d="M6.26 2.56a2.5 2.5 0 0 0-2.31 1.18l-1.87 3.51a2.5 2.5 0 0 0 0 2.5l1.87 3.51a2.5 2.5 0 0 0 2.31 1.18h11.48a2.5 2.5 0 0 0 2.31-1.18l1.87-3.51a2.5 2.5 0 0 0 0-2.5l-1.87-3.51a2.5 2.5 0 0 0-2.31-1.18Z" />
-      <path d="M12 14.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-      <path d="M5.5 4.5h-3" />
-      <path d="M18.5 4.5h3" />
-      <path d="M3 9.5h-3" />
-      <path d="M21 9.5h3" />
+      <path d="M16 8.41L16 6a2 2 0 00-2-2H2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2.41L22 18V6zM6 14a2 2 0 11-4 0 2 2 0 014 0zm6-4a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   );
 }
@@ -30,7 +21,7 @@ export function SiteFooter() {
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center space-x-2">
-            <VintageCameraIcon className="h-6 w-6 text-primary" />
+            <MovieCameraIcon className="h-6 w-6 text-primary" />
             <span className="font-bold font-headline text-xl">StreamVerse</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
