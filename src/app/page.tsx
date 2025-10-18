@@ -1,14 +1,10 @@
 
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useFirestore } from "@/firebase";
+import { initializeFirebase } from "@/firebase/server";
 import { collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
   CarouselContent,
@@ -18,59 +14,57 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 
-export default function Home() {
-  const firestore = useFirestore();
-  const [trending, setTrending] = useState<Content[]>([]);
-  const [newReleases, setNewReleases] = useState<Content[]>([]);
-  const [popularDramas, setPopularDramas] = useState<Content[]>([]);
-  const [loading, setLoading] = useState(true);
+async function getHomePageContent() {
+  const { firestore } = initializeFirebase();
+  if (!firestore) {
+    return {
+      trending: [],
+      newReleases: [],
+      popularDramas: [],
+    };
+  }
 
-  useEffect(() => {
-    if (!firestore) return;
+  try {
+    const contentCol = collection(firestore, 'content');
 
-    const fetchContent = async () => {
-      setLoading(true);
-      try {
-        const contentCol = collection(firestore, 'content');
-
-        // Helper to fetch and map documents
-        const fetchAndMap = async (q: any) => {
-          const snapshot = await getDocs(q);
-          if (snapshot.empty) {
-            return [];
-          }
-          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
-        };
-
-        // Trending: Highest rated
-        const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
-        setTrending(await fetchAndMap(trendingQuery));
-
-        // New Releases: Most recently updated
-        const newReleasesQuery = query(contentCol, orderBy('updatedAt', 'desc'), limit(10));
-        setNewReleases(await fetchAndMap(newReleasesQuery));
-        
-        // Popular Dramas: Fetch all dramas, then sort and slice on the client
-        const dramasQuery = query(contentCol, where('type', '==', 'drama'));
-        const allDramas = await fetchAndMap(dramasQuery);
-        const sortedDramas = allDramas
-            .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
-            .slice(0, 10);
-        setPopularDramas(sortedDramas);
-
-      } catch (error) {
-        console.error("Error fetching homepage content:", error);
-      } finally {
-        setLoading(false);
+    const fetchAndMap = async (q: any) => {
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        return [];
       }
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
     };
 
-    fetchContent();
-  }, [firestore]);
+    // Trending: Highest rated
+    const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
+    
+    // New Releases: Most recently updated
+    const newReleasesQuery = query(contentCol, orderBy('updatedAt', 'desc'), limit(10));
+    
+    // Popular Dramas: Fetch dramas and sort
+    const dramasQuery = query(contentCol, where('type', '==', 'drama'));
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading content...</div>;
+    const [trending, newReleases, allDramas] = await Promise.all([
+        fetchAndMap(trendingQuery),
+        fetchAndMap(newReleasesQuery),
+        fetchAndMap(dramasQuery)
+    ]);
+
+    const sortedDramas = allDramas
+        .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
+        .slice(0, 10);
+
+    return { trending, newReleases, popularDramas: sortedDramas };
+
+  } catch (error) {
+    console.error("Error fetching homepage content on server:", error);
+    return { trending: [], newReleases: [], popularDramas: [] };
   }
+}
+
+
+export default async function Home() {
+  const { trending, newReleases, popularDramas } = await getHomePageContent();
 
   return (
     <div className="flex flex-col">
@@ -143,4 +137,3 @@ export default function Home() {
     </div>
   );
 }
-
