@@ -1,48 +1,60 @@
+"use client";
 
+import { useState, useEffect } from "react";
+import { useFirestore } from "@/firebase";
+import { collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
-import { initializeFirebase } from "@/firebase/server";
 import type { Content } from "@/lib/types";
-import type { Firestore } from "firebase-admin/firestore";
 
-async function getHomePageContent() {
-  const { firestore } = initializeFirebase();
-  if (!firestore) {
-    return { trending: [], newReleases: [], popularDramas: [] };
-  }
+export default function Home() {
+  const firestore = useFirestore();
+  const [trending, setTrending] = useState<Content[]>([]);
+  const [newReleases, setNewReleases] = useState<Content[]>([]);
+  const [popularDramas, setPopularDramas] = useState<Content[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const contentCol = firestore.collection('content');
+  useEffect(() => {
+    if (!firestore) return;
 
-  // Helper to fetch and map documents
-  const fetchAndMap = async (query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>) => {
-    const snapshot = await query.get();
-    if (snapshot.empty) {
-      return [];
-    }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
-  };
+    const fetchContent = async () => {
+      setLoading(true);
+      try {
+        const contentCol = collection(firestore, 'content');
 
-  // Trending: Highest rated
-  const trendingQuery = contentCol.orderBy('imdbRating', 'desc').limit(10);
-  const trending = await fetchAndMap(trendingQuery);
+        // Helper to fetch and map documents
+        const fetchAndMap = async (q: any) => {
+          const snapshot = await getDocs(q);
+          if (snapshot.empty) {
+            return [];
+          }
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+        };
 
-  // New Releases: Most recently created
-  const newReleasesQuery = contentCol.orderBy('createdAt', 'desc').limit(10);
-  const newReleases = await fetchAndMap(newReleasesQuery);
+        // Trending: Highest rated
+        const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
+        setTrending(await fetchAndMap(trendingQuery));
 
-  // Popular Dramas: type === 'drama', highest rated
-  const popularDramasQuery = contentCol.where('type', '==', 'drama').orderBy('imdbRating', 'desc').limit(10);
-  const popularDramas = await fetchAndMap(popularDramasQuery);
+        // New Releases: Most recently created
+        const newReleasesQuery = query(contentCol, orderBy('createdAt', 'desc'), limit(10));
+        setNewReleases(await fetchAndMap(newReleasesQuery));
+        
+        // Popular Dramas: type === 'drama', highest rated
+        const popularDramasQuery = query(contentCol, where('type', '==', 'drama'), orderBy('imdbRating', 'desc'), limit(10));
+        setPopularDramas(await fetchAndMap(popularDramasQuery));
 
-  return { trending, newReleases, popularDramas };
-}
+      } catch (error) {
+        console.error("Error fetching homepage content:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-
-export default async function Home() {
-  const { trending, newReleases, popularDramas } = await getHomePageContent();
+    fetchContent();
+  }, [firestore]);
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section can remain static or be updated to feature a specific item */}
+      {/* Hero Section */}
       <section className="relative w-full h-[60vh] md:h-[80vh] text-white bg-black">
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-12 lg:p-24">
@@ -59,14 +71,20 @@ export default async function Home() {
 
       {/* Content Sections */}
       <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">
-        {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
-        {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
-        {popularDramas.length > 0 && <ContentCarousel title="Popular Dramas" items={popularDramas} />}
-        {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 && (
-          <div className="text-center text-muted-foreground">
-            <p>No content has been added yet.</p>
-            <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
-          </div>
+        {loading ? (
+           <div className="text-center text-muted-foreground">Loading content...</div>
+        ) : (
+          <>
+            {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
+            {popularDramas.length > 0 && <ContentCarousel title="Popular Dramas" items={popularDramas} />}
+            {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 && (
+              <div className="text-center text-muted-foreground">
+                <p>No content has been added yet.</p>
+                <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
