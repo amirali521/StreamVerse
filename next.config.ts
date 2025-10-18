@@ -28,12 +28,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'adswatchearner.42web.io',
-        port: '',
-        pathname: '/**',
-      },
     ],
   },
 };

@@ -1,5 +1,32 @@
 import Link from "next/link";
-import Image from "next/image";
+
+function FilmReelIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="8" y1="2" x2="8" y2="4" />
+      <line x1="16" y1="2" x2="16" y2="4" />
+      <line x1="8" y1="20" x2="8" y2="22" />
+      <line x1="16" y1="20" x2="16" y2="22" />
+      <line x1="2" y1="8" x2="4" y2="8" />
+      <line x1="2" y1="16" x2="4" y2="16" />
+      <line x1="20" y1="8" x2="22" y2="8" />
+      <line x1="20" y1="16" x2="22" y2="16" />
+    </svg>
+  );
+}
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -8,7 +35,7 @@ export function SiteFooter() {
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center space-x-2">
-            <Image src="https://adswatchearner.42web.io/uploads/img_68f3cf716f2541.06711705.png" alt="StreamVerse Logo" width={24} height={24} />
+            <FilmReelIcon className="h-6 w-6" />
             <span className="font-bold font-headline text-xl">StreamVerse</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
