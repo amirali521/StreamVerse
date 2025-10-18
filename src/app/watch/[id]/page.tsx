@@ -74,7 +74,7 @@ function EpisodeSelector({
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
-                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'outline'}
+                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'ghost'}
                   size="sm"
                   className="aspect-square p-0 transition-colors duration-200"
                   onClick={() => setSelectedEpisode(episode)}
@@ -203,6 +203,22 @@ export default function WatchPage() {
   const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
   const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
+
+  const getDownloadFilename = () => {
+    if (!item) return "";
+    const title = item.title.replace(/[^a-z0-9\s-]/gi, '').trim();
+    if (item.type === 'movie') {
+        return `${title}.mp4`;
+    }
+    if (selectedSeason && selectedEpisode) {
+        const seasonNum = String(selectedSeason.seasonNumber).padStart(2, '0');
+        const episodeNum = String(selectedEpisode.episodeNumber).padStart(2, '0');
+        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\s-]/gi, '').trim();
+        return `${title} - S${seasonNum}E${episodeNum} - ${episodeTitle}.mp4`;
+    }
+    return `${title}.mp4`;
+  };
+
   const videoTitle = item.type === 'movie' ? item.title : `${item.title} - S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`;
 
   return (
@@ -251,7 +267,7 @@ export default function WatchPage() {
 
                 {downloadUrl && !downloadUrl.includes('youtube.com') && (
                   <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
-                      <a href={downloadUrl} download>
+                      <a href={downloadUrl} download={getDownloadFilename()}>
                           <Download className="mr-2" />
                           Download Video
                       </a>
