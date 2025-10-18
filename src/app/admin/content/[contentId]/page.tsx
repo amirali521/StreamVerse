@@ -56,7 +56,7 @@ interface Content {
   seasons?: Season[];
 }
 
-export default function EditContentPage({ params }: { params: { contentId: string } }) {
+export default function EditContentPage({ params: { contentId } }: { params: { contentId: string } }) {
   const firestore = useFirestore();
   const router = useRouter();
   const [content, setContent] = useState<Content | null>(null);
@@ -73,10 +73,10 @@ export default function EditContentPage({ params }: { params: { contentId: strin
 
 
   useEffect(() => {
-    if (!firestore || !params.contentId) return;
+    if (!firestore || !contentId) return;
     const fetchContent = async () => {
       setLoading(true);
-      const docRef = doc(firestore, "content", params.contentId);
+      const docRef = doc(firestore, "content", contentId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setContent({ id: docSnap.id, ...docSnap.data() } as Content);
@@ -86,7 +86,7 @@ export default function EditContentPage({ params }: { params: { contentId: strin
       setLoading(false);
     };
     fetchContent();
-  }, [firestore, params.contentId]);
+  }, [firestore, contentId]);
 
   const handleAddSeason = async () => {
     if (!firestore || !content) return;
