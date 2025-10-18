@@ -18,6 +18,8 @@ import { useFirebase } from "@/firebase/provider";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -36,8 +38,14 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      <path d="M10 8.125a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+      <path d="M14 15.875a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+      <path d="M18.375 5.25a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+      <path d="M5.625 18.75a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+      <path d="m10 10-4.5 4.5" />
+      <path d="m18.375 7.25-4.5 4.5" />
+      <path d="m13.75 5.25-4.5 4.5" />
       <circle cx="12" cy="12" r="10" />
-      <polygon points="10 8 16 12 10 16 10 8" />
     </svg>
   );
 }
@@ -129,6 +137,10 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="pr-0 pt-12">
+        <SheetTitle className="sr-only">Menu</SheetTitle>
+        <SheetDescription className="sr-only">
+          Site navigation and account options.
+        </SheetDescription>
         <nav className="flex flex-col gap-4">
         <Link
             href="/"
