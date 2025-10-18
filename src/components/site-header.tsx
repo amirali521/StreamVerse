@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Film, Search, Bell, User } from "lucide-react";
+import { Film, Search, Bell, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/firebase/auth/use-user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,10 +15,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getAuth, signOut } from "firebase/auth";
 import { useFirebase } from "@/firebase/provider";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useState } from "react";
 
 function UserNav() {
   const { app } = useFirebase();
-  const { user, protectedPaths, claims, loaded } = useUser();
+  const { user, claims, loaded } = useUser();
 
   const handleSignOut = async () => {
     if (!app) return;
@@ -65,6 +71,15 @@ function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {claims?.admin && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">Admin</Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem>
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           Log out
         </DropdownMenuItem>
@@ -73,11 +88,80 @@ function UserNav() {
   );
 }
 
+function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
+  const { user, claims } = useUser();
+  const { app } = useFirebase();
+  const handleSignOut = async () => {
+    if (!app) return;
+    const auth = getAuth(app);
+    await signOut(auth);
+  };
+  
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+        >
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle Menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="pr-0 pt-12">
+        <nav className="flex flex-col gap-4">
+        <Link
+            href="/"
+            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
+            onClick={() => setOpen(false)}
+          >
+            Home
+          </Link>
+          <Link
+            href="#"
+            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
+            onClick={() => setOpen(false)}
+          >
+            Movies
+          </Link>
+          <Link
+            href="#"
+            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
+            onClick={() => setOpen(false)}
+          >
+            Series
+          </Link>
+          <Link
+            href="#"
+            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
+            onClick={() => setOpen(false)}
+          >
+            Dramas
+          </Link>
+          <DropdownMenuSeparator />
+          {user && (
+            <>
+              {claims?.admin && <Link href="/admin" className="font-bold text-lg" onClick={() => setOpen(false)}>Admin</Link>}
+              <Link href="#" className="font-bold text-lg" onClick={() => setOpen(false)}>Profile</Link>
+              <button onClick={() => {
+                handleSignOut();
+                setOpen(false);
+              }} className="font-bold text-lg text-left">Logout</button>
+            </>
+          )}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 
 export function SiteHeader() {
+  const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center">
+        <MobileNav open={open} setOpen={setOpen} />
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Film className="h-6 w-6 text-primary" />
