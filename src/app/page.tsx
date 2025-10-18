@@ -1,31 +1,37 @@
 
 import { ContentCarousel } from "@/components/content-carousel";
 import { initializeFirebase } from "@/firebase/server";
-import { collection, getDocs, orderBy, query, limit, where } from "firebase/firestore";
 import type { Content } from "@/lib/types";
+import type { Firestore } from "firebase-admin/firestore";
 
 async function getHomePageContent() {
   const { firestore } = initializeFirebase();
   if (!firestore) {
     return { trending: [], newReleases: [], popularDramas: [] };
   }
-  
-  const contentCol = collection(firestore, 'content');
+
+  const contentCol = firestore.collection('content');
+
+  // Helper to fetch and map documents
+  const fetchAndMap = async (query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>) => {
+    const snapshot = await query.get();
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+  };
 
   // Trending: Highest rated
-  const trendingQuery = query(contentCol, orderBy('imdbRating', 'desc'), limit(10));
-  const trendingSnapshot = await getDocs(trendingQuery);
-  const trending = trendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+  const trendingQuery = contentCol.orderBy('imdbRating', 'desc').limit(10);
+  const trending = await fetchAndMap(trendingQuery);
 
   // New Releases: Most recently created
-  const newReleasesQuery = query(contentCol, orderBy('createdAt', 'desc'), limit(10));
-  const newReleasesSnapshot = await getDocs(newReleasesQuery);
-  const newReleases = newReleasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+  const newReleasesQuery = contentCol.orderBy('createdAt', 'desc').limit(10);
+  const newReleases = await fetchAndMap(newReleasesQuery);
 
   // Popular Dramas: type === 'drama', highest rated
-  const popularDramasQuery = query(contentCol, where('type', '==', 'drama'), orderBy('imdbRating', 'desc'), limit(10));
-  const popularDramasSnapshot = await getDocs(popularDramasQuery);
-  const popularDramas = popularDramasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Content));
+  const popularDramasQuery = contentCol.where('type', '==', 'drama').orderBy('imdbRating', 'desc').limit(10);
+  const popularDramas = await fetchAndMap(popularDramasQuery);
 
   return { trending, newReleases, popularDramas };
 }
