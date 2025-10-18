@@ -3,7 +3,7 @@
 
 import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
-import { doc, getDoc, collection, getDocs, limit, query, where, type Timestamp } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/firestore";
 import type { Content as ContentType, Season } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Download, PlayCircle } from "lucide-react";
@@ -84,9 +84,27 @@ export default function WatchPage() {
             } as ClientContent
         });
 
-      // Related content (same type)
-      const relatedItems = allContent.filter(c => c.type === fetchedItem.type).slice(0, 10);
-      setRelated(relatedItems);
+      // Related content (based on categories, then type)
+      const getRelatedContent = () => {
+          const itemCategories = fetchedItem.categories || [];
+          if (itemCategories.length > 0) {
+              // 1. Find items that match ALL categories
+              const perfectMatches = allContent.filter(c => 
+                  c.categories && itemCategories.every(cat => c.categories!.includes(cat))
+              );
+              if (perfectMatches.length > 0) return perfectMatches;
+              
+              // 2. Find items that match ANY category
+              const partialMatches = allContent.filter(c => 
+                  c.categories && itemCategories.some(cat => c.categories!.includes(cat))
+              );
+              if (partialMatches.length > 0) return partialMatches;
+          }
+          // 3. Fallback: Find items of the same type
+          return allContent.filter(c => c.type === fetchedItem.type);
+      };
+
+      setRelated(getRelatedContent().slice(0, 10));
 
       // New Releases
       const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
@@ -135,12 +153,21 @@ export default function WatchPage() {
         <div className="py-6">
             <h1 className="text-3xl md:text-4xl font-headline font-bold">{videoTitle}</h1>
 
-            {item.imdbRating && (
-                <div className="flex items-center gap-2 mt-2">
-                    <span className="font-bold text-yellow-400">IMDb:</span>
-                    <span>{item.imdbRating}/10</span>
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2">
+              {item.imdbRating && (
+                  <div className="flex items-center gap-2">
+                      <span className="font-bold text-yellow-400">IMDb:</span>
+                      <span>{item.imdbRating}/10</span>
+                  </div>
+              )}
+              {item.categories && item.categories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {item.categories.map(category => (
+                    <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
+                  ))}
                 </div>
-            )}
+              )}
+            </div>
             
             <p className="mt-4 text-base text-foreground/70 max-w-3xl">
                 {item.description}
@@ -211,5 +238,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    

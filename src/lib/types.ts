@@ -21,6 +21,7 @@ export interface Content {
   imdbRating?: number;
   googleDriveVideoUrl?: string;
   seasons?: Season[];
+  categories?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -84,6 +84,13 @@
           "enum": ["movie", "webseries", "drama"],
           "description": "The type of content."
         },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of categories for the content (e.g., Bollywood, Action)."
+        },
         "bannerImageUrl": {
           "type": "string",
           "format": "uri",

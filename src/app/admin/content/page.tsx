@@ -46,7 +46,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 
 // Data structures from backend.json
@@ -70,6 +70,7 @@ interface Content {
   imdbRating?: number;
   googleDriveVideoUrl?: string;
   seasons?: Season[];
+  categories?: string[];
 }
 
 // Reusable form for editing content details
@@ -79,6 +80,7 @@ const editContentSchema = z.object({
   bannerImageUrl: z.string().url("Please enter a valid URL."),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   googleDriveVideoUrl: z.string().optional(),
+  categories: z.string().optional(),
 });
 
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
@@ -91,14 +93,18 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             bannerImageUrl: contentItem.bannerImageUrl,
             imdbRating: contentItem.imdbRating || 0,
             googleDriveVideoUrl: contentItem.googleDriveVideoUrl || "",
+            categories: contentItem.categories?.join(", ") || "",
         },
     });
 
     async function onSubmit(values: z.infer<typeof editContentSchema>) {
         if (!firestore) return;
 
+        const categories = values.categories ? values.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
+
         const updatedData: Partial<Content> & { updatedAt: any } = {
             ...values,
+            categories,
             imdbRating: values.imdbRating || 0,
             updatedAt: serverTimestamp()
         };
@@ -130,6 +136,14 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 )} />
                 <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="categories" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categories</FormLabel>
+                    <FormControl><Input placeholder="e.g. Bollywood, Action" {...field} /></FormControl>
+                    <FormDescription>Comma-separated values.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
                 )} />
                 <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
                     <FormItem><FormLabel>Banner Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -288,89 +302,102 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                     <DialogTitle>Manage: {contentItem.title}</DialogTitle>
                     <DialogDescription>Add, edit, or remove seasons and episodes for this {contentItem.type}.</DialogDescription>
                 </DialogHeader>
-                <div className="flex-grow overflow-y-auto pr-4">
-                  <div className="flex justify-end mb-4">
-                      <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                <div className="flex-grow overflow-y-auto pr-4 space-y-6">
+                  {/* General Details Form */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">General Details</h3>
+                    <EditContentForm
+                        contentItem={contentItem}
+                        onUpdate={onUpdate}
+                        closeDialog={() => onOpenChange(false)}
+                    />
                   </div>
-                  <Accordion type="single" collapsible className="w-full">
-                      {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
-                          <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
-                              <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
-                              <AccordionContent>
-                                  <div className="flex justify-end mb-4">
-                                      <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
-                                          <DialogTrigger asChild>
-                                              <Button variant="outline" onClick={() => {
-                                                setSelectedSeason(season.seasonNumber);
-                                                const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
-                                                const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
-                                                setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
-                                                setNewEpisodeUrl("");
-                                                setAddEpisodeOpen(true);
-                                              }}>
-                                                  <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
-                                              </Button>
-                                          </DialogTrigger>
-                                          <DialogContent>
-                                              <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
-                                              <div className="grid gap-4 py-4">
-                                                  <Label htmlFor="episode-title">Title</Label>
-                                                  <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                  <Label htmlFor="episode-url">Video URL</Label>
-                                                  <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
-                                              </div>
-                                              <DialogFooter>
-                                                  <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
-                                                  <Button onClick={handleAddEpisode}>Save Episode</Button>
-                                              </DialogFooter>
-                                          </DialogContent>
-                                      </Dialog>
-                                  </div>
-                                  <div className="space-y-2">
-                                      {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                                          <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                              <p>Ep {episode.episodeNumber}: {episode.title}</p>
-                                              <div className="flex items-center gap-2">
-                                                  <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
-                                                      <DialogTrigger asChild>
-                                                          <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
-                                                              <Edit className="h-4 w-4" />
-                                                          </Button>
-                                                      </DialogTrigger>
-                                                      <DialogContent>
-                                                          <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
-                                                            <div className="grid gap-4 py-4">
-                                                                <Label htmlFor="edit-episode-title">Title</Label>
-                                                                <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                                <Label htmlFor="edit-episode-url">Video URL</Label>
-                                                                <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
-                                                            </div>
-                                                          <DialogFooter>
-                                                              <Button variant="outline" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
-                                                              <Button onClick={handleEditEpisode}>Save Changes</Button>
-                                                          </DialogFooter>
-                                                      </DialogContent>
-                                                  </Dialog>
-                                                  <AlertDialog>
-                                                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                                      <AlertDialogContent>
-                                                          <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}".</AlertDialogDescription></AlertDialogHeader>
-                                                          <AlertDialogFooter>
-                                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                              <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
-                                                          </AlertDialogFooter>
-                                                      </AlertDialogContent>
-                                                  </AlertDialog>
-                                              </div>
-                                          </div>
-                                      ))}
-                                      {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes yet.</p>}
-                                  </div>
-                              </AccordionContent>
-                          </AccordionItem>
-                      ))}
-                      {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
-                  </Accordion>
+                  {/* Season Management */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
+                        <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                    </div>
+                    <Accordion type="single" collapsible className="w-full">
+                        {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
+                            <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
+                                <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="flex justify-end mb-4">
+                                        <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" onClick={() => {
+                                                    setSelectedSeason(season.seasonNumber);
+                                                    const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
+                                                    const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
+                                                    setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
+                                                    setNewEpisodeUrl("");
+                                                    setAddEpisodeOpen(true);
+                                                }}>
+                                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <Label htmlFor="episode-title">Title</Label>
+                                                    <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                    <Label htmlFor="episode-url">Video URL</Label>
+                                                    <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
+                                                    <Button onClick={handleAddEpisode}>Save Episode</Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
+                                            <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                                <p>Ep {episode.episodeNumber}: {episode.title}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent>
+                                                            <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
+                                                              <div className="grid gap-4 py-4">
+                                                                  <Label htmlFor="edit-episode-title">Title</Label>
+                                                                  <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                                  <Label htmlFor="edit-episode-url">Video URL</Label>
+                                                                  <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
+                                                              </div>
+                                                            <DialogFooter>
+                                                                <Button variant="outline" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
+                                                                <Button onClick={handleEditEpisode}>Save Changes</Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}".</AlertDialogDescription></AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes yet.</p>}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                        {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
+                    </Accordion>
+                  </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
@@ -441,19 +468,21 @@ export default function ManageContentPage() {
           <TableRow>
             <TableHead>Title</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Categories</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {contentList.length === 0 ? (
             <TableRow>
-                <TableCell colSpan={3} className="text-center h-24">No content found.</TableCell>
+                <TableCell colSpan={4} className="text-center h-24">No content found.</TableCell>
             </TableRow>
           ) : (
             contentList.map(content => (
                 <TableRow key={content.id}>
                 <TableCell className="font-medium">{content.title}</TableCell>
                 <TableCell className="capitalize">{content.type}</TableCell>
+                <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
                 <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
                         <Edit className="h-4 w-4" />
@@ -511,7 +540,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    
-
-    

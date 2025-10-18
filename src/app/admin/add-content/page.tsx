@@ -43,6 +43,7 @@ const contentSchema = z.object({
   bannerImageUrl: z.string().url("Please enter a valid URL."),
   googleDriveVideoUrl: z.string().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
+  categories: z.string().optional(),
 });
 
 export default function AddContentPage() {
@@ -59,18 +60,23 @@ export default function AddContentPage() {
       bannerImageUrl: "",
       googleDriveVideoUrl: "",
       imdbRating: 0,
+      categories: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof contentSchema>) {
     if (!firestore) return;
     
+    // Convert category string to array
+    const categories = values.categories ? values.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
+
     let contentData: any = {
         title: values.title,
         description: values.description,
         type: values.type,
         bannerImageUrl: values.bannerImageUrl,
         imdbRating: values.imdbRating || 0,
+        categories: categories,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
@@ -173,6 +179,22 @@ export default function AddContentPage() {
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="categories"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categories</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Bollywood, Action, Romance" {...field} />
+                    </FormControl>
+                     <FormDescription>
+                      Enter comma-separated categories.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="bannerImageUrl"
@@ -227,5 +249,3 @@ export default function AddContentPage() {
     </div>
   );
 }
-
-    
