@@ -17,18 +17,17 @@ export function createEmbedUrl(url: string): string {
   if (youtubeMatch) {
     const videoId = youtubeMatch[1];
     // Return an embeddable URL for iframe. `rel=0` prevents related videos from showing.
-    // `showinfo=0` is deprecated but good to have. `autoplay=1` is for UX.
     return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
   }
 
-  // Check for Google Drive URL
+  // Check for Google Drive URL and create a preview/embed link
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
-    // Construct the direct access URL for video tag
-    return `https://drive.google.com/uc?id=${fileId}`;
+    // Construct the embeddable preview URL for iframe
+    return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   
-  // Return the original URL if no match
+  // Return the original URL if it's a direct video link but not a recognized service
   return url;
 }

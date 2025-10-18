@@ -8,37 +8,31 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   const isYouTube = src.includes('youtube.com/embed');
+  const isGoogleDrive = src.includes('drive.google.com/file');
 
-  useEffect(() => {
-    if (!isYouTube && videoRef.current) {
-      videoRef.current.load();
-    }
-  }, [src, isYouTube]);
-
-  if (isYouTube) {
+  // Use iframe for both YouTube and Google Drive preview links
+  if (isYouTube || isGoogleDrive) {
     return (
       <div className="w-full aspect-video bg-black">
         <iframe
-          key={src} // Re-mounts the component when src changes
+          key={src} // Re-mounts the iframe when src changes
           src={src}
-          title="YouTube video player"
+          title="Embedded video player"
           frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="autoplay; fullscreen"
           allowFullScreen
           className="w-full h-full"
         ></iframe>
       </div>
     );
   }
-
+  
+  // Fallback to HTML5 video player for direct links
   return (
     <div className="w-full aspect-video bg-black">
       <video
         key={src} // Re-mounts the component when src changes
-        ref={videoRef}
         controls
         autoPlay
         preload="auto"
