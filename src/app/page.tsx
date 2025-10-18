@@ -58,8 +58,8 @@ export default function Home() {
           } as ClientContent;
         });
 
-        // 1. Get New Releases: Sort all content by `updatedAt` date
-        const sortedNewReleases = [...allContent].sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
+        // 1. Get New Releases: Sort all content by `createdAt` date
+        const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
         setNewReleases(sortedNewReleases);
 
         // 2. Get Trending: Sort all content by IMDb rating
@@ -90,53 +90,47 @@ export default function Home() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full h-[40vh] md:h-[50vh] text-white">
-        {newReleases.length > 0 ? (
-          <Carousel
-            opts={{ loop: true }}
-            className="w-full h-full"
-            plugins={[
-              Autoplay({
-                delay: 5000,
-                stopOnInteraction: true,
-              }),
-            ]}
-          >
-            <CarouselContent className="h-full">
-              {newReleases.slice(0, 4).map((item) => (
-                <CarouselItem key={item.id} className="h-full">
-                  <Link href={`/watch/${item.id}`} className="block h-full">
-                    <div className="relative h-full">
-                      <Image
-                        src={item.bannerImageUrl}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                        priority
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
-                      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-12 lg:p-24">
-                        <div className="max-w-2xl">
-                          <h1 className="text-4xl md:text-6xl font-headline font-bold text-white drop-shadow-xl">
-                            {item.title}
-                          </h1>
-                          <p className="mt-2 md:mt-4 text-sm md:text-lg text-white/90 drop-shadow-lg line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
+        <Carousel
+          opts={{ loop: true }}
+          className="w-full h-full"
+          plugins={[
+            Autoplay({
+              delay: 5000,
+              stopOnInteraction: true,
+            }),
+          ]}
+        >
+          <CarouselContent className="h-full">
+            {newReleases.slice(0, 4).map((item) => (
+              <CarouselItem key={item.id} className="h-full">
+                <Link href={`/watch/${item.id}`} className="block h-full">
+                  <div className="relative h-full">
+                    <Image
+                      src={item.bannerImageUrl}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-12 lg:p-24">
+                      <div className="max-w-2xl">
+                        <h1 className="text-4xl md:text-6xl font-headline font-bold text-white drop-shadow-xl">
+                          {item.title}
+                        </h1>
+                        <p className="mt-2 md:mt-4 text-sm md:text-lg text-white/90 drop-shadow-lg line-clamp-2">
+                          {item.description}
+                        </p>
                       </div>
                     </div>
-                  </Link>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
-            <CarouselNext className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
-          </Carousel>
-        ) : (
-          <div className="w-full h-full bg-secondary flex items-center justify-center">
-            <p className="text-muted-foreground">No recent content to display.</p>
-          </div>
-        )}
+                  </div>
+                </Link>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
+          <CarouselNext className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
+        </Carousel>
       </section>
 
       {/* Content Sections */}
