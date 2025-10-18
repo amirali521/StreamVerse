@@ -1,7 +1,7 @@
 
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { doc, getDoc, collection, getDocs, limit, query, where, type Timestamp } from "firebase/firestore";
 import type { Content as ContentType, Season } from "@/lib/types";
@@ -19,8 +19,11 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
 };
 
 
-export default function WatchPage({ params }: { params: { id: string } }) {
+export default function WatchPage() {
   const firestore = useFirestore();
+  const params = useParams();
+  const id = params.id as string;
+
   const [item, setItem] = useState<ClientContent | null>(null);
   const [related, setRelated] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +32,7 @@ export default function WatchPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function getContentItem(id: string) {
-      if (!firestore) return;
+      if (!firestore || !id) return;
       
       setLoading(true);
       const contentRef = doc(firestore, 'content', id);
@@ -87,8 +90,8 @@ export default function WatchPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     
-    getContentItem(params.id);
-  }, [params.id, firestore]);
+    getContentItem(id);
+  }, [id, firestore]);
   
 
   if (loading) {
@@ -184,5 +187,3 @@ export default function WatchPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
