@@ -37,15 +37,15 @@ export function createDownloadUrl(url: string): string {
     return "";
   }
 
-  // Check for Google Drive URL and create a preview link, which has a download button
+  // Check for Google Drive URL and create a direct download link
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
-    // This URL opens the preview page which is the most reliable way for users to download
-    return `https://drive.google.com/file/d/${fileId}/preview`;
+    // This URL attempts to force a direct download.
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   
-  // For YouTube or other URLs, we don't provide a direct download link.
+  // For YouTube, we don't provide a direct download link.
   if (url.includes('youtube.com')) {
     return "";
   }

@@ -213,13 +213,13 @@ export default function WatchPage() {
     if (selectedSeason && selectedEpisode) {
         const seasonNum = String(selectedSeason.seasonNumber).padStart(2, '0');
         const episodeNum = String(selectedEpisode.episodeNumber).padStart(2, '0');
-        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-n-]/gi, '').trim();
+        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\s-]/gi, '').trim();
         return `${title} - S${seasonNum}E${episodeNum} - ${episodeTitle}.mp4`;
     }
     return `${title}.mp4`;
   };
 
-  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`;
+  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - S${String(selectedSeason?.seasonNumber).padStart(2, '0')}}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`;
 
   return (
     <div className="bg-black min-h-screen text-white">
