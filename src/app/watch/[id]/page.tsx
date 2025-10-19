@@ -213,7 +213,7 @@ export default function WatchPage() {
     if (selectedSeason && selectedEpisode) {
         const seasonNum = String(selectedSeason.seasonNumber).padStart(2, '0');
         const episodeNum = String(selectedEpisode.episodeNumber).padStart(2, '0');
-        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\s-]/gi, '').trim();
+        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-n-]/gi, '').trim();
         return `${title} - S${seasonNum}E${episodeNum} - ${episodeTitle}.mp4`;
     }
     return `${title}.mp4`;
@@ -265,9 +265,9 @@ export default function WatchPage() {
                     {item.description}
                 </p>
 
-                {downloadUrl && !downloadUrl.includes('youtube.com') && (
+                {downloadUrl && (
                   <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
-                      <a href={downloadUrl} download={getDownloadFilename()}>
+                      <a href={downloadUrl} download={getDownloadFilename()} target="_blank" rel="noopener noreferrer">
                           <Download className="mr-2" />
                           Download Video
                       </a>
