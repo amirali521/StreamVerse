@@ -12,7 +12,7 @@ interface ContentCarouselProps {
 function ContentCard({ item }: { item: Content }) {
   return (
     <Link href={`/watch/${item.id}`} className="block group">
-      <Card className="w-[200px] md:w-[240px] border-0 bg-transparent shadow-none overflow-hidden">
+      <Card className="w-[150px] md:w-[180px] border-0 bg-transparent shadow-none overflow-hidden">
         <CardContent className="p-0">
           <div className="aspect-[2/3] relative rounded-lg overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-105">
             {item.bannerImageUrl ? (
@@ -20,7 +20,7 @@ function ContentCard({ item }: { item: Content }) {
                 src={item.bannerImageUrl}
                 alt={item.title}
                 fill
-                sizes="(max-width: 768px) 200px, 240px"
+                sizes="(max-width: 768px) 150px, 180px"
                 className="object-cover"
               />
             ) : (
