@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,7 +9,22 @@ import { useFirestore } from "@/firebase";
 import { collection, getDocs, type Timestamp } from "firebase/firestore";
 import type { Content } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { startCase } from "lodash";
+import { Filter } from "lucide-react";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -17,6 +32,9 @@ type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+// Define all possible genres for the filter UI
+const ALL_GENRES = ["Action", "Suspense", "Adventure", "Love", "Drama", "Bollywood", "Hollywood", "Tollywood", "Comedy", "Thriller", "Romance", "Sci-Fi", "Horror"];
 
 function ContentGridCard({ item }: { item: ClientContent }) {
   return (
@@ -48,13 +66,109 @@ function ContentGridCard({ item }: { item: ClientContent }) {
   );
 }
 
+function FilterSheet({ allContent, onFilterChange }: { allContent: ClientContent[], onFilterChange: (filteredContent: ClientContent[]) => void }) {
+    const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+    const [selectedType, setSelectedType] = useState<'all' | 'movie' | 'webseries' | 'drama'>('all');
+
+    const handleApplyFilters = () => {
+        let filtered = allContent;
+
+        if (selectedGenres.length > 0) {
+            filtered = filtered.filter(item => 
+                selectedGenres.every(genre => 
+                    item.categories?.some(cat => cat.toLowerCase() === genre.toLowerCase())
+                )
+            );
+        }
+
+        if (selectedType !== 'all') {
+            filtered = filtered.filter(item => item.type === selectedType);
+        }
+
+        onFilterChange(filtered);
+    };
+    
+    const handleClearFilters = () => {
+        setSelectedGenres([]);
+        setSelectedType('all');
+        onFilterChange(allContent);
+    };
+
+    return (
+        <Sheet>
+            <SheetTrigger asChild>
+                <Button variant="outline"><Filter className="mr-2 h-4 w-4" /> Filter</Button>
+            </SheetTrigger>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Filter Content</SheetTitle>
+                    <SheetDescription>
+                        Refine your results based on genres and content type.
+                    </SheetDescription>
+                </SheetHeader>
+                <div className="py-4 space-y-6">
+                    {/* Content Type Filter */}
+                    <div>
+                        <h4 className="font-semibold mb-3">Content Type</h4>
+                        <RadioGroup defaultValue="all" value={selectedType} onValueChange={(value) => setSelectedType(value as any)}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="r-all" />
+                                <Label htmlFor="r-all">All</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="movie" id="r-movie" />
+                                <Label htmlFor="r-movie">Movies</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="webseries" id="r-webseries" />
+                                <Label htmlFor="r-webseries">Web Series</Label>
+                            </div>
+                             <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="drama" id="r-drama" />
+                                <Label htmlFor="r-drama">Dramas</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    {/* Genre Filter */}
+                    <div>
+                        <h4 className="font-semibold mb-3">Genres</h4>
+                        <div className="space-y-2">
+                            {ALL_GENRES.map(genre => (
+                                <div key={genre} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`check-${genre}`}
+                                        checked={selectedGenres.includes(genre)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedGenres(prev => 
+                                                checked ? [...prev, genre] : prev.filter(g => g !== genre)
+                                            );
+                                        }}
+                                    />
+                                    <Label htmlFor={`check-${genre}`} className="font-normal">{genre}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <SheetFooter>
+                    <Button variant="outline" onClick={handleClearFilters}>Clear</Button>
+                    <SheetClose asChild>
+                        <Button onClick={handleApplyFilters}>Apply Filters</Button>
+                    </SheetClose>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+    );
+}
+
 
 export default function CategoryPage() {
   const firestore = useFirestore();
   const params = useParams();
   const slug = params.slug as string;
   
-  const [content, setContent] = useState<ClientContent[]>([]);
+  const [initialContent, setInitialContent] = useState<ClientContent[]>([]);
+  const [filteredContent, setFilteredContent] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
 
@@ -75,30 +189,29 @@ export default function CategoryPage() {
           } as ClientContent;
         });
 
-      let filteredContent: ClientContent[] = [];
+      let contentForCategory: ClientContent[] = [];
       const categoryTitle = startCase(slug.replace(/-/g, ' '));
       setTitle(categoryTitle);
 
       switch (slug) {
         case 'trending-now':
-          filteredContent = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+          contentForCategory = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
           break;
         case 'popular-dramas':
-          filteredContent = allContent
+          contentForCategory = allContent
             .filter(item => item.type === 'drama')
             .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
           break;
         default:
-          // Handles general categories like Bollywood, Hollywood, etc.
-          // This logic matches the slug (e.g., 'bollywood') to a category ('Bollywood') in a case-insensitive manner.
           const formattedSlug = slug.replace(/-/g, ' ').toLowerCase();
-          filteredContent = allContent.filter(item => 
+          contentForCategory = allContent.filter(item => 
             item.categories?.some(cat => cat.toLowerCase() === formattedSlug)
           );
           break;
       }
       
-      setContent(filteredContent);
+      setInitialContent(contentForCategory);
+      setFilteredContent(contentForCategory);
       setLoading(false);
     };
 
@@ -110,7 +223,7 @@ export default function CategoryPage() {
     return <div className="flex items-center justify-center h-screen">Loading content...</div>;
   }
   
-  if (!loading && content.length === 0) {
+  if (!loading && initialContent.length === 0) {
       return (
         <div className="container py-10 text-center">
             <h1 className="text-3xl font-bold mb-4">{title}</h1>
@@ -121,12 +234,24 @@ export default function CategoryPage() {
 
   return (
     <div className="container py-10 px-4">
-      <h1 className="text-4xl font-headline font-bold mb-8">{title}</h1>
-      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-        {content.map(item => (
-          <ContentGridCard key={item.id} item={item} />
-        ))}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-headline font-bold">{title}</h1>
+        <FilterSheet allContent={initialContent} onFilterChange={setFilteredContent} />
       </div>
+      
+      {filteredContent.length > 0 ? (
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {filteredContent.map(item => (
+            <ContentGridCard key={item.id} item={item} />
+            ))}
+        </div>
+      ) : (
+         <div className="text-center py-16">
+            <p className="text-muted-foreground">No content matches your selected filters.</p>
+         </div>
+      )}
     </div>
   );
 }
+
+    
