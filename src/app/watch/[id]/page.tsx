@@ -272,10 +272,6 @@ export default function WatchPage() {
 
                 {rawVideoUrl && (
                   <div className="flex items-center gap-4 mt-6">
-                    <Button onClick={handlePlay} size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                        <PlayCircle className="mr-2" />
-                        Play Video
-                    </Button>
                     <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
                         <a href={downloadUrl} download={getDownloadFilename()} target="_blank" rel="noopener noreferrer">
                             <Download className="mr-2" />

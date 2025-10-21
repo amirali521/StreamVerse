@@ -53,7 +53,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
                     <p className="mt-2 md:mt-4 text-sm md:text-base line-clamp-3">
                       {item.description}
                     </p>
-                    <Button asChild className="mt-4 md:mt-6" size="lg">
+                    <Button asChild className="mt-4 md:mt-6 bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
                       <Link href={`/watch/${item.id}`}>
                         <PlayCircle className="mr-2 h-5 w-5" />
                         Watch Now
