@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, PlayCircle } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
 
@@ -61,7 +61,7 @@ function EpisodeSelector({
                       setSelectedEpisode(null);
                     }
                   }}
-                  className="transition-colors duration-200"
+                  className="transition-colors duration-200 hover:bg-accent/80"
                 >
                   S{String(season.seasonNumber).padStart(2, '0')}
                 </Button>
@@ -76,7 +76,7 @@ function EpisodeSelector({
                   key={episode.episodeNumber}
                   variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="aspect-square p-0 transition-colors duration-200"
+                  className="aspect-square p-0 transition-colors duration-200 hover:bg-accent/80"
                   onClick={() => setSelectedEpisode(episode)}
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
@@ -95,6 +95,7 @@ export default function WatchPage() {
   const firestore = useFirestore();
   const params = useParams();
   const id = params.id as string;
+  const playerRef = useRef<HTMLDivElement>(null);
 
   const [item, setItem] = useState<ClientContent | null>(null);
   const [related, setRelated] = useState<ClientContent[]>([]);
@@ -219,7 +220,11 @@ export default function WatchPage() {
     return `${title}.mp4`;
   };
 
-  const videoTitle = item.type === 'movie' ? item.title : `${item.title} - S${String(selectedSeason?.seasonNumber).padStart(2, '0')}}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`;
+  const handlePlay = () => {
+    playerRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // The iframe will autoplay due to the `autoplay=1` parameter in the URL.
+    // For a standard <video> tag, you would call `playerRef.current.play()`.
+  };
 
   return (
     <div className="bg-black min-h-screen text-white">
@@ -228,7 +233,7 @@ export default function WatchPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Player and Details */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-background/80 rounded-lg overflow-hidden">
+            <div ref={playerRef} className="bg-background/80 rounded-lg overflow-hidden">
                 {embedUrl ? (
                     <VideoPlayer src={embedUrl} />
                 ) : (
@@ -265,13 +270,19 @@ export default function WatchPage() {
                     {item.description}
                 </p>
 
-                {downloadUrl && (
-                  <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90">
-                      <a href={downloadUrl} download={getDownloadFilename()} target="_blank" rel="noopener noreferrer">
-                          <Download className="mr-2" />
-                          Download Video
-                      </a>
-                  </Button>
+                {rawVideoUrl && (
+                  <div className="flex items-center gap-4 mt-6">
+                    <Button onClick={handlePlay} size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                        <PlayCircle className="mr-2" />
+                        Play Video
+                    </Button>
+                    <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                        <a href={downloadUrl} download={getDownloadFilename()} target="_blank" rel="noopener noreferrer">
+                            <Download className="mr-2" />
+                            Download
+                        </a>
+                    </Button>
+                  </div>
                 )}
             </div>
           </div>
@@ -301,3 +312,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
