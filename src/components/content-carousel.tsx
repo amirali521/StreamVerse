@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { type Content } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRightCircle } from "lucide-react";
+import {kebabCase} from "lodash";
 
 interface ContentCarouselProps {
   title: string;
@@ -39,6 +41,23 @@ function ContentCard({ item }: { item: Content }) {
   );
 }
 
+function SeeMoreCard({ category }: { category: string }) {
+  const categorySlug = kebabCase(category);
+  return (
+     <Link href={`/category/${categorySlug}`} className="block group h-full">
+      <Card className="w-[150px] md:w-[180px] h-full border-0 bg-transparent shadow-none">
+        <CardContent className="p-0 h-full">
+          <div className="aspect-[2/3] flex flex-col items-center justify-center bg-card rounded-lg transition-colors duration-300 ease-in-out group-hover:bg-secondary">
+              <ArrowRightCircle className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors"/>
+              <span className="mt-4 font-semibold text-base group-hover:text-primary transition-colors">See More</span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+
 export function ContentCarousel({ title, items }: ContentCarouselProps) {
   return (
     <section>
@@ -47,6 +66,7 @@ export function ContentCarousel({ title, items }: ContentCarouselProps) {
         {items.map((item) => (
           <ContentCard key={item.id} item={item} />
         ))}
+        {items.length > 0 && <SeeMoreCard category={title} />}
         <div className="flex-shrink-0 w-1"></div> {/* Gutter */}
       </div>
     </section>

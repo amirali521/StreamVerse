@@ -21,7 +21,6 @@ export default function Home() {
   const firestore = useFirestore();
   const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
   const [trending, setTrending] = useState<ClientContent[]>([]);
-  const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
   const [bollywood, setBollywood] = useState<ClientContent[]>([]);
   const [hollywood, setHollywood] = useState<ClientContent[]>([]);
@@ -56,10 +55,9 @@ export default function Home() {
           } as ClientContent;
         });
 
-        // 1. Get New Releases: Sort all content by `createdAt` date
+        // 1. Get New Releases for Hero: Sort all content by `createdAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-        setNewReleases(sortedNewReleases);
-
+        
         // Set Hero Content (latest 5 movies)
         const newMovies = sortedNewReleases.filter(item => item.type === 'movie');
         setHeroContent(newMovies.slice(0, 5));
@@ -74,9 +72,9 @@ export default function Home() {
         setPopularDramas(sortedDramas.slice(0, 10));
 
         // 4. Get content by specific categories
-        setBollywood(allContent.filter(item => item.categories?.includes('Bollywood')));
-        setHollywood(allContent.filter(item => item.categories?.includes('Hollywood')));
-        setTollywood(allContent.filter(item => item.categories?.includes('Tollywood')));
+        setBollywood(allContent.filter(item => item.categories?.includes('Bollywood')).slice(0, 10));
+        setHollywood(allContent.filter(item => item.categories?.includes('Hollywood')).slice(0, 10));
+        setTollywood(allContent.filter(item => item.categories?.includes('Tollywood')).slice(0, 10));
 
 
       } catch (error) {
@@ -100,7 +98,7 @@ export default function Home() {
 
       {/* Content Sections */}
       <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">
-        {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 ? (
+        {trending.length === 0 && popularDramas.length === 0 ? (
           <div className="text-center text-muted-foreground">
             <p>No content has been added yet.</p>
             <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
