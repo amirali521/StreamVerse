@@ -23,11 +23,12 @@ interface HeroBannerProps {
 }
 
 export function HeroBanner({ items }: HeroBannerProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true },
-    [Autoplay({ delay: 5000, stopOnInteraction: true })]
-  );
+  const [emblaApi, setEmblaApi] = React.useState<EmblaCarouselType | undefined>();
   const [activeIndex, setActiveIndex] = React.useState(0);
+
+  const plugin = React.useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: true })
+  );
 
   React.useEffect(() => {
     if (!emblaApi) return;
@@ -37,7 +38,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
     };
 
     emblaApi.on("select", onSelect);
-    onSelect(emblaApi);
+    onSelect(emblaApi); // Set initial active index
 
     return () => {
       emblaApi.off("select", onSelect);
@@ -49,23 +50,27 @@ export function HeroBanner({ items }: HeroBannerProps) {
   return (
     <div className="w-full relative aspect-video md:aspect-[16/7] overflow-hidden bg-black">
       <Carousel
-        setApi={emblaApi}
+        setApi={setEmblaApi}
+        plugins={[plugin.current]}
+        onMouseEnter={plugin.current.stop}
+        onMouseLeave={plugin.current.reset}
         className="w-full h-full"
       >
         <CarouselContent>
           {items.map((item, index) => (
             <CarouselItem key={item.id}>
-              <Image
-                src={item.bannerImageUrl}
-                alt={item.title}
-                fill
-                className="object-cover"
-                priority={index === 0}
-              />
+                <Image
+                    src={item.bannerImageUrl}
+                    alt={item.title}
+                    fill
+                    className="object-cover"
+                    priority={index === 0}
+                />
             </CarouselItem>
           ))}
         </CarouselContent>
-        {/* Controls are now correctly inside the Carousel component */}
+        
+        {/* These controls are now inside the Carousel and will work correctly */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:block">
             <CarouselPrevious className="bg-background/50 hover:bg-background/80 border-0" />
         </div>
@@ -74,13 +79,14 @@ export function HeroBanner({ items }: HeroBannerProps) {
         </div>
       </Carousel>
 
+      {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
 
       {/* Static Content Overlay */}
       {activeItem && (
         <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 lg:p-16">
           <div
-            key={activeIndex} // This key is what triggers the fade animation on change
+            key={activeIndex} // This key triggers the fade animation on change
             className={cn("max-w-xl text-white animate-in fade-in duration-500")}
           >
             <h2 className="text-3xl md:text-5xl font-bold font-headline leading-tight">
