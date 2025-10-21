@@ -107,7 +107,6 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
             {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
             {bollywood.length > 0 && <ContentCarousel title="Bollywood" items={bollywood} />}
             {hollywood.length > 0 && <ContentCarousel title="Hollywood" items={hollywood} />}
