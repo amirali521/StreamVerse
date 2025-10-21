@@ -139,9 +139,9 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 )} />
                 <FormField control={form.control} name="categories" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categories</FormLabel>
+                    <FormLabel>Categories / Tags</FormLabel>
                     <FormControl><Input placeholder="e.g. Bollywood, Action" {...field} /></FormControl>
-                    <FormDescription>Comma-separated values.</FormDescription>
+                    <FormDescription>Comma-separated values. These create filters for users.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )} />

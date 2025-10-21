@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useParams, notFound } from "next/navigation";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams, notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useFirestore } from "@/firebase";
@@ -24,8 +24,9 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { startCase } from "lodash";
-import { Filter } from "lucide-react";
+import { Filter, SearchIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -174,22 +175,19 @@ function FilterSheet({ allContent, onFilterChange }: { allContent: ClientContent
     );
 }
 
-
-export default function CategoryPage() {
+function SearchPageComponent() {
   const firestore = useFirestore();
-  const params = useParams();
-  const slug = params.slug as string;
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q');
   
   const [initialContent, setInitialContent] = useState<ClientContent[]>([]);
-  const [allAvailableContent, setAllAvailableContent] = useState<ClientContent[]>([]);
   const [filteredContent, setFilteredContent] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState("");
 
   useEffect(() => {
-    if (!firestore || !slug) return;
+    if (!firestore) return;
 
-    const fetchContent = async () => {
+    const fetchAndFilterContent = async () => {
       setLoading(true);
       const contentCol = collection(firestore, 'content');
       const contentSnapshot = await getDocs(contentCol);
@@ -203,46 +201,38 @@ export default function CategoryPage() {
           } as ClientContent;
         });
 
-      setAllAvailableContent(allContent); // Store all content for dynamic filter generation
-      let contentForCategory: ClientContent[] = [];
-      const categoryTitle = startCase(slug.replace(/-/g, ' '));
-      setTitle(categoryTitle);
+      let searchResults: ClientContent[] = [];
 
-      switch (slug) {
-        case 'trending-now':
-          contentForCategory = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
-          break;
-        case 'popular-dramas':
-          contentForCategory = allContent
-            .filter(item => item.type === 'drama')
-            .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
-          break;
-        default:
-          const formattedSlug = slug.replace(/-/g, ' ').toLowerCase();
-          contentForCategory = allContent.filter(item => 
-            item.categories?.some(cat => cat.toLowerCase() === formattedSlug)
-          );
-          break;
+      if (query) {
+        const lowerCaseQuery = query.toLowerCase();
+        searchResults = allContent.filter(item => {
+            const inTitle = item.title.toLowerCase().includes(lowerCaseQuery);
+            const inDescription = item.description.toLowerCase().includes(lowerCaseQuery);
+            const inCategories = item.categories?.some(cat => cat.toLowerCase().includes(lowerCaseQuery));
+            return inTitle || inDescription || inCategories;
+        });
+      } else {
+        searchResults = allContent; // Show all if no query
       }
       
-      setInitialContent(contentForCategory);
-      setFilteredContent(contentForCategory);
+      setInitialContent(searchResults);
+      setFilteredContent(searchResults);
       setLoading(false);
     };
 
-    fetchContent();
+    fetchAndFilterContent();
 
-  }, [firestore, slug]);
+  }, [firestore, query]);
   
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading content...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading results...</div>;
   }
   
   if (!loading && initialContent.length === 0) {
       return (
         <div className="container py-10 text-center">
-            <h1 className="text-3xl font-bold mb-4">{title}</h1>
-            <p className="text-muted-foreground">No content found for this category.</p>
+            <h1 className="text-3xl font-bold mb-4">Search Results</h1>
+            <p className="text-muted-foreground">No content found for "{query}".</p>
         </div>
       )
   }
@@ -250,12 +240,14 @@ export default function CategoryPage() {
   return (
     <div className="container py-10 px-4">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-headline font-bold">{title}</h1>
-        <FilterSheet allContent={slug === 'trending-now' ? allAvailableContent : initialContent} onFilterChange={setFilteredContent} />
+        <h1 className="text-4xl font-headline font-bold">
+            {query ? `Results for "${query}"` : "All Content"}
+        </h1>
+        <FilterSheet allContent={initialContent} onFilterChange={setFilteredContent} />
       </div>
       
       {filteredContent.length > 0 ? (
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {filteredContent.map(item => (
             <ContentGridCard key={item.id} item={item} />
             ))}
@@ -269,4 +261,10 @@ export default function CategoryPage() {
   );
 }
 
-    
+export default function SearchPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading search...</div>}>
+            <SearchPageComponent />
+        </Suspense>
+    )
+}

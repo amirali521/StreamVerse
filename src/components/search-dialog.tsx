@@ -11,7 +11,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useFirestore } from "@/firebase";
-import { collection, getDocs, type Timestamp } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import type { Content } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Film, Tv } from "lucide-react";
@@ -30,9 +30,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const router = useRouter();
   const [content, setContent] = React.useState<ClientContent[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
 
   React.useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !open) return;
 
     const fetchAllContent = async () => {
       setLoading(true);
@@ -47,23 +48,34 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     };
 
     fetchAllContent();
-  }, [firestore]);
+  }, [firestore, open]);
   
   const runCommand = (command: () => unknown) => {
     onOpenChange(false);
     command();
   };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue) {
+        runCommand(() => router.push(`/search?q=${encodeURIComponent(inputValue)}`));
+    }
+  };
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search movies, series, categories..." />
+      <CommandInput 
+        placeholder="Search movies, series, tags..."
+        value={inputValue}
+        onValueChange={setInputValue}
+        onKeyDown={handleKeyDown}
+      />
       <CommandList>
         {loading && <CommandEmpty>Loading content...</CommandEmpty>}
         {!loading && content.length === 0 && <CommandEmpty>No content found.</CommandEmpty>}
 
         <CommandEmpty>No results found.</CommandEmpty>
         
-        <CommandGroup heading="Content">
+        <CommandGroup heading="Suggestions">
           {content.map((item) => (
             <CommandItem
               key={item.id}

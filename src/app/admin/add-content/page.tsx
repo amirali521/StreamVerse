@@ -67,7 +67,7 @@ export default function AddContentPage() {
   async function onSubmit(values: z.infer<typeof contentSchema>) {
     if (!firestore) return;
     
-    // Convert category string to array
+    // Convert category string to array of tags
     const categories = values.categories ? values.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
 
     let contentData: any = {
@@ -184,12 +184,12 @@ export default function AddContentPage() {
                 name="categories"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categories</FormLabel>
+                    <FormLabel>Categories / Tags</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Bollywood, Action, Romance" {...field} />
                     </FormControl>
                      <FormDescription>
-                      Enter comma-separated categories.
+                      Enter comma-separated tags. These will be used for filtering.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
