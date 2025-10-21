@@ -24,25 +24,20 @@ interface HeroBannerProps {
 
 export function HeroBanner({ items }: HeroBannerProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true }, 
+    { loop: true },
     [Autoplay({ delay: 5000, stopOnInteraction: true })]
   );
   const [activeIndex, setActiveIndex] = React.useState(0);
-  const [isAnimating, setIsAnimating] = React.useState(false);
 
   React.useEffect(() => {
     if (!emblaApi) return;
 
     const onSelect = (api: EmblaCarouselType) => {
-      setIsAnimating(true);
       setActiveIndex(api.selectedScrollSnap());
-      // Set a timeout to remove the animating class, allowing for fade-in on the next item
-      setTimeout(() => setIsAnimating(false), 300); 
     };
 
     emblaApi.on("select", onSelect);
-    // Set initial active index
-    onSelect(emblaApi); 
+    onSelect(emblaApi);
 
     return () => {
       emblaApi.off("select", onSelect);
@@ -53,10 +48,14 @@ export function HeroBanner({ items }: HeroBannerProps) {
 
   return (
     <div className="w-full relative aspect-video md:aspect-[16/7] overflow-hidden">
-      <div className="absolute inset-0" ref={emblaRef}>
-        <div className="flex h-full">
+      {/* The Carousel now wraps everything */}
+      <Carousel
+        setApi={emblaApi}
+        className="w-full h-full"
+      >
+        <CarouselContent>
           {items.map((item) => (
-            <div className="flex-[0_0_100%] relative" key={item.id}>
+            <CarouselItem key={item.id}>
               <Image
                 src={item.bannerImageUrl}
                 alt={item.title}
@@ -64,45 +63,44 @@ export function HeroBanner({ items }: HeroBannerProps) {
                 className="object-cover"
                 priority={items.indexOf(item) === 0}
               />
-            </div>
+            </CarouselItem>
           ))}
-        </div>
-      </div>
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+        </CarouselContent>
 
-      {/* Static Content Overlay */}
-      {activeItem && (
-        <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 lg:p-16">
-           <div
-            key={activeIndex}
-            className={cn(
-              "max-w-xl text-white animate-in fade-in duration-500"
-            )}
-          >
-            <h2 className="text-3xl md:text-5xl font-bold font-headline leading-tight">
-              {activeItem.title}
-            </h2>
-            <p className="mt-2 md:mt-4 text-sm md:text-base line-clamp-3">
-              {activeItem.description}
-            </p>
-            <Button asChild className="mt-4 md:mt-6 bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
-              <Link href={`/watch/${activeItem.id}`}>
-                <PlayCircle className="mr-2 h-5 w-5" />
-                Watch Now
-              </Link>
-            </Button>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+
+        {/* Static Content Overlay */}
+        {activeItem && (
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 lg:p-16">
+            <div
+              key={activeIndex} // This key is what triggers the fade animation on change
+              className={cn("max-w-xl text-white animate-in fade-in duration-500")}
+            >
+              <h2 className="text-3xl md:text-5xl font-bold font-headline leading-tight">
+                {activeItem.title}
+              </h2>
+              <p className="mt-2 md:mt-4 text-sm md:text-base line-clamp-3">
+                {activeItem.description}
+              </p>
+              <Button asChild className="mt-4 md:mt-6 bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
+                <Link href={`/watch/${activeItem.id}`}>
+                  <PlayCircle className="mr-2 h-5 w-5" />
+                  Watch Now
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Carousel Controls */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:block">
-        <button className="bg-background/50 p-2 rounded-full hover:bg-background/80 transition-colors" onClick={() => emblaApi?.scrollPrev()}><CarouselPrevious/></button>
-      </div>
-       <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
-         <button className="bg-background/50 p-2 rounded-full hover:bg-background/80 transition-colors" onClick={() => emblaApi?.scrollNext()}><CarouselNext/></button>
-      </div>
+        {/* Carousel Controls - Now inside the Carousel component */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:block">
+            <CarouselPrevious className="bg-background/50 hover:bg-background/80 border-0" />
+        </div>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
+            <CarouselNext className="bg-background/50 hover:bg-background/80 border-0" />
+        </div>
+
+      </Carousel>
     </div>
   );
 }
