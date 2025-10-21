@@ -8,6 +8,7 @@ import { useFirestore } from "@/firebase";
 import { collection, getDocs, type Timestamp } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
+import { HeroBanner } from "@/components/hero-banner";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -18,6 +19,7 @@ type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
 
 export default function Home() {
   const firestore = useFirestore();
+  const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
@@ -58,6 +60,10 @@ export default function Home() {
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
         setNewReleases(sortedNewReleases);
 
+        // Set Hero Content (latest 5 movies)
+        const newMovies = sortedNewReleases.filter(item => item.type === 'movie');
+        setHeroContent(newMovies.slice(0, 5));
+
         // 2. Get Trending: Sort all content by IMDb rating
         const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
         setTrending(sortedTrending.slice(0, 10));
@@ -90,6 +96,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
+      {heroContent.length > 0 && <HeroBanner items={heroContent} />}
+
       {/* Content Sections */}
       <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">
         {trending.length === 0 && newReleases.length === 0 && popularDramas.length === 0 ? (
