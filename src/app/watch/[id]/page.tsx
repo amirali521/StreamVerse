@@ -7,7 +7,7 @@ import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/fires
 import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, PlayCircle } from "lucide-react";
+import { Download } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useRef } from "react";
 import { VideoPlayer } from "@/components/video-player";
@@ -220,12 +220,6 @@ export default function WatchPage() {
     return `${title}.mp4`;
   };
 
-  const handlePlay = () => {
-    playerRef.current?.scrollIntoView({ behavior: 'smooth' });
-    // The iframe will autoplay due to the `autoplay=1` parameter in the URL.
-    // For a standard <video> tag, you would call `playerRef.current.play()`.
-  };
-
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 py-8">
@@ -235,7 +229,7 @@ export default function WatchPage() {
           <div className="lg:col-span-2 space-y-6">
             <div ref={playerRef} className="bg-background/80 rounded-lg overflow-hidden">
                 {embedUrl ? (
-                    <VideoPlayer src={embedUrl} />
+                    <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
                 ) : (
                     <div className="aspect-video bg-black flex items-center justify-center">
                         <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
@@ -308,5 +302,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    

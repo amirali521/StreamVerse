@@ -5,9 +5,10 @@ import { useEffect, useRef } from 'react';
 
 interface VideoPlayerProps {
   src: string;
+  poster?: string;
 }
 
-export function VideoPlayer({ src }: VideoPlayerProps) {
+export function VideoPlayer({ src, poster }: VideoPlayerProps) {
   const isYouTube = src.includes('youtube.com/embed');
   const isGoogleDrive = src.includes('drive.google.com/file');
 
@@ -36,6 +37,7 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
         controls
         autoPlay
         preload="auto"
+        poster={poster}
         className="w-full h-full"
       >
         <source src={src} type="video/mp4" />
