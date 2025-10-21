@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Bell, User, Menu } from "lucide-react";
+import { Search, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/firebase/auth/use-user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sheet";
 import { useState } from "react";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
+import { SearchDialog } from "./search-dialog";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -202,6 +203,20 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [openSearch, setOpenSearch] = useState(false);
+
+  // Add keyboard shortcut for search (Cmd+K or Ctrl+K)
+  useState(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpenSearch((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  });
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center">
@@ -239,19 +254,16 @@ export function SiteHeader() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => setOpenSearch(true)}>
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
           </Button>
           <div className="flex items-center gap-2">
             <UserNav />
           </div>
         </div>
       </div>
+      <SearchDialog open={openSearch} onOpenChange={setOpenSearch} />
     </header>
   );
 }
