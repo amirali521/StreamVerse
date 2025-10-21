@@ -48,10 +48,9 @@ export function HeroBanner({ items }: HeroBannerProps) {
 
   return (
     <div className="w-full relative aspect-video md:aspect-[16/7] overflow-hidden bg-black">
-      {/* Carousel for background images */}
       <Carousel
         setApi={emblaApi}
-        className="w-full h-full absolute inset-0"
+        className="w-full h-full"
       >
         <CarouselContent>
           {items.map((item, index) => (
@@ -66,6 +65,13 @@ export function HeroBanner({ items }: HeroBannerProps) {
             </CarouselItem>
           ))}
         </CarouselContent>
+        {/* Controls are now correctly inside the Carousel component */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:block">
+            <CarouselPrevious className="bg-background/50 hover:bg-background/80 border-0" />
+        </div>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
+            <CarouselNext className="bg-background/50 hover:bg-background/80 border-0" />
+        </div>
       </Carousel>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
@@ -92,14 +98,6 @@ export function HeroBanner({ items }: HeroBannerProps) {
           </div>
         </div>
       )}
-
-      {/* Carousel Controls - On top of everything */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:block">
-          <CarouselPrevious className="bg-background/50 hover:bg-background/80 border-0" />
-      </div>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
-          <CarouselNext className="bg-background/50 hover:bg-background/80 border-0" />
-      </div>
     </div>
   );
 }
