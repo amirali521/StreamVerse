@@ -70,13 +70,13 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
+            <div className="flex space-x-2 overflow-x-auto pb-2 -mb-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
                   variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="aspect-square p-0 transition-colors duration-200 hover:bg-accent/80"
+                  className="aspect-square p-0 w-10 h-10 flex-shrink-0 transition-colors duration-200 hover:bg-accent/80"
                   onClick={() => setSelectedEpisode(episode)}
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
