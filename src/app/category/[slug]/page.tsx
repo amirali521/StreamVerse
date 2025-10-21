@@ -76,7 +76,7 @@ export default function CategoryPage() {
         });
 
       let filteredContent: ClientContent[] = [];
-      const categoryTitle = startCase(slug);
+      const categoryTitle = startCase(slug.replace(/-/g, ' '));
       setTitle(categoryTitle);
 
       switch (slug) {
@@ -89,8 +89,12 @@ export default function CategoryPage() {
             .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
           break;
         default:
-          // Handles Bollywood, Hollywood, Tollywood, etc.
-          filteredContent = allContent.filter(item => item.categories?.map(c => c.toLowerCase()).includes(slug.replace(/-/g, ' ')));
+          // Handles general categories like Bollywood, Hollywood, etc.
+          // This logic matches the slug (e.g., 'bollywood') to a category ('Bollywood') in a case-insensitive manner.
+          const formattedSlug = slug.replace(/-/g, ' ').toLowerCase();
+          filteredContent = allContent.filter(item => 
+            item.categories?.some(cat => cat.toLowerCase() === formattedSlug)
+          );
           break;
       }
       
