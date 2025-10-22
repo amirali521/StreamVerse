@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getAuth, signOut } from "firebase/auth";
-import { useFirebase } from "@/firebase/provider";
+import { useFirebase, useFirestore } from "@/firebase/provider";
 import {
   Sheet,
   SheetContent,
@@ -24,9 +24,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { SearchDialog } from "./search-dialog";
+import { collection, getDocs } from "firebase/firestore";
+import { startCase, kebabCase } from "lodash";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -116,7 +118,7 @@ function UserNav() {
   );
 }
 
-function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
+function MobileNav({ open, setOpen, navItems }: { open: boolean, setOpen: (open: boolean) => void, navItems: string[] }) {
   const { user, loaded } = useUser();
   const { isAdmin } = useAdminStatus();
   const { app } = useFirebase();
@@ -156,27 +158,16 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
           >
             Home
           </Link>
-          <Link
-            href="#"
-            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
-            onClick={() => setOpen(false)}
-          >
-            Movies
-          </Link>
-          <Link
-            href="#"
-            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
-            onClick={() => setOpen(false)}
-          >
-            Series
-          </Link>
-          <Link
-            href="#"
-            className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
-            onClick={() => setOpen(false)}
-          >
-            Dramas
-          </Link>
+          {navItems.map((item) => (
+             <Link
+              key={item}
+              href={`/category/${kebabCase(item)}`}
+              className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
+              onClick={() => setOpen(false)}
+            >
+              {startCase(item)}
+            </Link>
+          ))}
           <DropdownMenuSeparator />
           {loaded && user && (
             <>
@@ -204,9 +195,34 @@ function MobileNav({ open, setOpen }: { open: boolean, setOpen: (open: boolean) 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
+  const [navItems, setNavItems] = useState<string[]>([]);
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!firestore) return;
+    
+    const fetchCategories = async () => {
+        const contentRef = collection(firestore, "content");
+        const snapshot = await getDocs(contentRef);
+        const categories = new Set<string>();
+        
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            // Add content type to nav
+            if(data.type) categories.add(data.type);
+            // Add all categories to nav
+            data.categories?.forEach((cat: string) => categories.add(cat));
+        });
+        
+        setNavItems(Array.from(categories).sort());
+    };
+
+    fetchCategories();
+  }, [firestore]);
+
 
   // Add keyboard shortcut for search (Cmd+K or Ctrl+K)
-  useState(() => {
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -215,12 +231,12 @@ export function SiteHeader() {
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  });
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center">
-        <MobileNav open={open} setOpen={setOpen} />
+        <MobileNav open={open} setOpen={setOpen} navItems={navItems} />
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <LogoIcon className="h-8 w-8" />
@@ -233,24 +249,15 @@ export function SiteHeader() {
             >
               Home
             </Link>
-            <Link
-              href="#"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              Movies
-            </Link>
-            <Link
-              href="#"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              Series
-            </Link>
-            <Link
-              href="#"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              Dramas
-            </Link>
+             {navItems.map((item) => (
+                <Link
+                key={item}
+                href={`/category/${kebabCase(item)}`}
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                {startCase(item)}
+                </Link>
+            ))}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
