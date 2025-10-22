@@ -10,51 +10,25 @@
 import { ai } from '@/ai/genkit';
 import YTDlpWrap from 'yt-dlp-wrap';
 import { z } from 'genkit';
+import { YouTubeFormatSchema, ListFormatsOutputSchema, DownloadUrlOutputSchema } from './youtube-types';
 
 // Input for both flows
 const YouTubeUrlInputSchema = z.object({
   sourceUrl: z.string().url().describe('The URL of the YouTube video.'),
 });
 
-// Output for listYouTubeFormats
-export const YouTubeFormatSchema = z.object({
-    format_id: z.string(),
-    ext: z.string(),
-    format_note: z.string().optional(),
-    resolution: z.string().optional(),
-    filesize_approx: z.number().optional(),
-    filesize_approx_str: z.string().optional(),
-    vcodec: z.string(),
-    acodec: z.string(),
-});
-export type YouTubeFormat = z.infer<typeof YouTubeFormatSchema>;
-
-const ListFormatsOutputSchema = z.object({
-  formats: z.array(YouTubeFormatSchema).optional(),
-  error: z.string().optional(),
-});
-export type ListFormatsOutput = z.infer<typeof ListFormatsOutputSchema>;
-
 // Input for getYouTubeDownloadUrl
 const DownloadUrlInputSchema = YouTubeUrlInputSchema.extend({
     formatId: z.string().describe('The format ID to get the download URL for.'),
 });
 
-// Output for getYouTubeDownloadUrl
-const DownloadUrlOutputSchema = z.object({
-  videoUrl: z.string().optional(),
-  error: z.string().optional(),
-});
-export type DownloadUrlOutput = z.infer<typeof DownloadUrlOutputSchema>;
-
-
 // Client-callable wrapper for listing formats
-export async function listYouTubeFormats(input: z.infer<typeof YouTubeUrlInputSchema>): Promise<ListFormatsOutput> {
+export async function listYouTubeFormats(input: z.infer<typeof YouTubeUrlInputSchema>): Promise<z.infer<typeof ListFormatsOutputSchema>> {
   return listFormatsFlow(input);
 }
 
 // Client-callable wrapper for getting download URL
-export async function getYouTubeDownloadUrl(input: z.infer<typeof DownloadUrlInputSchema>): Promise<DownloadUrlOutput> {
+export async function getYouTubeDownloadUrl(input: z.infer<typeof DownloadUrlInputSchema>): Promise<z.infer<typeof DownloadUrlOutputSchema>> {
   return getDownloadUrlFlow(input);
 }
 

@@ -37,9 +37,11 @@ import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { extractVideo } from "@/ai/flows/extract-video-flow";
-import { listYouTubeFormats, getYouTubeDownloadUrl, type YouTubeFormat } from "@/ai/flows/youtube-flow";
+import { listYouTubeFormats, getYouTubeDownloadUrl } from "@/ai/flows/youtube-flow";
+import { type YouTubeFormat } from "@/ai/flows/youtube-types";
 import { Copy, Loader2, Youtube } from "lucide-react";
 import { createEmbedUrl } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 
 function VideoExtractor() {
