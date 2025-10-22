@@ -14,6 +14,7 @@ import { z } from 'genkit';
 
 const ExtractVideoInputSchema = z.object({
   sourceUrl: z.string().url().describe('The URL of the webpage containing the video.'),
+  format: z.string().optional().describe('The desired format for download (e.g., mp4, mp3, webm). Requires FFMpeg on the server.')
 });
 export type ExtractVideoInput = z.infer<typeof ExtractVideoInputSchema>;
 
@@ -37,25 +38,45 @@ const extractVideoFlow = ai.defineFlow(
   async (input) => {
     try {
       const ytDlpWrap = new YTDlpWrap();
-      
-      // We use the '-g' flag to get the direct URL
-      // We use '-f best' to select the best available quality format
-      const videoUrl = await ytDlpWrap.execPromise([
-        input.sourceUrl,
-        '-f',
-        'best',
-        '-g',
-      ]);
+      const isYoutube = /youtube\.com|youtu\.be/.test(input.sourceUrl);
+
+      let videoUrl: string | undefined;
+
+      // If it's a YouTube link and a specific format is requested, we need FFmpeg
+      if (isYoutube && input.format) {
+        // Set path to FFmpeg binary - this is crucial for format conversion to work in the backend environment.
+        ytDlpWrap.setFfmpegPath('/usr/bin/ffmpeg');
+        
+        const stdout = await ytDlpWrap.execPromise([
+          input.sourceUrl,
+          '--format',
+          // Select best video and best audio, then merge them.
+          'bestvideo+bestaudio/best',
+          // Use FFmpeg to merge and convert to the desired format.
+          '--merge-output-format',
+          input.format,
+          // Get the direct URL of the final file
+          '-g', 
+        ]);
+        videoUrl = stdout.split('\n')[0].trim();
+
+      } else {
+        // Original logic for all other URLs or if no format is specified
+        const stdout = await ytDlpWrap.execPromise([
+          input.sourceUrl,
+          '-f',
+          'best', // Select the best available format that doesn't require merging
+          '-g',   // Get the direct URL
+        ]);
+        videoUrl = stdout.split('\n')[0].trim();
+      }
 
       if (!videoUrl || typeof videoUrl !== 'string') {
         throw new Error('Could not extract a valid video URL.');
       }
 
-      // The output might contain multiple URLs, we usually want the first one.
-      const firstUrl = videoUrl.split('\n')[0].trim();
-
       return {
-        videoUrl: firstUrl,
+        videoUrl: videoUrl,
       };
     } catch (error: any) {
       console.error("yt-dlp error:", error);
