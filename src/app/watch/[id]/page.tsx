@@ -236,14 +236,14 @@ export default function WatchPage() {
 
   const getDownloadFilename = () => {
     if (!item) return "";
-    const title = item.title.replace(/[^a-z0-9\s-]/gi, '').trim();
+    const title = item.title.replace(/[^a-z0-9\\s-]/gi, '').trim();
     if (item.type === 'movie') {
         return `${title}.mp4`;
     }
     if (selectedSeason && selectedEpisode) {
         const seasonNum = String(selectedSeason.seasonNumber).padStart(2, '0');
         const episodeNum = String(selectedEpisode.episodeNumber).padStart(2, '0');
-        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\s-]/gi, '').trim();
+        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\\s-]/gi, '').trim();
         return `${title} - S${seasonNum}E${episodeNum} - ${episodeTitle}.mp4`;
     }
     return `${title}.mp4`;
