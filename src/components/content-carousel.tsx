@@ -61,8 +61,10 @@ function SeeMoreCard({ category }: { category: string }) {
 export function ContentCarousel({ title, items }: ContentCarouselProps) {
   return (
     <section>
-      <h2 className="text-2xl md:text-3xl font-headline font-semibold mb-6">{title}</h2>
-      <div className="flex space-x-4 overflow-x-auto pb-4 -mb-4">
+      <div className="px-4 md:px-6 lg:px-8">
+        <h2 className="text-2xl md:text-3xl font-headline font-semibold mb-6">{title}</h2>
+      </div>
+      <div className="flex space-x-4 overflow-x-auto pb-4 -mb-4 pl-4 md:pl-6 lg:pl-8">
         {items.map((item) => (
           <ContentCard key={item.id} item={item} />
         ))}

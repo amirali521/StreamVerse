@@ -302,14 +302,15 @@ export default function WatchPage() {
             </div>
           )}
         </div>
-
-        <div className="space-y-16 py-12 mt-8">
-          {related.length > 0 && (
-            <ContentCarousel title="More Like This" items={related} />
-          )}
-          {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
-          {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
-        </div>
+      </div>
+      
+      {/* Full-width Carousel Section */}
+      <div className="space-y-16 py-12">
+        {related.length > 0 && (
+          <ContentCarousel title="More Like This" items={related} />
+        )}
+        {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+        {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
       </div>
     </div>
   );
