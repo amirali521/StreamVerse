@@ -98,19 +98,49 @@ export default function AddContentPage() {
   const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
   const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
   
-  const hasMultiSeasonStructure = seasons.length > 0;
+  const form = useForm<z.infer<typeof contentSchema>>({
+    resolver: zodResolver(contentSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      type: "movie",
+      bannerImageUrl: "",
+      googleDriveVideoUrl: "",
+      imdbRating: 0,
+      categories: "",
+    },
+  });
+
+  const hasMultiSeasonStructure = seasons.length > 0 && seasons.some(s => s.seasonNumber > 1);
 
   const handleAddSeason = () => {
-    // If we're creating the first season, check if there are any "default" episodes
+    // If we're creating the first explicit season, check if there are any "default" episodes
     // and move them into this new season.
-    const defaultEpisodes = hasMultiSeasonStructure ? [] : (seasons[0]?.episodes || []);
+    let defaultEpisodes: Episode[] = [];
+    if (seasons.length === 1 && seasons[0].seasonNumber === 1 && !hasMultiSeasonStructure) {
+        defaultEpisodes = seasons[0].episodes;
+    }
     
     const newSeasonNumber = seasons.length + 1;
-    const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: defaultEpisodes };
+    const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
     
-    const newSeasons = seasons.length === 0 ? [newSeason] : [...seasons, newSeason];
+    let newSeasons;
+    // If we only had a "default" season, replace it with a numbered season 1
+    if (seasons.length === 1 && seasons[0].seasonNumber === 1 && !hasMultiSeasonStructure) {
+        seasons[0].episodes = defaultEpisodes; // Add default episodes to season 1
+        newSeasons = [...seasons, newSeason];
+    } else if (seasons.length === 0) { // If starting completely fresh
+        const seasonOne: Season = { seasonNumber: 1, episodes: [] };
+        newSeasons = [seasonOne, newSeason];
+    }
+    else {
+        newSeasons = [...seasons, newSeason];
+    }
+    
+    // Ensure season numbers are contiguous if we manipulated them
+    const finalSeasons = newSeasons.map((s, i) => ({...s, seasonNumber: i + 1}));
 
-    setSeasons(newSeasons);
+    setSeasons(finalSeasons);
     toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been staged.` });
   };
 
@@ -119,8 +149,8 @@ export default function AddContentPage() {
 
     let updatedSeasons = [...seasons];
 
+    // If we are in multi-season mode (accordions are visible)
     if (hasMultiSeasonStructure) {
-        // Find the correct season to add to
         if (selectedSeason === null) return;
         updatedSeasons = seasons.map(s => {
             if (s.seasonNumber === selectedSeason) {
@@ -135,8 +165,8 @@ export default function AddContentPage() {
             return s;
         });
     } else {
-        // No explicit seasons, add to the default virtual season
-        const defaultSeason = updatedSeasons[0] || { seasonNumber: 1, episodes: [] };
+        // No explicit seasons, add to the default virtual season (Season 1)
+        const defaultSeason = updatedSeasons.find(s => s.seasonNumber === 1) || { seasonNumber: 1, episodes: [] };
         const newEpisodeNumber = (defaultSeason.episodes?.length || 0) + 1;
         const newEpisode: Episode = {
             episodeNumber: newEpisodeNumber,
@@ -144,9 +174,13 @@ export default function AddContentPage() {
             videoUrl: newEpisodeUrl
         };
         const updatedDefaultSeason = { ...defaultSeason, episodes: [...defaultSeason.episodes, newEpisode] };
-        updatedSeasons = [updatedDefaultSeason];
+        // Replace or add the default season
+        if (updatedSeasons.some(s => s.seasonNumber === 1)) {
+            updatedSeasons = updatedSeasons.map(s => s.seasonNumber === 1 ? updatedDefaultSeason : s);
+        } else {
+            updatedSeasons.push(updatedDefaultSeason);
+        }
     }
-
 
     setSeasons(updatedSeasons);
     toast({ title: "Episode Staged", description: `${newEpisodeTitle} has been staged.` });
@@ -212,9 +246,10 @@ export default function AddContentPage() {
         }
         contentData.googleDriveVideoUrl = values.googleDriveVideoUrl;
     } else {
-        // If there are no episodes, don't save the seasons array
-        if (seasons.length > 0 && seasons[0].episodes.length > 0) {
-          contentData.seasons = seasons;
+        // Save seasons only if there are any episodes within them
+        const seasonsWithEpisodes = seasons.filter(s => s.episodes.length > 0);
+        if (seasonsWithEpisodes.length > 0) {
+          contentData.seasons = seasonsWithEpisodes;
         }
     }
 
@@ -242,7 +277,7 @@ export default function AddContentPage() {
             <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                 <p>Ep {episode.episodeNumber}: {episode.title}</p>
                 <div className="flex items-center gap-2">
-                    <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
+                    <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
                         <DialogTrigger asChild>
                             <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
                                 <Edit className="h-4 w-4" />
@@ -305,8 +340,14 @@ export default function AddContentPage() {
                                 <FormItem>
                                 <FormLabel>Content Type</FormLabel>
                                 <Select onValueChange={(value) => {
-                                    field.onChange(value);
-                                    setContentType(value as "movie" | "webseries" | "drama");
+                                    const val = value as "movie" | "webseries" | "drama";
+                                    field.onChange(val);
+                                    setContentType(val);
+                                    if (val !== 'movie' && seasons.length === 0) {
+                                      setSeasons([{ seasonNumber: 1, episodes: [] }]);
+                                    } else if (val === 'movie') {
+                                      setSeasons([]);
+                                    }
                                 }} defaultValue={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a content type" /></SelectTrigger></FormControl>
                                     <SelectContent>
@@ -358,7 +399,7 @@ export default function AddContentPage() {
                                             </Button>
                                         </DialogTrigger>
                                         <DialogContent>
-                                            <DialogHeader><DialogTitle>Add Episode {selectedSeason ? `to Season ${selectedSeason}` : ''}</DialogTitle></DialogHeader>
+                                            <DialogHeader><DialogTitle>Add Episode {selectedSeason && hasMultiSeasonStructure ? `to Season ${selectedSeason}` : ''}</DialogTitle></DialogHeader>
                                             <div className="grid gap-4 py-4">
                                                 <Label htmlFor="episode-title">Title</Label>
                                                 <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
@@ -390,7 +431,6 @@ export default function AddContentPage() {
                             ) : (
                                 <div className="pt-4">
                                     {seasons[0] && seasons[0].episodes.length > 0 ? renderEpisodesForSeason(seasons[0]) : <p className="text-muted-foreground text-center py-8">No episodes yet. Add one to get started.</p>}
-                                ...
                                 </div>
                             )}
 
@@ -405,3 +445,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    
