@@ -43,6 +43,7 @@ const listFormatsFlow = ai.defineFlow(
   async (input) => {
     try {
       const ytDlpWrap = new YTDlpWrap();
+      YTDlpWrap.setYtdlpPath('/usr/bin/yt-dlp');
       
       const metadata = await ytDlpWrap.getVideoInfo(input.sourceUrl);
       const formats = metadata.formats
@@ -77,6 +78,7 @@ const getDownloadUrlFlow = ai.defineFlow(
   async (input) => {
     try {
       const ytDlpWrap = new YTDlpWrap();
+      YTDlpWrap.setYtdlpPath('/usr/bin/yt-dlp');
       
       const stdout = await ytDlpWrap.execPromise([
         input.sourceUrl,
