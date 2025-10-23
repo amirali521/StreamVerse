@@ -20,35 +20,6 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   updatedAt?: Date;
 };
 
-function ImdbIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="48"
-      height="24"
-      viewBox="0 0 48 24"
-      fill="none"
-      role="img"
-      {...props}
-    >
-      <title>IMDb</title>
-      <path
-        d="M4.6992 0.511719H0.585938V23.5117H4.6992V0.511719Z"
-        fill="#F5C518"
-      ></path>
-      <path
-        d="M15.4055 0.511719H8.40552V23.5117H15.4055C20.9055 23.5117 23.6555 19.455 23.6555 12.0117C23.6555 4.5684 20.9055 0.511719 15.4055 0.511719ZM17.1198 18.235C16.3331 19.1484 15.1531 19.655 13.9198 19.655H12.5198V4.3684H13.9198C15.1531 4.3684 16.3331 4.87506 17.1198 5.7884C17.9065 6.70173 18.2598 8.03506 18.2598 9.89506V14.1284C18.2598 15.9884 17.9065 17.3217 17.1198 18.235Z"
-        fill="#F5C518"
-      ></path>
-      <path
-        d="M33.4688 0.511719H27.5156V23.5117H33.4688V19.655H38.5312V23.5117H44.4844V0.511719H38.5312V4.3684H33.4688V0.511719Z"
-        fill="#F5C518"
-      ></path>
-    </svg>
-  );
-}
-
-
 function EpisodeSelector({ 
   item,
   selectedSeason,
@@ -276,8 +247,7 @@ export default function WatchPage() {
                 <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-4">
                   {item.imdbRating && (
                       <div className="flex items-center gap-2">
-                          <ImdbIcon className="h-6" />
-                          <span className="font-bold text-yellow-300">{item.imdbRating}/10</span>
+                          <span className="font-bold text-yellow-300">IMDb Rating: {item.imdbRating}/10</span>
                       </div>
                   )}
                   {item.categories && item.categories.length > 0 && (
@@ -331,3 +301,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
