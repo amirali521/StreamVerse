@@ -36,221 +36,6 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { extractVideo } from "@/ai/flows/extract-video-flow";
-import { listYouTubeFormats, getYouTubeDownloadUrl } from "@/ai/flows/youtube-flow";
-import { type YouTubeFormat } from "@/ai/flows/youtube-types";
-import { Copy, Loader2, Youtube } from "lucide-react";
-import { createEmbedUrl } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-
-
-function VideoExtractor() {
-  const [sourceUrl, setSourceUrl] = useState("");
-  const [extractedUrl, setExtractedUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleExtract = async () => {
-    if (!sourceUrl) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please enter a source URL to extract from.",
-      });
-      return;
-    }
-    setIsLoading(true);
-    setExtractedUrl("");
-    try {
-      const result = await extractVideo({ sourceUrl });
-      if (result.videoUrl) {
-        setExtractedUrl(result.videoUrl);
-        toast({
-          title: "Extraction Successful",
-          description: "Video link has been extracted.",
-        });
-      } else {
-        throw new Error(result.error || "No video URL found.");
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Extraction Failed",
-        description: error.message || "Could not extract video link from the URL.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCopy = (textToCopy: string, toastMessage: string) => {
-    if (!textToCopy) return;
-    navigator.clipboard.writeText(textToCopy);
-    toast({
-      title: "Copied!",
-      description: toastMessage,
-    });
-  };
-
-  return (
-    <div className="space-y-4 rounded-lg border bg-card p-6">
-       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Video Link Extractor (Non-YouTube)</h3>
-        <p className="text-sm text-muted-foreground">
-            Paste a webpage URL from sites like Dailymotion to automatically get the direct video link. For YouTube, use the dedicated section below.
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Input 
-          placeholder="Enter webpage URL to extract video from" 
-          value={sourceUrl}
-          onChange={(e) => setSourceUrl(e.target.value)}
-        />
-        <Button onClick={handleExtract} disabled={isLoading} type="button">
-          {isLoading ? <Loader2 className="animate-spin" /> : "Extract"}
-        </Button>
-      </div>
-      {extractedUrl && (
-        <div className="flex items-center gap-2">
-           <Input 
-            value={extractedUrl}
-            readOnly
-            disabled
-            className="bg-muted text-muted-foreground"
-          />
-           <Button variant="outline" size="icon" onClick={() => handleCopy(extractedUrl, "The extracted video URL has been copied.")} type="button">
-                <Copy className="h-4 w-4" />
-           </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function YouTubeVideoManager() {
-    const [ytUrl, setYtUrl] = useState('');
-    const [formats, setFormats] = useState<YouTubeFormat[]>([]);
-    const [selectedFormat, setSelectedFormat] = useState('');
-    const [embedUrl, setEmbedUrl] = useState('');
-    const [downloadUrl, setDownloadUrl] = useState('');
-    const [isLoading, setIsLoading] = useState<'analyze' | 'getLink' | false>(false);
-
-    const handleAnalyze = async () => {
-        if (!ytUrl) return;
-        setIsLoading('analyze');
-        setFormats([]);
-        setEmbedUrl('');
-        setDownloadUrl('');
-        try {
-            const result = await listYouTubeFormats({ sourceUrl: ytUrl });
-            if (result.error) throw new Error(result.error);
-            if (!result.formats || result.formats.length === 0) throw new Error("No formats found.");
-            setFormats(result.formats);
-            
-            // Set default format to 720p if available, otherwise the best
-            const defaultFormat = result.formats.find(f => f.format_note?.includes('720p')) || result.formats[result.formats.length - 1];
-            setSelectedFormat(defaultFormat.format_id);
-
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Analysis Failed', description: e.message });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleGetLinks = async () => {
-        if (!ytUrl || !selectedFormat) return;
-        setIsLoading('getLink');
-        try {
-            // Embed URL is generated client-side
-            const playerEmbedUrl = createEmbedUrl(ytUrl);
-            setEmbedUrl(playerEmbedUrl);
-
-            // Download URL is fetched from the backend
-            const result = await getYouTubeDownloadUrl({ sourceUrl: ytUrl, formatId: selectedFormat });
-            if (result.error) throw new Error(result.error);
-            setDownloadUrl(result.videoUrl!);
-
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Failed to Get Link', description: e.message });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const handleCopy = (textToCopy: string, toastMessage: string) => {
-        if (!textToCopy) return;
-        navigator.clipboard.writeText(textToCopy);
-        toast({
-        title: "Copied!",
-        description: toastMessage,
-        });
-    };
-
-    return (
-        <div className="space-y-4 rounded-lg border bg-card p-6">
-            <div className="space-y-1">
-                <h3 className="text-lg font-semibold flex items-center gap-2"><Youtube className="text-red-500" /> YouTube Content Manager</h3>
-                <p className="text-sm text-muted-foreground">
-                    Get playable embed links and downloadable video links for YouTube content.
-                </p>
-            </div>
-            {/* Step 1: Input URL and Analyze */}
-            <div className="flex items-center gap-2">
-                <Input
-                    placeholder="Enter YouTube video URL"
-                    value={ytUrl}
-                    onChange={(e) => setYtUrl(e.target.value)}
-                    disabled={!!isLoading}
-                />
-                <Button onClick={handleAnalyze} disabled={isLoading === 'analyze'} type="button">
-                    {isLoading === 'analyze' ? <Loader2 className="animate-spin" /> : "Analyze URL"}
-                </Button>
-            </div>
-
-            {/* Step 2: Select Format and Get Links */}
-            {formats.length > 0 && (
-                <div className="flex items-center gap-2">
-                    <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a download format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {formats.map((f) => (
-                                <SelectItem key={f.format_id} value={f.format_id}>
-                                    {f.format_note} ({f.ext}) - {f.filesize_approx_str}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleGetLinks} disabled={isLoading === 'getLink'} type="button">
-                        {isLoading === 'getLink' ? <Loader2 className="animate-spin" /> : "Get Links"}
-                    </Button>
-                </div>
-            )}
-            
-            {/* Step 3: Display and Copy Links */}
-            {embedUrl && (
-                 <div className="space-y-2">
-                    <Label>Embed Link (for Player)</Label>
-                    <div className="flex items-center gap-2">
-                        <Input value={embedUrl} readOnly disabled className="bg-muted text-muted-foreground" />
-                        <Button variant="outline" size="icon" onClick={() => handleCopy(embedUrl, "Embed URL copied to clipboard.")} type="button"><Copy className="h-4 w-4" /></Button>
-                    </div>
-                 </div>
-            )}
-            {downloadUrl && (
-                 <div className="space-y-2">
-                    <Label>Download Link</Label>
-                    <div className="flex items-center gap-2">
-                        <Input value={downloadUrl} readOnly disabled className="bg-muted text-muted-foreground" />
-                        <Button variant="outline" size="icon" onClick={() => handleCopy(downloadUrl, "Download URL copied to clipboard.")} type="button"><Copy className="h-4 w-4" /></Button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
 
 const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -334,15 +119,10 @@ export default function AddContentPage() {
         <CardHeader>
           <CardTitle>Add New Content</CardTitle>
           <CardDescription>
-            Fill out the form to add a new movie, web series, or drama. Use the tools below to generate video links.
+            Fill out the form to add a new movie, web series, or drama.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
-            <YouTubeVideoManager />
-            <VideoExtractor />
-
-            <Separator />
-            
+        <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <FormField
@@ -437,7 +217,7 @@ export default function AddContentPage() {
                         <FormItem>
                             <FormLabel>Video URL</FormLabel>
                             <FormControl>
-                            <Input placeholder="Use a tool above or paste a direct video/embed link" {...field} />
+                            <Input placeholder="Paste a direct video/embed link" {...field} />
                             </FormControl>
                             <FormDescription>
                             This is the main link for streaming (e.g., YouTube embed or Google Drive preview).
