@@ -104,6 +104,23 @@
             "$ref": "#/entities/Season"
           },
           "description": "Seasons for web series or dramas."
+        },
+        "categories": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "A list of categories or tags for the content."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the content was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the content was last updated."
         }
       },
       "required": ["title", "description", "type", "bannerImageUrl"]

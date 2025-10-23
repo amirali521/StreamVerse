@@ -36,6 +36,45 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+
+// Data structures from backend.json
+interface Episode {
+  episodeNumber: number;
+  title: string;
+  videoUrl: string;
+}
+
+interface Season {
+  seasonNumber: number;
+  episodes: Episode[];
+}
 
 const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -52,6 +91,15 @@ export default function AddContentPage() {
   const router = useRouter();
   const [contentType, setContentType] = useState<"movie" | "webseries" | "drama">("movie");
 
+  // State for managing seasons and episodes
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [isAddEpisodeOpen, setAddEpisodeOpen] = useState(false);
+  const [isEditEpisodeOpen, setEditEpisodeOpen] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
+  const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
+  const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
+
   const form = useForm<z.infer<typeof contentSchema>>({
     resolver: zodResolver(contentSchema),
     defaultValues: {
@@ -64,6 +112,70 @@ export default function AddContentPage() {
       categories: "",
     },
   });
+
+  const handleAddSeason = () => {
+    const newSeasonNumber = seasons.length + 1;
+    const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
+    setSeasons([...seasons, newSeason]);
+    toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been staged.` });
+  };
+
+  const handleAddEpisode = () => {
+    if (selectedSeason === null || !newEpisodeTitle || !newEpisodeUrl) return;
+
+    const updatedSeasons = seasons.map(s => {
+        if (s.seasonNumber === selectedSeason) {
+            const newEpisodeNumber = (s.episodes?.length || 0) + 1;
+            const newEpisode: Episode = {
+                episodeNumber: newEpisodeNumber,
+                title: newEpisodeTitle,
+                videoUrl: newEpisodeUrl
+            };
+            return { ...s, episodes: [...s.episodes, newEpisode] };
+        }
+        return s;
+    });
+
+    setSeasons(updatedSeasons);
+    toast({ title: "Episode Staged", description: `${newEpisodeTitle} has been staged for Season ${selectedSeason}.` });
+    setAddEpisodeOpen(false);
+    setNewEpisodeTitle("");
+    setNewEpisodeUrl("");
+  };
+
+  const handleEditEpisode = () => {
+    if (selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeUrl) return;
+
+    const updatedSeasons = seasons.map(s => {
+        if (s.seasonNumber === selectedSeason) {
+            const updatedEpisodes = s.episodes.map(e =>
+                e.episodeNumber === selectedEpisode.episodeNumber
+                ? { ...e, title: newEpisodeTitle, videoUrl: newEpisodeUrl }
+                : e
+            );
+            return { ...s, episodes: updatedEpisodes };
+        }
+        return s;
+    });
+
+    setSeasons(updatedSeasons);
+    toast({ title: "Episode Updated" });
+    setEditEpisodeOpen(false);
+  };
+  
+  const handleDeleteEpisode = (seasonNumber: number, episode: Episode) => {
+    const updatedSeasons = seasons.map(s => {
+        if (s.seasonNumber === seasonNumber) {
+            const filteredEpisodes = s.episodes.filter(e => e.episodeNumber !== episode.episodeNumber);
+            const renumberedEpisodes = filteredEpisodes.map((ep, index) => ({ ...ep, episodeNumber: index + 1 }));
+            return { ...s, episodes: renumberedEpisodes };
+        }
+        return s;
+    });
+    setSeasons(updatedSeasons);
+    toast({ title: "Episode Removed" });
+  };
+
 
   async function onSubmit(values: z.infer<typeof contentSchema>) {
     if (!firestore) return;
@@ -83,21 +195,17 @@ export default function AddContentPage() {
 
     if (values.type === 'movie') {
         if (!values.googleDriveVideoUrl) {
-            toast({
-                variant: "destructive",
-                title: "Validation Error",
-                description: "Video URL is required for movies.",
-            });
+            form.setError("googleDriveVideoUrl", { type: 'manual', message: 'Video URL is required for movies.' });
             return;
         }
         contentData.googleDriveVideoUrl = values.googleDriveVideoUrl;
     } else {
-        contentData.seasons = [];
+        contentData.seasons = seasons;
     }
 
 
     try {
-      const docRef = await addDoc(collection(firestore, "content"), contentData);
+      await addDoc(collection(firestore, "content"), contentData);
       toast({
         title: "Content Added",
         description: `${values.title} has been successfully added.`,
@@ -115,7 +223,7 @@ export default function AddContentPage() {
 
   return (
     <div className="container py-10">
-       <Card className="max-w-3xl mx-auto">
+       <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle>Add New Content</CardTitle>
           <CardDescription>
@@ -125,123 +233,141 @@ export default function AddContentPage() {
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                        <Input placeholder="Enter content title" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
+                    {/* General Details Section */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">General Details</h3>
+                        <div className="space-y-6 pt-4">
+                            <FormField control={form.control} name="title" render={({ field }) => (
+                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Enter content title" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="type" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Content Type</FormLabel>
+                                <Select onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setContentType(value as "movie" | "webseries" | "drama");
+                                }} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a content type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    <SelectItem value="movie">Movie</SelectItem>
+                                    <SelectItem value="webseries">Web Series</SelectItem>
+                                    <SelectItem value="drama">Drama</SelectItem>
+                                    </SelectContent>
+                                </Select><FormMessage /></FormItem>
+                            )} />
+                             <FormField control={form.control} name="categories" render={({ field }) => (
+                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
+                                <FormItem><FormLabel>Banner Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            {contentType === 'movie' && (
+                                <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Video URL</FormLabel>
+                                    <FormControl><Input placeholder="Paste a direct video/embed link" {...field} /></FormControl>
+                                    <FormDescription>Main link for streaming (e.g., Google Drive, YouTube embed).</FormDescription><FormMessage /></FormItem>
+                                )} />
+                            )}
+                            <FormField control={form.control} name="imdbRating" render={({ field }) => (
+                                <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+                    </div>
+                    
+                    {/* Season and Episode Management Section */}
+                    {contentType !== 'movie' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
+                                <Button type="button" onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                            </div>
+                            <Accordion type="single" collapsible className="w-full">
+                                {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
+                                <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
+                                    <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="flex justify-end mb-4">
+                                            <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" type="button" onClick={() => {
+                                                        setSelectedSeason(season.seasonNumber);
+                                                        const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
+                                                        const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
+                                                        setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
+                                                        setNewEpisodeUrl("");
+                                                        setAddEpisodeOpen(true);
+                                                    }}>
+                                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
+                                                    <div className="grid gap-4 py-4">
+                                                        <Label htmlFor="episode-title">Title</Label>
+                                                        <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                        <Label htmlFor="episode-url">Video URL</Label>
+                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button variant="outline" type="button" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
+                                                        <Button type="button" onClick={handleAddEpisode}>Save Episode</Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
+                                                <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                                    <p>Ep {episode.episodeNumber}: {episode.title}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent>
+                                                                <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
+                                                                <div className="grid gap-4 py-4">
+                                                                    <Label htmlFor="edit-episode-title">Title</Label>
+                                                                    <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                                    <Label htmlFor="edit-episode-url">Video URL</Label>
+                                                                    <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
+                                                                </div>
+                                                                <DialogFooter>
+                                                                    <Button variant="outline" type="button" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
+                                                                    <Button type="button" onClick={handleEditEpisode}>Save Changes</Button>
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon" type="button" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}". This action is final.</AlertDialogDescription></AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes in this season yet.</p>}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                ))}
+                                {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
+                            </Accordion>
+                        </div>
                     )}
-                />
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                        <Textarea
-                            placeholder="Enter a short description"
-                            {...field}
-                        />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Content Type</FormLabel>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            setContentType(value as "movie" | "webseries" | "drama");
-                        }} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select a content type" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="movie">Movie</SelectItem>
-                            <SelectItem value="webseries">Web Series</SelectItem>
-                            <SelectItem value="drama">Drama</SelectItem>
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="categories"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Categories / Tags</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g. Bollywood, Action, Romance, Hollywood Hindi Dubbed" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                        Enter comma-separated tags. These will automatically create filter options for users.
-                        </FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="bannerImageUrl"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Banner Image URL</FormLabel>
-                        <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                
-                {contentType === 'movie' && (
-                    <FormField
-                        control={form.control}
-                        name="googleDriveVideoUrl"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Video URL</FormLabel>
-                            <FormControl>
-                            <Input placeholder="Paste a direct video/embed link" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                            This is the main link for streaming (e.g., YouTube embed or Google Drive preview).
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                )}
 
-                <FormField
-                    control={form.control}
-                    name="imdbRating"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>IMDb Rating</FormLabel>
-                        <FormControl>
-                        <Input type="number" step="0.1" min="0" max="10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <Button type="submit">Add Content</Button>
+                    <Button type="submit">Add Content</Button>
                 </form>
             </Form>
         </CardContent>
