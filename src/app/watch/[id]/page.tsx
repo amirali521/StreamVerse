@@ -96,7 +96,6 @@ export default function WatchPage() {
   const firestore = useFirestore();
   const params = useParams();
   const id = params.id as string;
-  const playerRef = useRef<HTMLDivElement>(null);
 
   const [item, setItem] = useState<ClientContent | null>(null);
   const [related, setRelated] = useState<ClientContent[]>([]);
@@ -208,7 +207,7 @@ export default function WatchPage() {
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
 
   const handleCopyLink = () => {
-    if (!rawVideoUrl) return;
+    if (!downloadUrl) return;
     navigator.clipboard.writeText(downloadUrl).then(() => {
         setIsCopied(true);
         toast({
@@ -230,61 +229,63 @@ export default function WatchPage() {
 
   return (
     <div className="bg-black min-h-screen text-white">
+      {/* Full-width Video Player Section */}
+      <div className="bg-black">
+        {embedUrl ? (
+          <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
+        ) : (
+          <div className="aspect-video bg-black flex items-center justify-center">
+            <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Padded Content Section */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Player and Details */}
+          {/* Left Column: Details */}
           <div className="lg:col-span-2 space-y-6">
-            <div ref={playerRef} className="bg-background/80 rounded-lg overflow-hidden">
-                {embedUrl ? (
-                    <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
-                ) : (
-                    <div className="aspect-video bg-black flex items-center justify-center">
-                        <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
-                    </div>
-                )}
-            </div>
-            
             <div>
-                <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
-                 {item.type !== 'movie' && selectedEpisode && (
-                   <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
-                 )}
+              <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
+              {item.type !== 'movie' && selectedEpisode && (
+                <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
+              )}
 
-
-                <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-4">
-                  {item.imdbRating && (
-                      <div className="flex items-center gap-2">
-                          <span className="font-bold text-yellow-300">IMDb Rating: {item.imdbRating}/10</span>
-                      </div>
-                  )}
-                  {item.categories && item.categories.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {item.categories.map(category => (
-                        <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <p className="mt-4 text-base text-foreground/70 max-w-3xl">
-                    {item.description}
-                </p>
-
-                {rawVideoUrl && (
-                  <div className="flex items-center gap-4 mt-6">
-                    <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                        <a href={downloadUrl} download>
-                            <Download className="mr-2" />
-                            Download
-                        </a>
-                    </Button>
-                    <Button variant="outline" size="lg" onClick={handleCopyLink}>
-                        {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                        {isCopied ? "Copied" : "Copy Link"}
-                    </Button>
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-4">
+                {item.imdbRating && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-yellow-300">IMDb Rating: {item.imdbRating}/10</span>
                   </div>
                 )}
+                {item.categories && item.categories.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {item.categories.map(category => (
+                      <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <p className="mt-4 text-base text-foreground/70 max-w-3xl">
+                  {item.description}
+              </p>
+
+              {rawVideoUrl && (
+                <div className="flex items-center gap-4 mt-6">
+                  {downloadUrl && (
+                    <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                      <a href={downloadUrl} download>
+                        <Download className="mr-2" />
+                        Download
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="lg" onClick={handleCopyLink}>
+                    {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                    {isCopied ? "Copied" : "Copy Link"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -303,11 +304,11 @@ export default function WatchPage() {
         </div>
 
         <div className="space-y-16 py-12 mt-8">
-            {related.length > 0 && (
-                <ContentCarousel title="More Like This" items={related} />
-            )}
-            {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
-            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
+          {related.length > 0 && (
+            <ContentCarousel title="More Like This" items={related} />
+          )}
+          {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+          {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
         </div>
       </div>
     </div>
