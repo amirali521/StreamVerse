@@ -243,6 +243,20 @@ export default function WatchPage() {
       {/* Padded Content Section */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Right Column: Episode Selector (or empty for movies) */}
+          <div className="lg:col-span-1 lg:order-last">
+              {item.type !== 'movie' && (
+                <EpisodeSelector 
+                  item={item}
+                  selectedSeason={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                  selectedEpisode={selectedEpisode}
+                  setSelectedEpisode={setSelectedEpisode}
+                />
+              )}
+          </div>
+          
           {/* Left Column: Details */}
           <div className="lg:col-span-2 space-y-6">
             <div>
@@ -289,18 +303,6 @@ export default function WatchPage() {
             </div>
           </div>
 
-          {/* Right Column: Episode Selector */}
-          {item.type !== 'movie' && (
-            <div className="lg:col-span-1">
-              <EpisodeSelector 
-                item={item}
-                selectedSeason={selectedSeason}
-                setSelectedSeason={setSelectedSeason}
-                selectedEpisode={selectedEpisode}
-                setSelectedEpisode={setSelectedEpisode}
-              />
-            </div>
-          )}
         </div>
       </div>
       
