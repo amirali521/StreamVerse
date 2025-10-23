@@ -209,6 +209,9 @@ export default function WatchPage() {
 
   const handleCopyLink = () => {
     if (!downloadUrl) return;
+
+    window.open(downloadUrl, '_blank');
+
     navigator.clipboard.writeText(downloadUrl).then(() => {
         setIsCopied(true);
         toast({
