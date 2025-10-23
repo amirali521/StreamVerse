@@ -207,21 +207,6 @@ export default function WatchPage() {
   const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
 
-  const getDownloadFilename = () => {
-    if (!item) return "";
-    const title = item.title.replace(/[^a-z0-9\\s-]/gi, '').trim();
-    if (item.type === 'movie') {
-        return `${title}.mp4`;
-    }
-    if (selectedSeason && selectedEpisode) {
-        const seasonNum = String(selectedSeason.seasonNumber).padStart(2, '0');
-        const episodeNum = String(selectedEpisode.episodeNumber).padStart(2, '0');
-        const episodeTitle = selectedEpisode.title.replace(/[^a-z0-9\\s-]/gi, '').trim();
-        return `${title} - S${seasonNum}E${episodeNum} - ${episodeTitle}.mp4`;
-    }
-    return `${title}.mp4`;
-  };
-
   const handleCopyLink = () => {
     if (!downloadUrl) return;
     navigator.clipboard.writeText(downloadUrl).then(() => {
@@ -289,7 +274,7 @@ export default function WatchPage() {
                 {rawVideoUrl && (
                   <div className="flex items-center gap-4 mt-6">
                     <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                        <a href={downloadUrl} download={getDownloadFilename()} target="_blank" rel="noopener noreferrer">
+                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="mr-2" />
                             Download
                         </a>
@@ -328,7 +313,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
-
-    
