@@ -58,6 +58,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -367,7 +368,7 @@ export default function AddContentPage() {
                                 <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Video URL</FormLabel>
-                                    <FormControl><Input placeholder="Paste a direct video/embed link" {...field} /></FormControl>
+                                    <FormControl><Input placeholder="Paste a direct video/embed link for Google Drive or Dailymotion." {...field} /></FormControl>
                                     <FormDescription>Main link for streaming (e.g., Google Drive, Dailymotion embed).</FormDescription><FormMessage /></FormItem>
                                 )} />
                             )}
