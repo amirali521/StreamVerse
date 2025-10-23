@@ -7,11 +7,12 @@ import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/fires
 import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useRef } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -104,6 +105,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -220,6 +222,27 @@ export default function WatchPage() {
     return `${title}.mp4`;
   };
 
+  const handleCopyLink = () => {
+    if (!downloadUrl) return;
+    navigator.clipboard.writeText(downloadUrl).then(() => {
+        setIsCopied(true);
+        toast({
+            title: "Link Copied",
+            description: "The download link has been copied to your clipboard.",
+        });
+        setTimeout(() => {
+            setIsCopied(false);
+        }, 3000); // Reset after 3 seconds
+    }).catch(err => {
+        console.error("Failed to copy link: ", err);
+        toast({
+            variant: "destructive",
+            title: "Copy Failed",
+            description: "Could not copy the link. Please try again.",
+        });
+    });
+  };
+
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 py-8">
@@ -271,6 +294,10 @@ export default function WatchPage() {
                             Download
                         </a>
                     </Button>
+                    <Button variant="outline" size="lg" onClick={handleCopyLink}>
+                        {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                        {isCopied ? "Copied" : "Copy Link"}
+                    </Button>
                   </div>
                 )}
             </div>
@@ -301,5 +328,7 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
 
     
