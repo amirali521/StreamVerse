@@ -212,11 +212,18 @@ export default function CategoryPage() {
         case 'trending-now':
           contentForCategory = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
           break;
-        case 'popular-dramas':
-          contentForCategory = allContent
-            .filter(item => item.type === 'drama')
-            .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+        case 'new-releases':
+          contentForCategory = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
           break;
+        case 'movies':
+            contentForCategory = allContent.filter(item => item.type === 'movie');
+            break;
+        case 'web-series':
+            contentForCategory = allContent.filter(item => item.type === 'webseries');
+            break;
+        case 'dramas':
+            contentForCategory = allContent.filter(item => item.type === 'drama');
+            break;
         default:
           const formattedSlug = slug.replace(/-/g, ' ').toLowerCase();
           contentForCategory = allContent.filter(item => 
@@ -251,11 +258,11 @@ export default function CategoryPage() {
     <div className="container py-10 px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-headline font-bold">{title}</h1>
-        <FilterSheet allContent={slug === 'trending-now' ? allAvailableContent : initialContent} onFilterChange={setFilteredContent} />
+        <FilterSheet allContent={initialContent} onFilterChange={setFilteredContent} />
       </div>
       
       {filteredContent.length > 0 ? (
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {filteredContent.map(item => (
             <ContentGridCard key={item.id} item={item} />
             ))}
@@ -268,5 +275,3 @@ export default function CategoryPage() {
     </div>
   );
 }
-
-    

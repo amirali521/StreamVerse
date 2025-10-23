@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getAuth, signOut } from "firebase/auth";
-import { useFirebase, useFirestore } from "@/firebase/provider";
+import { useFirebase } from "@/firebase/provider";
 import {
   Sheet,
   SheetContent,
@@ -27,7 +27,6 @@ import {
 import { useState, useEffect } from "react";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { SearchDialog } from "./search-dialog";
-import { collection, getDocs } from "firebase/firestore";
 import { startCase, kebabCase } from "lodash";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -118,7 +117,7 @@ function UserNav() {
   );
 }
 
-function MobileNav({ open, setOpen, navItems }: { open: boolean, setOpen: (open: boolean) => void, navItems: string[] }) {
+function MobileNav({ open, setOpen, navItems }: { open: boolean, setOpen: (open: boolean) => void, navItems: {title: string, href: string}[] }) {
   const { user, loaded } = useUser();
   const { isAdmin } = useAdminStatus();
   const { app } = useFirebase();
@@ -160,12 +159,12 @@ function MobileNav({ open, setOpen, navItems }: { open: boolean, setOpen: (open:
           </Link>
           {navItems.map((item) => (
              <Link
-              key={item}
-              href={`/category/${kebabCase(item)}`}
+              key={item.title}
+              href={item.href}
               className="font-bold text-lg transition-colors hover:text-foreground/80 text-foreground/60"
               onClick={() => setOpen(false)}
             >
-              {startCase(item)}
+              {item.title}
             </Link>
           ))}
           <DropdownMenuSeparator />
@@ -195,31 +194,14 @@ function MobileNav({ open, setOpen, navItems }: { open: boolean, setOpen: (open:
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
-  const [navItems, setNavItems] = useState<string[]>([]);
-  const firestore = useFirestore();
-
-  useEffect(() => {
-    if (!firestore) return;
-    
-    const fetchCategories = async () => {
-        const contentRef = collection(firestore, "content");
-        const snapshot = await getDocs(contentRef);
-        const categories = new Set<string>();
-        
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            // Add content type to nav
-            if(data.type) categories.add(data.type);
-            // Add all categories to nav
-            data.categories?.forEach((cat: string) => categories.add(cat));
-        });
-        
-        setNavItems(Array.from(categories).sort());
-    };
-
-    fetchCategories();
-  }, [firestore]);
-
+  
+  const navItems = [
+    { title: "Movies", href: "/category/movies" },
+    { title: "Web Series", href: "/category/web-series" },
+    { title: "Dramas", href: "/category/dramas" },
+    { title: "Bollywood", href: "/category/bollywood" },
+    { title: "Hollywood", href: "/category/hollywood" },
+  ];
 
   // Add keyboard shortcut for search (Cmd+K or Ctrl+K)
   useEffect(() => {
@@ -251,11 +233,11 @@ export function SiteHeader() {
             </Link>
              {navItems.map((item) => (
                 <Link
-                key={item}
-                href={`/category/${kebabCase(item)}`}
+                key={item.title}
+                href={item.href}
                 className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
-                {startCase(item)}
+                {item.title}
                 </Link>
             ))}
           </nav>

@@ -21,6 +21,7 @@ export default function Home() {
   const firestore = useFirestore();
   const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
   const [trending, setTrending] = useState<ClientContent[]>([]);
+  const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
   const [bollywood, setBollywood] = useState<ClientContent[]>([]);
   const [hollywood, setHollywood] = useState<ClientContent[]>([]);
@@ -57,6 +58,7 @@ export default function Home() {
 
         // 1. Get New Releases for Hero: Sort all content by `createdAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+        setNewReleases(sortedNewReleases.slice(0, 10));
         
         // Set Hero Content (latest 5 movies)
         const newMovies = sortedNewReleases.filter(item => item.type === 'movie');
@@ -72,9 +74,9 @@ export default function Home() {
         setPopularDramas(sortedDramas.slice(0, 10));
 
         // 4. Get content by specific categories
-        setBollywood(allContent.filter(item => item.categories?.includes('Bollywood')).slice(0, 10));
-        setHollywood(allContent.filter(item => item.categories?.includes('Hollywood')).slice(0, 10));
-        setTollywood(allContent.filter(item => item.categories?.includes('Tollywood')).slice(0, 10));
+        setBollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'bollywood')).slice(0, 10));
+        setHollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'hollywood')).slice(0, 10));
+        setTollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'tollywood')).slice(0, 10));
 
 
       } catch (error) {
@@ -106,6 +108,7 @@ export default function Home() {
         ) : (
           <>
             {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
+            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
             {bollywood.length > 0 && <ContentCarousel title="Bollywood" items={bollywood} />}
             {hollywood.length > 0 && <ContentCarousel title="Hollywood" items={hollywood} />}
             {tollywood.length > 0 && <ContentCarousel title="Tollywood" items={tollywood} />}
