@@ -208,9 +208,9 @@ export default function WatchPage() {
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
 
   const handleCopyLink = () => {
-    if (!downloadUrl) return;
+    if (!rawVideoUrl) return;
 
-    navigator.clipboard.writeText(downloadUrl).then(() => {
+    navigator.clipboard.writeText(rawVideoUrl).then(() => {
         setIsCopied(true);
         toast({
             title: "Link Copied",
@@ -275,7 +275,7 @@ export default function WatchPage() {
                 {rawVideoUrl && (
                   <div className="flex items-center gap-4 mt-6">
                     <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
+                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="mr-2" />
                             Download
                         </a>
@@ -314,5 +314,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
