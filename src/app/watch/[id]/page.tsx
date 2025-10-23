@@ -210,8 +210,6 @@ export default function WatchPage() {
   const handleCopyLink = () => {
     if (!downloadUrl) return;
 
-    window.open(downloadUrl, '_blank');
-
     navigator.clipboard.writeText(downloadUrl).then(() => {
         setIsCopied(true);
         toast({
@@ -277,7 +275,7 @@ export default function WatchPage() {
                 {rawVideoUrl && (
                   <div className="flex items-center gap-4 mt-6">
                     <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
                             <Download className="mr-2" />
                             Download
                         </a>
@@ -316,3 +314,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
