@@ -29,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useFirestore } from "@/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
@@ -39,7 +38,6 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -99,45 +97,59 @@ export default function AddContentPage() {
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
   const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
-
-  const form = useForm<z.infer<typeof contentSchema>>({
-    resolver: zodResolver(contentSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      type: "movie",
-      bannerImageUrl: "",
-      googleDriveVideoUrl: "",
-      imdbRating: 0,
-      categories: "",
-    },
-  });
+  
+  const hasMultiSeasonStructure = seasons.length > 0;
 
   const handleAddSeason = () => {
+    // If we're creating the first season, check if there are any "default" episodes
+    // and move them into this new season.
+    const defaultEpisodes = hasMultiSeasonStructure ? [] : (seasons[0]?.episodes || []);
+    
     const newSeasonNumber = seasons.length + 1;
-    const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
-    setSeasons([...seasons, newSeason]);
+    const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: defaultEpisodes };
+    
+    const newSeasons = seasons.length === 0 ? [newSeason] : [...seasons, newSeason];
+
+    setSeasons(newSeasons);
     toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been staged.` });
   };
 
   const handleAddEpisode = () => {
-    if (selectedSeason === null || !newEpisodeTitle || !newEpisodeUrl) return;
+    if (!newEpisodeTitle || !newEpisodeUrl) return;
 
-    const updatedSeasons = seasons.map(s => {
-        if (s.seasonNumber === selectedSeason) {
-            const newEpisodeNumber = (s.episodes?.length || 0) + 1;
-            const newEpisode: Episode = {
-                episodeNumber: newEpisodeNumber,
-                title: newEpisodeTitle,
-                videoUrl: newEpisodeUrl
-            };
-            return { ...s, episodes: [...s.episodes, newEpisode] };
-        }
-        return s;
-    });
+    let updatedSeasons = [...seasons];
+
+    if (hasMultiSeasonStructure) {
+        // Find the correct season to add to
+        if (selectedSeason === null) return;
+        updatedSeasons = seasons.map(s => {
+            if (s.seasonNumber === selectedSeason) {
+                const newEpisodeNumber = (s.episodes?.length || 0) + 1;
+                const newEpisode: Episode = {
+                    episodeNumber: newEpisodeNumber,
+                    title: newEpisodeTitle,
+                    videoUrl: newEpisodeUrl
+                };
+                return { ...s, episodes: [...s.episodes, newEpisode] };
+            }
+            return s;
+        });
+    } else {
+        // No explicit seasons, add to the default virtual season
+        const defaultSeason = updatedSeasons[0] || { seasonNumber: 1, episodes: [] };
+        const newEpisodeNumber = (defaultSeason.episodes?.length || 0) + 1;
+        const newEpisode: Episode = {
+            episodeNumber: newEpisodeNumber,
+            title: newEpisodeTitle,
+            videoUrl: newEpisodeUrl
+        };
+        const updatedDefaultSeason = { ...defaultSeason, episodes: [...defaultSeason.episodes, newEpisode] };
+        updatedSeasons = [updatedDefaultSeason];
+    }
+
 
     setSeasons(updatedSeasons);
-    toast({ title: "Episode Staged", description: `${newEpisodeTitle} has been staged for Season ${selectedSeason}.` });
+    toast({ title: "Episode Staged", description: `${newEpisodeTitle} has been staged.` });
     setAddEpisodeOpen(false);
     setNewEpisodeTitle("");
     setNewEpisodeUrl("");
@@ -200,7 +212,10 @@ export default function AddContentPage() {
         }
         contentData.googleDriveVideoUrl = values.googleDriveVideoUrl;
     } else {
-        contentData.seasons = seasons;
+        // If there are no episodes, don't save the seasons array
+        if (seasons.length > 0 && seasons[0].episodes.length > 0) {
+          contentData.seasons = seasons;
+        }
     }
 
 
@@ -220,6 +235,49 @@ export default function AddContentPage() {
       });
     }
   }
+
+  const renderEpisodesForSeason = (season: Season) => (
+    <div className="space-y-2">
+        {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
+            <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                <p>Ep {episode.episodeNumber}: {episode.title}</p>
+                <div className="flex items-center gap-2">
+                    <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <Label htmlFor="edit-episode-title">Title</Label>
+                                <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                <Label htmlFor="edit-episode-url">Video URL</Label>
+                                <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
+                                <Button type="button" onClick={handleEditEpisode}>Save Changes</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" type="button" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}". This action is final.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
+        ))}
+        {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes in this season yet.</p>}
+    </div>
+  );
 
   return (
     <div className="container py-10">
@@ -282,88 +340,60 @@ export default function AddContentPage() {
                     {contentType !== 'movie' && (
                         <div>
                             <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
-                                <Button type="button" onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                                <h3 className="text-lg font-semibold">{hasMultiSeasonStructure ? 'Seasons & Episodes' : 'Episodes'}</h3>
+                                <div className="flex gap-2">
+                                    <Dialog open={isAddEpisodeOpen} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" type="button" onClick={() => {
+                                                const seasonNumber = hasMultiSeasonStructure ? selectedSeason : 1;
+                                                setSelectedSeason(seasonNumber);
+                                                const season = seasons.find(s => s.seasonNumber === seasonNumber);
+                                                const nextEpisodeNumber = (season?.episodes.length || 0) + 1;
+                                                const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
+                                                setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
+                                                setNewEpisodeUrl("");
+                                                setAddEpisodeOpen(true);
+                                            }}>
+                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader><DialogTitle>Add Episode {selectedSeason ? `to Season ${selectedSeason}` : ''}</DialogTitle></DialogHeader>
+                                            <div className="grid gap-4 py-4">
+                                                <Label htmlFor="episode-title">Title</Label>
+                                                <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                <Label htmlFor="episode-url">Video URL</Label>
+                                                <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                            </div>
+                                            <DialogFooter>
+                                                <Button variant="outline" type="button" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
+                                                <Button type="button" onClick={handleAddEpisode}>Save Episode</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                    <Button type="button" onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                                </div>
                             </div>
-                            <Accordion type="single" collapsible className="w-full">
-                                {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
-                                <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
-                                    <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="flex justify-end mb-4">
-                                            <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" type="button" onClick={() => {
-                                                        setSelectedSeason(season.seasonNumber);
-                                                        const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
-                                                        const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
-                                                        setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
-                                                        setNewEpisodeUrl("");
-                                                        setAddEpisodeOpen(true);
-                                                    }}>
-                                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <Label htmlFor="episode-title">Title</Label>
-                                                        <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                        <Label htmlFor="episode-url">Video URL</Label>
-                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button variant="outline" type="button" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
-                                                        <Button type="button" onClick={handleAddEpisode}>Save Episode</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                                                <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                                    <p>Ep {episode.episodeNumber}: {episode.title}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
-                                                                <div className="grid gap-4 py-4">
-                                                                    <Label htmlFor="edit-episode-title">Title</Label>
-                                                                    <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                                    <Label htmlFor="edit-episode-url">Video URL</Label>
-                                                                    <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
-                                                                </div>
-                                                                <DialogFooter>
-                                                                    <Button variant="outline" type="button" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
-                                                                    <Button type="button" onClick={handleEditEpisode}>Save Changes</Button>
-                                                                </DialogFooter>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon" type="button" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}". This action is final.</AlertDialogDescription></AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes in this season yet.</p>}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                ))}
-                                {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
-                            </Accordion>
+                            
+                            {hasMultiSeasonStructure ? (
+                                <Accordion type="single" collapsible className="w-full" onValueChange={(value) => setSelectedSeason(Number(value.split('-')[1]))}>
+                                    {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
+                                    <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
+                                        <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
+                                        <AccordionContent>
+                                            {renderEpisodesForSeason(season)}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    ))}
+                                    {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
+                                </Accordion>
+                            ) : (
+                                <div className="pt-4">
+                                    {seasons[0] && seasons[0].episodes.length > 0 ? renderEpisodesForSeason(seasons[0]) : <p className="text-muted-foreground text-center py-8">No episodes yet. Add one to get started.</p>}
+                                ...
+                                </div>
+                            )}
+
                         </div>
                     )}
 
