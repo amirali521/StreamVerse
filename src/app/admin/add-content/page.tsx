@@ -368,7 +368,7 @@ export default function AddContentPage() {
                                 <FormItem>
                                     <FormLabel>Video URL</FormLabel>
                                     <FormControl><Input placeholder="Paste a direct video/embed link" {...field} /></FormControl>
-                                    <FormDescription>Main link for streaming (e.g., Google Drive, YouTube embed).</FormDescription><FormMessage /></FormItem>
+                                    <FormDescription>Main link for streaming (e.g., Google Drive, Dailymotion embed).</FormDescription><FormMessage /></FormItem>
                                 )} />
                             )}
                             <FormField control={form.control} name="imdbRating" render={({ field }) => (
@@ -445,5 +445,3 @@ export default function AddContentPage() {
     </div>
   );
 }
-
-    
