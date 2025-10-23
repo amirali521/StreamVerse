@@ -20,6 +20,14 @@ export function createEmbedUrl(url: string): string {
     return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
   }
 
+  // Check for Dailymotion URL
+  const dailymotionRegex = /(?:https?:\/\/)?(?:www\.)?dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/;
+  const dailymotionMatch = url.match(dailymotionRegex);
+  if (dailymotionMatch) {
+    const videoId = dailymotionMatch[1];
+    return `https://www.dailymotion.com/embed/video/${videoId}?autoplay=1`;
+  }
+
   // Check for Google Drive URL and create a preview/embed link
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
@@ -45,8 +53,9 @@ export function createDownloadUrl(url: string): string {
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   
-  // For YouTube, we don't provide a direct download link.
-  if (url.includes('youtube.com')) {
+  // For YouTube and Dailymotion, we don't provide a direct download link from the client.
+  // This should be handled by a server-side process (like yt-dlp).
+  if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('dailymotion.com')) {
     return "";
   }
 
