@@ -39,9 +39,9 @@ export function HeroBanner({ items }: HeroBannerProps) {
   const activeItem = items[activeIndex];
 
   return (
-    <div ref={emblaRef} className="w-full relative aspect-video md:aspect-[16/7] overflow-hidden bg-black">
-      {/* Images Container - They will fade in and out */}
-      <div className="h-full w-full">
+    <div ref={emblaRef} className="w-full relative overflow-hidden bg-black">
+      {/* Images Container */}
+      <div className="w-full" style={{ aspectRatio: '16/7' }}>
         {items.map((item, index) => (
           <div
             key={item.id}
@@ -54,7 +54,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
               src={item.posterImageUrl || item.bannerImageUrl}
               alt={item.title}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority={index === 0}
             />
           </div>
