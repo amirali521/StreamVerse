@@ -11,8 +11,16 @@ export function createEmbedUrl(url: string): string {
     return "";
   }
 
-  // Check for Dailymotion URL
-  const dailymotionRegex = /(?:https?:\/\/)?(?:www\.)?dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/;
+  // New: Check for an iframe embed code first and extract the src
+  const iframeSrcRegex = /<iframe[^>]+src="([^"]+)"/;
+  const iframeMatch = url.match(iframeSrcRegex);
+  if (iframeMatch) {
+    // If we found an iframe, use its src for the rest of the logic
+    url = iframeMatch[1];
+  }
+
+  // Check for Dailymotion URL (handles both standard and geo links)
+  const dailymotionRegex = /(?:https?:\/\/)?(?:www\.|geo\.)?dailymotion\.com\/(?:video|embed\/video|player\.html\?video=)([a-zA-Z0-9]+)/;
   const dailymotionMatch = url.match(dailymotionRegex);
   if (dailymotionMatch) {
     const videoId = dailymotionMatch[1];
