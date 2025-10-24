@@ -382,7 +382,7 @@ export default function AddContentPage() {
                     {contentType !== 'movie' && (
                         <div>
                             <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                <h3 className="text-lg font-semibold">{hasMultiSeasonStructure ? 'Seasons & Episodes' : 'Episodes'}</h3>
+                                <h3 className="text-lg font-semibold">{contentType === 'webseries' && hasMultiSeasonStructure ? 'Seasons & Episodes' : 'Episodes'}</h3>
                                 <div className="flex gap-2">
                                     <Dialog open={isAddEpisodeOpen} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
                                         <DialogTrigger asChild>
@@ -413,11 +413,13 @@ export default function AddContentPage() {
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
-                                    <Button type="button" onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                                    {contentType === 'webseries' && (
+                                        <Button type="button" onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                                    )}
                                 </div>
                             </div>
                             
-                            {hasMultiSeasonStructure ? (
+                            {contentType === 'webseries' && hasMultiSeasonStructure ? (
                                 <Accordion type="single" collapsible className="w-full" onValueChange={(value) => setSelectedSeason(Number(value.split('-')[1]))}>
                                     {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
                                     <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
