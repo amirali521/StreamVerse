@@ -2,7 +2,7 @@
 "use client";
 
 import { useAd } from "@/context/ad-provider";
-import { Dialog, DialogContent } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 
 export function AdInterstitial() {
   const { isAdVisible, setAdVisible } = useAd();
@@ -12,6 +12,12 @@ export function AdInterstitial() {
   return (
     <Dialog open={isAdVisible} onOpenChange={setAdVisible}>
       <DialogContent className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90%] md:max-w-lg flex items-center justify-center">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Advertisement</DialogTitle>
+          <DialogDescription>
+            This is an advertisement. Clicking it will open a new tab.
+          </DialogDescription>
+        </DialogHeader>
         {/* 
           Paste your banner ad script here.
           The ad content should be the only thing inside this DialogContent.
