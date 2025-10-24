@@ -209,6 +209,9 @@ export default function WatchPage() {
   const poster = item.posterImageUrl || item.bannerImageUrl;
 
   const handleCopyLink = () => {
+    // Open the smartlink in a new tab
+    window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
+
     if (!downloadUrl) return;
     navigator.clipboard.writeText(downloadUrl).then(() => {
         setIsCopied(true);
@@ -281,7 +284,7 @@ export default function WatchPage() {
                 )}
                 <Button variant="outline" size="lg" onClick={handleCopyLink}>
                   {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                  {isCopied ? "Copied" : "Copy Link"}
+                  {isCopied ? "Copied" : "Direct Link Copy"}
                 </Button>
               </div>
             )}
@@ -312,3 +315,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
