@@ -27,7 +27,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
-        <script type='text/javascript' src='//pl27916713.effectivegatecpm.com/ac/28/70/ac2870730c98484e027947956aee95a4.js'></script>
+        <script type='text/javascript' src='//consumeairlinercalligraphy.com/ac/28/70/ac2870730c98484e027947956aee95a4.js'></script>
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <FirebaseClientProvider>
