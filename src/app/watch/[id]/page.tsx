@@ -71,13 +71,13 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="flex space-x-2 overflow-x-auto pb-2 -mb-2">
+            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
                   variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="aspect-square p-0 w-10 h-10 flex-shrink-0 transition-colors duration-200 hover:bg-accent/80"
+                  className="aspect-square p-0 w-full h-auto transition-colors duration-200 hover:bg-accent/80"
                   onClick={() => setSelectedEpisode(episode)}
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
@@ -229,36 +229,21 @@ export default function WatchPage() {
 
   return (
     <div className="bg-black min-h-screen text-white">
-      {/* Full-width Video Player Section */}
-      <div className="bg-black">
-        {embedUrl ? (
-          <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
-        ) : (
-          <div className="aspect-video bg-black flex items-center justify-center">
-            <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Padded Content Section */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Right Column: Episode Selector (or empty for movies) */}
-          <div className="lg:col-span-1 lg:order-last">
-              {item.type !== 'movie' && (
-                <EpisodeSelector 
-                  item={item}
-                  selectedSeason={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                  selectedEpisode={selectedEpisode}
-                  setSelectedEpisode={setSelectedEpisode}
-                />
-              )}
-          </div>
-          
-          {/* Left Column: Details */}
+          {/* Left Column: Player and Details */}
           <div className="lg:col-span-2 space-y-6">
+            <div className="bg-black">
+              {embedUrl ? (
+                <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
+              ) : (
+                <div className="aspect-video bg-black flex items-center justify-center">
+                  <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
+                </div>
+              )}
+            </div>
+            
             <div>
               <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
               {item.type !== 'movie' && selectedEpisode && (
@@ -301,6 +286,19 @@ export default function WatchPage() {
                 </div>
               )}
             </div>
+          </div>
+          
+          {/* Right Column: Episode Selector */}
+          <div className="lg:col-span-1">
+              {item.type !== 'movie' && (
+                <EpisodeSelector 
+                  item={item}
+                  selectedSeason={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                  selectedEpisode={selectedEpisode}
+                  setSelectedEpisode={setSelectedEpisode}
+                />
+              )}
           </div>
 
         </div>
