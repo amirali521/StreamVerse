@@ -39,7 +39,7 @@ function EpisodeSelector({
   const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
 
   return (
-    <Card className="bg-background/80">
+    <Card className="bg-background/80 border-0 md:border md:bg-card">
       <CardHeader>
         <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
       </CardHeader>
@@ -62,7 +62,7 @@ function EpisodeSelector({
                       setSelectedEpisode(null);
                     }
                   }}
-                  className="transition-colors duration-200 hover:bg-accent/80"
+                  className="transition-colors duration-200"
                 >
                   S{String(season.seasonNumber).padStart(2, '0')}
                 </Button>
@@ -71,7 +71,7 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
@@ -228,7 +228,7 @@ export default function WatchPage() {
   };
 
   return (
-    <div className="bg-black min-h-screen text-white">
+    <div className="bg-black text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
