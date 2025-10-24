@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Copy, Check } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -39,7 +39,7 @@ function EpisodeSelector({
   const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
 
   return (
-    <Card className="bg-background/80">
+    <Card className="bg-background/80 mt-8">
       <CardHeader>
         <CardTitle className="text-xl">Resources</CardTitle>
       </CardHeader>
@@ -230,70 +230,71 @@ export default function WatchPage() {
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
+          {/* Left Column: Video Player */}
           <div className="w-full">
             {embedUrl ? (
               <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
             ) : (
-              <div className="aspect-video bg-black flex items-center justify-center">
+              <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
                 <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
               </div>
             )}
           </div>
           
-          <div className="space-y-8">
-            <div className="space-y-6">
-                <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
-                {item.type !== 'movie' && selectedEpisode && (
-                  <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
-                )}
+          {/* Right Column: Details */}
+          <div className="space-y-6">
+              <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
+              {item.type !== 'movie' && selectedEpisode && (
+                <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
+              )}
 
-                <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
-                  {item.imdbRating && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-yellow-300">IMDb Rating: {item.imdbRating}/10</span>
-                    </div>
-                  )}
-                  {item.categories && item.categories.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {item.categories.map(category => (
-                        <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <p className="text-base text-foreground/70 max-w-3xl">
-                    {item.description}
-                </p>
-
-                {rawVideoUrl && (
-                  <div className="flex items-center gap-4">
-                    {downloadUrl && (
-                      <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-                          <Download className="mr-2" />
-                          Download
-                        </a>
-                      </Button>
-                    )}
-                    <Button variant="outline" size="lg" onClick={handleCopyLink}>
-                      {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                      {isCopied ? "Copied" : "Copy Link"}
-                    </Button>
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
+                {item.imdbRating && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-yellow-300">IMDb Rating: {item.imdbRating}/10</span>
                   </div>
                 )}
-            </div>
-              {item.type !== 'movie' && (
-                <EpisodeSelector 
-                  item={item}
-                  selectedSeason={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                  selectedEpisode={selectedEpisode}
-                  setSelectedEpisode={setSelectedEpisode}
-                />
+                {item.categories && item.categories.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {item.categories.map(category => (
+                      <span key={category} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">{category}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-base text-foreground/70">
+                  {item.description}
+              </p>
+
+              {rawVideoUrl && (
+                <div className="flex items-center gap-4">
+                  {downloadUrl && (
+                    <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                      <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-2" />
+                        Download
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="lg" onClick={handleCopyLink}>
+                    {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                    {isCopied ? "Copied" : "Copy Link"}
+                  </Button>
+                </div>
               )}
+            
+            {item.type !== 'movie' && (
+              <EpisodeSelector 
+                item={item}
+                selectedSeason={selectedSeason}
+                setSelectedSeason={setSelectedSeason}
+                selectedEpisode={selectedEpisode}
+                setSelectedEpisode={setSelectedEpisode}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -309,4 +310,3 @@ export default function WatchPage() {
   );
 }
 
-    
