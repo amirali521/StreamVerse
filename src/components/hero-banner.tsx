@@ -41,7 +41,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
   return (
     <div ref={emblaRef} className="w-full relative overflow-hidden bg-black">
       {/* Images Container */}
-      <div className="w-full" style={{ aspectRatio: '16/7' }}>
+      <div className="w-full" style={{ aspectRatio: '32/21' }}>
         {items.map((item, index) => (
           <div
             key={item.id}
