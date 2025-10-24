@@ -15,6 +15,7 @@ type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
   id: string;
   createdAt?: Date;
   updatedAt?: Date;
+  posterImageUrl?: string;
 };
 
 export default function Home() {

@@ -79,7 +79,8 @@ const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
   type: z.enum(["movie", "webseries", "drama"]),
-  bannerImageUrl: z.string().url("Please enter a valid URL."),
+  bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
+  posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   googleDriveVideoUrl: z.string().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
@@ -106,6 +107,7 @@ export default function AddContentPage() {
       description: "",
       type: "movie",
       bannerImageUrl: "",
+      posterImageUrl: "",
       googleDriveVideoUrl: "",
       imdbRating: 0,
       categories: "",
@@ -234,6 +236,7 @@ export default function AddContentPage() {
         description: values.description,
         type: values.type,
         bannerImageUrl: values.bannerImageUrl,
+        posterImageUrl: values.posterImageUrl || values.bannerImageUrl, // Fallback to banner image if poster is empty
         imdbRating: values.imdbRating || 0,
         categories: categories,
         createdAt: serverTimestamp(),
@@ -362,7 +365,10 @@ export default function AddContentPage() {
                                 <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
-                                <FormItem><FormLabel>Banner Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="posterImageUrl" render={({ field }) => (
+                                <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
                             )} />
                             {contentType === 'movie' && (
                                 <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (

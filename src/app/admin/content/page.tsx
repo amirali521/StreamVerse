@@ -68,6 +68,7 @@ interface Content {
   description: string;
   type: "movie" | "webseries" | "drama";
   bannerImageUrl: string;
+  posterImageUrl?: string;
   imdbRating?: number;
   googleDriveVideoUrl?: string;
   seasons?: Season[];
@@ -78,7 +79,8 @@ interface Content {
 const editContentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
-  bannerImageUrl: z.string().url("Please enter a valid URL."),
+  bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
+  posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   googleDriveVideoUrl: z.string().optional(),
   categories: z.string().optional(),
@@ -92,6 +94,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             title: contentItem.title,
             description: contentItem.description,
             bannerImageUrl: contentItem.bannerImageUrl,
+            posterImageUrl: contentItem.posterImageUrl || "",
             imdbRating: contentItem.imdbRating || 0,
             googleDriveVideoUrl: contentItem.googleDriveVideoUrl || "",
             categories: contentItem.categories?.join(", ") || "",
@@ -104,7 +107,10 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         const categories = values.categories ? values.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
 
         const updatedData: Partial<Content> & { updatedAt: any } = {
-            ...values,
+            title: values.title,
+            description: values.description,
+            bannerImageUrl: values.bannerImageUrl,
+            posterImageUrl: values.posterImageUrl || values.bannerImageUrl,
             categories,
             imdbRating: values.imdbRating || 0,
             updatedAt: serverTimestamp()
@@ -121,7 +127,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
             await updateDoc(docRef, updatedData);
-            onUpdate({ ...contentItem, ...updatedData });
+            onUpdate({ ...contentItem, ...updatedData, posterImageUrl: updatedData.posterImageUrl });
             toast({ title: "Content Updated", description: `${values.title} has been updated.` });
             closeDialog();
         } catch (error: any) {
@@ -147,7 +153,10 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
-                    <FormItem><FormLabel>Banner Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="posterImageUrl" render={({ field }) => (
+                    <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Optional. Used for hero/player. If blank, banner image is used.</FormDescription><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="imdbRating" render={({ field }) => (
                     <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
@@ -317,7 +326,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                   <div>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
-                        <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>
+                        {contentItem.type === 'webseries' && <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>}
                     </div>
                     <Accordion type="single" collapsible className="w-full">
                         {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (

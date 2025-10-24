@@ -12,7 +12,7 @@ import { PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeroBannerProps {
-  items: Content[];
+  items: (Content & { posterImageUrl?: string })[];
 }
 
 export function HeroBanner({ items }: HeroBannerProps) {
@@ -51,7 +51,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
             )}
           >
             <Image
-              src={item.bannerImageUrl}
+              src={item.posterImageUrl || item.bannerImageUrl}
               alt={item.title}
               fill
               className="object-cover"

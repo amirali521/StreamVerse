@@ -18,6 +18,7 @@ export interface Content {
   description: string;
   type: "movie" | "webseries" | "drama";
   bannerImageUrl: string;
+  posterImageUrl?: string;
   imdbRating?: number;
   googleDriveVideoUrl?: string;
   seasons?: Season[];

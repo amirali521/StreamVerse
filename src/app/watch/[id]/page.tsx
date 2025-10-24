@@ -19,6 +19,7 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   id: string;
   createdAt?: Date;
   updatedAt?: Date;
+  posterImageUrl?: string;
 };
 
 function EpisodeSelector({ 
@@ -205,6 +206,7 @@ export default function WatchPage() {
   const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
   const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
+  const poster = item.posterImageUrl || item.bannerImageUrl;
 
   const handleCopyLink = () => {
     if (!downloadUrl) return;
@@ -232,10 +234,9 @@ export default function WatchPage() {
       {/* Main Content: Player, Details, Episodes */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="w-full space-y-6">
-          
           {/* Video Player */}
           {embedUrl ? (
-            <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
+            <VideoPlayer src={embedUrl} poster={poster} />
           ) : (
             <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
               <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>

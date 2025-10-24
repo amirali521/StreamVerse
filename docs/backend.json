@@ -87,7 +87,12 @@
         "bannerImageUrl": {
           "type": "string",
           "format": "uri",
-          "description": "URL for the banner image."
+          "description": "URL for the banner image used in carousels and grids."
+        },
+        "posterImageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the high-resolution poster image used in hero sections and the video player."
         },
         "imdbRating": {
           "type": "number",
