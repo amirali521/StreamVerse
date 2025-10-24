@@ -230,10 +230,9 @@ export default function WatchPage() {
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Left Column: Player and Details */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8">
             <div className="bg-black">
               {embedUrl ? (
                 <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
@@ -243,7 +242,9 @@ export default function WatchPage() {
                 </div>
               )}
             </div>
-
+          </div>
+          
+          <div className="space-y-8">
             <div className="space-y-6">
                 <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
                 {item.type !== 'movie' && selectedEpisode && (
@@ -286,10 +287,6 @@ export default function WatchPage() {
                   </div>
                 )}
             </div>
-          </div>
-          
-          {/* Right Column: Episode Selector */}
-          <div className="lg:col-span-1">
               {item.type !== 'movie' && (
                 <EpisodeSelector 
                   item={item}
@@ -303,7 +300,6 @@ export default function WatchPage() {
         </div>
       </div>
       
-      {/* Full-width Carousel Section */}
       <div className="space-y-16 py-12">
         {related.length > 0 && (
           <ContentCarousel title="More Like This" items={related} />
@@ -314,5 +310,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
