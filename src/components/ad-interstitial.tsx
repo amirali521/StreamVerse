@@ -4,7 +4,7 @@
 import { useAd } from "@/context/ad-provider";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function AdBanner() {
   useEffect(() => {
@@ -48,16 +48,40 @@ function AdBanner() {
 
 export function AdInterstitial() {
   const { isAdVisible, setAdVisible } = useAd();
+  const [showCloseButton, setShowCloseButton] = useState(false);
 
-  // The Dialog's onOpenChange will automatically handle closing
-  // when the user navigates away after clicking the ad.
+  useEffect(() => {
+    const handleBlur = () => {
+      if (isAdVisible) {
+        setShowCloseButton(true);
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [isAdVisible]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Reset state when dialog closes
+      setShowCloseButton(false);
+    }
+    setAdVisible(open);
+  };
+
   return (
-    <Dialog open={isAdVisible} onOpenChange={setAdVisible}>
-      <DialogContent className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90%] md:max-w-lg flex items-center justify-center">
+    <Dialog open={isAdVisible} onOpenChange={handleOpenChange}>
+      <DialogContent 
+        className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90%] md:max-w-lg flex items-center justify-center"
+        showCloseButton={showCloseButton}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Advertisement</DialogTitle>
           <DialogDescription>
-            This is an advertisement. Clicking it will open a new tab and close this window.
+            This is an advertisement.
           </DialogDescription>
         </DialogHeader>
         <div className="bg-background p-4 rounded-md">
