@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { WatchPageLayout } from "@/components/watch-page-layout";
 import Script from "next/script";
+import { AdProvider } from "@/context/ad-provider";
+import { AdInterstitial } from "@/components/ad-interstitial";
 
 export const metadata: Metadata = {
   title: "StreamVerse",
@@ -29,14 +31,15 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <FirebaseClientProvider>
-          <WatchPageLayout>
-            {children}
-          </WatchPageLayout>
-          <Toaster />
+          <AdProvider>
+            <WatchPageLayout>
+              {children}
+            </WatchPageLayout>
+            <Toaster />
+            <AdInterstitial />
+          </AdProvider>
         </FirebaseClientProvider>
       </body>
     </html>
   );
 }
-
-    
