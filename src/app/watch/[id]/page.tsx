@@ -273,16 +273,16 @@ export default function WatchPage() {
             </p>
 
             {rawVideoUrl && (
-              <div className="flex items-center gap-4">
+              <div className="flex items-stretch gap-4">
                 {downloadUrl && (
-                  <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                  <Button asChild className="bg-primary hover:bg-primary/90 flex-1">
                     <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2" />
                       Download
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" size="lg" onClick={handleCopyLink}>
+                <Button variant="outline" onClick={handleCopyLink} className="flex-1">
                   {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
                   {isCopied ? "Copied" : "Direct Link Copy"}
                 </Button>
