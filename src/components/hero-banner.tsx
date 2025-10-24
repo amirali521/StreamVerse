@@ -54,7 +54,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
               src={item.posterImageUrl || item.bannerImageUrl}
               alt={item.title}
               fill
-              className="object-cover object-center"
+              className="object-cover object-top"
               priority={index === 0}
             />
           </div>
