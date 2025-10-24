@@ -229,21 +229,23 @@ export default function WatchPage() {
 
   return (
     <div className="bg-black min-h-screen text-white">
+      {/* Player Section */}
+      <div className="bg-black">
+        {embedUrl ? (
+          <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
+        ) : (
+          <div className="aspect-video bg-black flex items-center justify-center">
+            <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Content Section */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Player and Details */}
+          {/* Left Column: Details */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-black">
-              {embedUrl ? (
-                <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
-              ) : (
-                <div className="aspect-video bg-black flex items-center justify-center">
-                  <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
-                </div>
-              )}
-            </div>
-            
             <div>
               <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
               {item.type !== 'movie' && selectedEpisode && (
@@ -273,7 +275,7 @@ export default function WatchPage() {
                 <div className="flex items-center gap-4 mt-6">
                   {downloadUrl && (
                     <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-                      <a href={downloadUrl} download>
+                      <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                         <Download className="mr-2" />
                         Download
                       </a>
