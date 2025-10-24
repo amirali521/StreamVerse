@@ -15,17 +15,15 @@ export function AdInterstitial() {
         <DialogHeader className="sr-only">
           <DialogTitle>Advertisement</DialogTitle>
           <DialogDescription>
-            This is an advertisement. Clicking it will open a new tab.
+            This is an advertisement. Clicking it will open a new tab and close this window.
           </DialogDescription>
         </DialogHeader>
         {/* 
           Paste your banner ad script here.
-          The ad content should be the only thing inside this DialogContent.
           The user must click the ad to be redirected, which will close this modal.
         */}
         <div className="bg-background p-4 rounded-md">
-           <p className="text-center text-foreground">Your Ad Banner Here</p>
-           {/* Example ad placeholder */}
+           {/* Example 300x250 ad placeholder */}
            <div className="w-[300px] h-[250px] bg-secondary flex items-center justify-center">
               <span className="text-muted-foreground">300x250 Ad Unit</span>
            </div>
