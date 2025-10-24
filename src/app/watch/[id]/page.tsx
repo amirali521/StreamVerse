@@ -71,13 +71,14 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
                   variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'accent' : 'ghost'}
-                  className="aspect-square p-0 w-full h-auto text-lg font-bold transition-colors duration-200 hover:bg-accent/80"
+                  className="aspect-square p-0 h-12 w-12 text-sm font-bold transition-colors duration-200 hover:bg-accent/80"
                   onClick={() => setSelectedEpisode(episode)}
+                  size="sm"
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
                 </Button>
@@ -231,7 +232,6 @@ export default function WatchPage() {
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Player and Details */}
           <div className="lg:col-span-2 space-y-6">
             {embedUrl ? (
               <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
@@ -285,7 +285,6 @@ export default function WatchPage() {
             </div>
           </div>
           
-          {/* Right Column: Episode/Season Selector */}
           <div className="lg:col-span-1">
             {item.type !== 'movie' && (
               <EpisodeSelector 
@@ -310,6 +309,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-
-    
