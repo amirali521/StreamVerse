@@ -75,9 +75,8 @@ function EpisodeSelector({
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
-                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="aspect-square p-0 w-full h-auto transition-colors duration-200 hover:bg-accent/80"
+                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'accent' : 'ghost'}
+                  className="aspect-square p-0 w-full h-auto text-lg font-bold transition-colors duration-200 hover:bg-accent/80"
                   onClick={() => setSelectedEpisode(episode)}
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
@@ -311,3 +310,6 @@ export default function WatchPage() {
     </div>
   );
 }
+
+
+    
