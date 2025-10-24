@@ -39,9 +39,9 @@ function EpisodeSelector({
   const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
 
   return (
-    <Card className="bg-background/80 mt-8">
+    <Card className="bg-background/80">
       <CardHeader>
-        <CardTitle className="text-xl">Resources</CardTitle>
+        <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -71,7 +71,7 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
@@ -230,10 +230,10 @@ export default function WatchPage() {
   return (
     <div className="bg-black min-h-screen text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Video Player */}
-          <div className="w-full">
+          {/* Left Column: Player and Details */}
+          <div className="lg:col-span-2 space-y-6">
             {embedUrl ? (
               <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
             ) : (
@@ -241,10 +241,8 @@ export default function WatchPage() {
                 <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
               </div>
             )}
-          </div>
-          
-          {/* Right Column: Details */}
-          <div className="space-y-6">
+            
+            <div className="space-y-4">
               <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
               {item.type !== 'movie' && selectedEpisode && (
                 <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
@@ -285,7 +283,11 @@ export default function WatchPage() {
                   </Button>
                 </div>
               )}
-            
+            </div>
+          </div>
+          
+          {/* Right Column: Episode/Season Selector */}
+          <div className="lg:col-span-1">
             {item.type !== 'movie' && (
               <EpisodeSelector 
                 item={item}
@@ -309,4 +311,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
