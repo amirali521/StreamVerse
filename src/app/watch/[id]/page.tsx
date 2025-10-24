@@ -39,7 +39,7 @@ function EpisodeSelector({
   const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
 
   return (
-    <Card className="bg-background/80 border-0 md:border md:bg-card">
+    <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
       <CardHeader>
         <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
       </CardHeader>
@@ -71,7 +71,7 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-12 gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
@@ -230,9 +230,7 @@ export default function WatchPage() {
   return (
     <div className="bg-black text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             {embedUrl ? (
               <VideoPlayer src={embedUrl} poster={item.bannerImageUrl} />
             ) : (
@@ -283,9 +281,7 @@ export default function WatchPage() {
                 </div>
               )}
             </div>
-          </div>
-          
-          <div className="lg:col-span-1">
+
             {item.type !== 'movie' && (
               <EpisodeSelector 
                 item={item}
@@ -296,7 +292,6 @@ export default function WatchPage() {
               />
             )}
           </div>
-        </div>
       </div>
       
       <div className="space-y-16 py-12">
@@ -309,3 +304,4 @@ export default function WatchPage() {
     </div>
   );
 }
+
