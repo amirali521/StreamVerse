@@ -97,14 +97,11 @@ export function AdInterstitial() {
         className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90%] md:max-w-lg flex items-center justify-center"
         onInteractOutside={(e) => e.preventDefault()} // Prevent closing on outside click
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Advertisement</DialogTitle>
-          <DialogDescription>
-            This is an advertisement. Click to close.
-          </DialogDescription>
-        </DialogHeader>
         <div className="bg-background p-4 rounded-md">
            <AdBanner showCloseButton={showCloseButton} setShowCloseButton={setShowCloseButton} />
+            <p className="mt-4 text-center text-xs text-muted-foreground max-w-[300px]">
+                Click the banner to reveal the close button. You will stay on this page.
+            </p>
         </div>
       </DialogContent>
     </Dialog>
