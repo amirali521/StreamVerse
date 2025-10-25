@@ -525,7 +525,7 @@ export default function ManageContentPage() {
       </CardHeader>
       <CardContent>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div className="relative w-full sm:max-w-xs">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -536,14 +536,16 @@ export default function ManageContentPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <TabsList className="grid w-full sm:w-auto grid-cols-3 sm:grid-cols-none">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="movie">Movies</TabsTrigger>
-                <TabsTrigger value="webseries">Web Series</TabsTrigger>
-                <TabsTrigger value="drama">Dramas</TabsTrigger>
-                <TabsTrigger value="bollywood">Bollywood</TabsTrigger>
-                <TabsTrigger value="hollywood">Hollywood</TabsTrigger>
-            </TabsList>
+            <div className="w-full sm:w-auto overflow-x-auto">
+              <TabsList className="w-max">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="movie">Movies</TabsTrigger>
+                  <TabsTrigger value="webseries">Web Series</TabsTrigger>
+                  <TabsTrigger value="drama">Dramas</TabsTrigger>
+                  <TabsTrigger value="bollywood">Bollywood</TabsTrigger>
+                  <TabsTrigger value="hollywood">Hollywood</TabsTrigger>
+              </TabsList>
+            </div>
         </div>
         <ScrollArea className="h-[500px] rounded-md border">
           <Table>
@@ -625,3 +627,5 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
+    
