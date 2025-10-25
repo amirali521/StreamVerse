@@ -105,7 +105,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [adClicked, setAdClicked] = useState(false);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -196,7 +196,7 @@ export default function WatchPage() {
   
   // Reset the copy button state when the video source changes
   useEffect(() => {
-    setLinkCopied(false);
+    setAdClicked(false);
   }, [item, selectedEpisode]);
   
 
@@ -213,30 +213,33 @@ export default function WatchPage() {
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
   const poster = item.posterImageUrl || item.bannerImageUrl;
 
-  const handleCopyLink = () => {
-    if (linkCopied) {
-      // Second click: Open the ad link
-      window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
-      return;
-    }
-
-    // First click: Copy the download link
+  const handleAdOrCopyLink = () => {
     if (!downloadUrl) return;
 
-    navigator.clipboard.writeText(downloadUrl).then(() => {
-      setLinkCopied(true);
-      toast({
-        title: "Link Copied",
-        description: "The download link has been copied to your clipboard.",
+    if (adClicked) {
+      // Second click: Copy the download link
+      navigator.clipboard.writeText(downloadUrl).then(() => {
+        toast({
+          title: "Link Copied",
+          description: "The download link has been copied to your clipboard.",
+        });
+      }).catch(err => {
+        console.error("Failed to copy link: ", err);
+        toast({
+          variant: "destructive",
+          title: "Copy Failed",
+          description: "Could not copy the link. Please try again.",
+        });
       });
-    }).catch(err => {
-      console.error("Failed to copy link: ", err);
+    } else {
+      // First click: Open the ad link and update state
+      window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
+      setAdClicked(true);
       toast({
-        variant: "destructive",
-        title: "Copy Failed",
-        description: "Could not copy the link. Please try again.",
+        title: "Ad Opened",
+        description: "Click the button again to copy the download link.",
       });
-    });
+    }
   };
 
   return (
@@ -289,9 +292,9 @@ export default function WatchPage() {
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" onClick={handleCopyLink} className="flex-1 px-4" size="default">
-                  {linkCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                  {linkCopied ? "Open Ad Link" : "Direct Link Copy"}
+                <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
+                  {adClicked ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                  {adClicked ? "Copy Link" : "Open Ad First"}
                 </Button>
               </div>
             )}
