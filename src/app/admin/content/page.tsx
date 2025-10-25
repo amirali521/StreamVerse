@@ -3,7 +3,7 @@
 
 import { useFirestore } from "@/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +50,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 // Data structures from backend.json
 interface Episode {
@@ -444,6 +446,9 @@ export default function ManageContentPage() {
   const [contentList, setContentList] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingContent, setEditingContent] = useState<Content | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+
 
   const fetchContent = async () => {
     if (!firestore) return;
@@ -480,6 +485,30 @@ export default function ManageContentPage() {
   const handleUpdate = (updatedContent: Content) => {
     setContentList(contentList.map(c => c.id === updatedContent.id ? updatedContent : c));
   };
+  
+  const filteredContent = useMemo(() => {
+    let filtered = contentList;
+
+    // Filter by active tab
+    if (activeTab !== "all") {
+        if (["movie", "webseries", "drama"].includes(activeTab)) {
+            filtered = filtered.filter(item => item.type === activeTab);
+        } else {
+            filtered = filtered.filter(item => 
+                item.categories?.some(cat => cat.toLowerCase() === activeTab.toLowerCase())
+            );
+        }
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [contentList, activeTab, searchTerm]);
 
 
   if (loading) {
@@ -494,59 +523,81 @@ export default function ManageContentPage() {
         <CardDescription>View, edit, or delete existing content in the catalog.</CardDescription>
       </CardHeader>
       <CardContent>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Categories</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contentList.length === 0 ? (
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by title..."
+                    className="pl-8 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <TabsList className="grid w-full sm:w-auto grid-cols-3 sm:grid-cols-none">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="movie">Movies</TabsTrigger>
+                <TabsTrigger value="webseries">Web Series</TabsTrigger>
+                <TabsTrigger value="drama">Dramas</TabsTrigger>
+                <TabsTrigger value="bollywood">Bollywood</TabsTrigger>
+                <TabsTrigger value="hollywood">Hollywood</TabsTrigger>
+            </TabsList>
+        </div>
+        <Table>
+            <TableHeader>
             <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">No content found.</TableCell>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Categories</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            contentList.map(content => (
-                <TableRow key={content.id}>
-                <TableCell className="font-medium">{content.title}</TableCell>
-                <TableCell className="capitalize">{content.type}</TableCell>
-                <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
-                <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete "{content.title}".
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
-                                Delete
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </TableCell>
+            </TableHeader>
+            <TableBody>
+            {filteredContent.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">No content found for this filter.</TableCell>
                 </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+                filteredContent.map(content => (
+                    <TableRow key={content.id}>
+                    <TableCell className="font-medium">{content.title}</TableCell>
+                    <TableCell className="capitalize">{content.type}</TableCell>
+                    <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete "{content.title}".
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
+                                    Delete
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
+                    </TableRow>
+                ))
+            )}
+            </TableBody>
+        </Table>
+       </Tabs>
       </CardContent>
     </Card>
 
@@ -571,3 +622,5 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
+    
