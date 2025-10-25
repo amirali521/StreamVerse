@@ -323,8 +323,8 @@ export default function AddContentPage() {
   );
 
   return (
-    <div className="container py-10">
-       <Card className="max-w-4xl mx-auto">
+    <div className="container py-4">
+       <Card className="w-full">
         <CardHeader>
           <CardTitle>Add New Content</CardTitle>
           <CardDescription>
@@ -474,3 +474,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    

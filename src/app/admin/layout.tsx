@@ -49,7 +49,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-full items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-4xl space-y-8">
         <div className="flex justify-center">
             <Link href="/" className="flex items-center space-x-2 text-foreground">
                 <LogoIcon className="h-8 w-8" />
@@ -61,3 +61,5 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+    
