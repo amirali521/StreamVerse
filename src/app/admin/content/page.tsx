@@ -4,16 +4,9 @@
 import { useFirestore } from "@/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Search } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Search, MoreVertical } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +28,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -51,7 +50,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 // Data structures from backend.json
@@ -441,6 +439,57 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
     );
 }
 
+function ContentGridCard({
+    content,
+    onEdit,
+    onDelete,
+}: {
+    content: Content;
+    onEdit: () => void;
+    onDelete: () => void;
+}) {
+    return (
+        <Card className="overflow-hidden group">
+            <CardContent className="p-0 relative">
+                <div className="aspect-[2/3] w-full relative">
+                    <Image
+                        src={content.bannerImageUrl}
+                        alt={content.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                    />
+                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute top-2 right-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="secondary" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={onEdit}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>Edit</span>
+                                </DropdownMenuItem>
+                                <AlertDialogTrigger asChild>
+                                   <DropdownMenuItem className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <span>Delete</span>
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+                <div className="p-3">
+                    <h3 className="font-semibold truncate">{content.title}</h3>
+                    <p className="text-xs text-muted-foreground capitalize">{content.type}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function ManageContentPage() {
   const firestore = useFirestore();
@@ -537,7 +586,7 @@ export default function ManageContentPage() {
                 />
             </div>
             <div className="w-full sm:w-auto overflow-x-auto">
-              <TabsList className="w-max sm:w-auto sm:grid sm:grid-cols-none sm:inline-flex">
+              <TabsList className="w-max sm:w-auto sm:inline-flex">
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="movie">Movies</TabsTrigger>
                   <TabsTrigger value="webseries">Web Series</TabsTrigger>
@@ -547,60 +596,39 @@ export default function ManageContentPage() {
               </TabsList>
             </div>
         </div>
-        <div className="relative h-[60vh] overflow-auto rounded-md border">
-          <Table>
-              <TableHeader className="sticky top-0 bg-card z-10">
-              <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Categories</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-              </TableHeader>
-              <TableBody>
-              {filteredContent.length === 0 ? (
-                  <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">No content found for this filter.</TableCell>
-                  </TableRow>
-              ) : (
-                  filteredContent.map(content => (
-                      <TableRow key={content.id}>
-                      <TableCell className="font-medium">{content.title}</TableCell>
-                      <TableCell className="capitalize">{content.type}</TableCell>
-                      <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                          </Button>
-                          <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Delete</span>
-                                  </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete "{content.title}".
-                                  </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
-                                      Delete
-                                  </AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
-                      </TableCell>
-                      </TableRow>
-                  ))
-              )}
-              </TableBody>
-          </Table>
+
+        <div className="relative h-[60vh] overflow-auto rounded-md border p-4">
+            {filteredContent.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No content found for this filter.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredContent.map(content => (
+                        <AlertDialog key={content.id}>
+                            <ContentGridCard
+                                content={content}
+                                onEdit={() => setEditingContent(content)}
+                                onDelete={() => {}}
+                            />
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete "{content.title}".
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    ))}
+                </div>
+            )}
         </div>
        </Tabs>
       </CardContent>
@@ -628,3 +656,4 @@ export default function ManageContentPage() {
   );
 }
 
+    
