@@ -11,7 +11,7 @@ interface AdContextType {
 
 const AdContext = createContext<AdContextType | undefined>(undefined);
 
-const CLICKS_BEFORE_AD = 5; // Show ad every 5 clicks
+const CLICKS_BEFORE_AD = 10; // Show ad every 10 clicks
 
 export function AdProvider({ children }: { children: ReactNode }) {
   const [isAdVisible, setAdVisible] = useState(false);
