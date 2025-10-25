@@ -547,7 +547,7 @@ export default function ManageContentPage() {
               </TabsList>
             </div>
         </div>
-        <ScrollArea className="h-[500px] rounded-md border">
+        <div className="rounded-md border">
           <Table>
               <TableHeader>
               <TableRow>
@@ -601,7 +601,7 @@ export default function ManageContentPage() {
               )}
               </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
        </Tabs>
       </CardContent>
     </Card>
@@ -627,5 +627,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    
