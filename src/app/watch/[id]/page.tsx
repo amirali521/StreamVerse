@@ -72,7 +72,7 @@ function EpisodeSelector({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
-            <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-12 gap-2">
+            <div className="flex flex-wrap gap-2">
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
@@ -275,14 +275,14 @@ export default function WatchPage() {
             {rawVideoUrl && (
               <div className="flex items-stretch gap-4">
                 {downloadUrl && (
-                  <Button asChild className="bg-primary hover:bg-primary/90 flex-1">
+                  <Button asChild className="bg-primary hover:bg-primary/90 flex-1 px-4">
                     <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2" />
                       Download
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" onClick={handleCopyLink} className="flex-1">
+                <Button variant="outline" onClick={handleCopyLink} className="flex-1 px-4">
                   {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
                   {isCopied ? "Copied" : "Direct Link Copy"}
                 </Button>
@@ -315,5 +315,7 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
 
     
