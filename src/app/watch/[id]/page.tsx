@@ -294,7 +294,7 @@ export default function WatchPage() {
                 )}
                 <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
                   {adClicked ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                  {adClicked ? "Copy Link" : "Open Ad First"}
+                  Copy Link
                 </Button>
               </div>
             )}
@@ -325,5 +325,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
