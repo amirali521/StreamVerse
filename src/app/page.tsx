@@ -56,25 +56,25 @@ export default function Home() {
             updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : new Date(0),
           } as ClientContent;
         });
-
-        // 1. Get New Releases for Hero: Sort all content by `createdAt` date
+        
+        // 1. Get Hero Content: Filter for items with `isFeatured` set to true
+        const featuredContent = allContent.filter(item => item.isFeatured).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+        setHeroContent(featuredContent.slice(0, 5));
+        
+        // 2. Get New Releases: Sort all content by `createdAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
         setNewReleases(sortedNewReleases.slice(0, 10));
-        
-        // Set Hero Content (latest 5 movies)
-        const newMovies = sortedNewReleases.filter(item => item.type === 'movie');
-        setHeroContent(newMovies.slice(0, 5));
 
-        // 2. Get Trending: Sort all content by IMDb rating
+        // 3. Get Trending: Sort all content by IMDb rating
         const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
         setTrending(sortedTrending.slice(0, 10));
         
-        // 3. Get Popular Dramas: Filter for dramas, then sort by rating
+        // 4. Get Popular Dramas: Filter for dramas, then sort by rating
         const dramas = allContent.filter(item => item.type === 'drama');
         const sortedDramas = dramas.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
         setPopularDramas(sortedDramas.slice(0, 10));
 
-        // 4. Get content by specific categories
+        // 5. Get content by specific categories
         setBollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'bollywood')).slice(0, 10));
         setHollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'hollywood')).slice(0, 10));
         setTollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'tollywood')).slice(0, 10));

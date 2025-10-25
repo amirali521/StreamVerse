@@ -84,17 +84,15 @@
           "enum": ["movie", "webseries", "drama"],
           "description": "The type of content."
         },
-        "categories": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "A list of categories for the content (e.g., Bollywood, Action)."
-        },
         "bannerImageUrl": {
           "type": "string",
           "format": "uri",
-          "description": "URL for the banner image."
+          "description": "URL for the banner image used in carousels and grids."
+        },
+        "posterImageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the high-resolution poster image used in hero sections and the video player."
         },
         "imdbRating": {
           "type": "number",
@@ -111,6 +109,17 @@
             "$ref": "#/entities/Season"
           },
           "description": "Seasons for web series or dramas."
+        },
+        "categories": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "A list of categories or tags for the content."
+        },
+        "isFeatured": {
+            "type": "boolean",
+            "description": "If true, this content will be featured in the hero banner on the homepage."
         },
         "createdAt": {
             "type": "string",

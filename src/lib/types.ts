@@ -23,6 +23,7 @@ export interface Content {
   googleDriveVideoUrl?: string;
   seasons?: Season[];
   categories?: string[];
+  isFeatured?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

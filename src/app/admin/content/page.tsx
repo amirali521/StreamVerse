@@ -49,6 +49,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
 // Data structures from backend.json
 interface Episode {
@@ -73,6 +74,7 @@ interface Content {
   googleDriveVideoUrl?: string;
   seasons?: Season[];
   categories?: string[];
+  isFeatured?: boolean;
 }
 
 // Reusable form for editing content details
@@ -84,6 +86,7 @@ const editContentSchema = z.object({
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   googleDriveVideoUrl: z.string().optional(),
   categories: z.string().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
@@ -98,6 +101,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             imdbRating: contentItem.imdbRating || 0,
             googleDriveVideoUrl: contentItem.googleDriveVideoUrl || "",
             categories: contentItem.categories?.join(", ") || "",
+            isFeatured: contentItem.isFeatured || false,
         },
     });
 
@@ -113,6 +117,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             posterImageUrl: values.posterImageUrl || values.bannerImageUrl,
             categories,
             imdbRating: values.imdbRating || 0,
+            isFeatured: values.isFeatured || false,
             updatedAt: serverTimestamp()
         };
 
@@ -127,7 +132,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
             await updateDoc(docRef, updatedData);
-            onUpdate({ ...contentItem, ...updatedData, posterImageUrl: updatedData.posterImageUrl });
+            onUpdate({ ...contentItem, ...updatedData, posterImageUrl: updatedData.posterImageUrl, isFeatured: updatedData.isFeatured });
             toast({ title: "Content Updated", description: `${values.title} has been updated.` });
             closeDialog();
         } catch (error: any) {
@@ -166,6 +171,22 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                         <FormItem><FormLabel>Google Drive Video URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 )}
+                <FormField control={form.control} name="isFeatured" render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                        <FormLabel>Feature on Homepage</FormLabel>
+                        <FormDescription>
+                            Show this in the hero banner on the homepage.
+                        </FormDescription>
+                        </div>
+                        <FormControl>
+                        <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                        </FormControl>
+                    </FormItem>
+                )} />
                 <DialogFooter>
                     <Button variant="outline" type="button" onClick={closeDialog}>Cancel</Button>
                     <Button type="submit">Save Changes</Button>

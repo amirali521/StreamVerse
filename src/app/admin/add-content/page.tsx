@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 // Data structures from backend.json
 interface Episode {
@@ -84,6 +85,7 @@ const contentSchema = z.object({
   googleDriveVideoUrl: z.string().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 export default function AddContentPage() {
@@ -111,6 +113,7 @@ export default function AddContentPage() {
       googleDriveVideoUrl: "",
       imdbRating: 0,
       categories: "",
+      isFeatured: false,
     },
   });
 
@@ -239,6 +242,7 @@ export default function AddContentPage() {
         posterImageUrl: values.posterImageUrl || values.bannerImageUrl, // Fallback to banner image if poster is empty
         imdbRating: values.imdbRating || 0,
         categories: categories,
+        isFeatured: values.isFeatured || false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
@@ -381,6 +385,22 @@ export default function AddContentPage() {
                             <FormField control={form.control} name="imdbRating" render={({ field }) => (
                                 <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
+                            <FormField control={form.control} name="isFeatured" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <FormLabel>Feature on Homepage</FormLabel>
+                                    <FormDescription>
+                                        Enable to show this content in the hero banner on the homepage.
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                            )} />
                         </div>
                     </div>
                     
@@ -454,5 +474,3 @@ export default function AddContentPage() {
     </div>
   );
 }
-
-    
