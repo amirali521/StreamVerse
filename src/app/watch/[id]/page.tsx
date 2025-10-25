@@ -105,7 +105,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -194,6 +194,11 @@ export default function WatchPage() {
     }
   }, [id, firestore]);
   
+  // Reset the copy button state when the video source changes
+  useEffect(() => {
+    setLinkCopied(false);
+  }, [item, selectedEpisode]);
+  
 
   if (loading) {
       return <div className="flex items-center justify-center h-screen bg-black text-white">Loading...</div>
@@ -209,26 +214,28 @@ export default function WatchPage() {
   const poster = item.posterImageUrl || item.bannerImageUrl;
 
   const handleCopyLink = () => {
-    // Open the smartlink in a new tab
-    window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
+    if (linkCopied) {
+      // Second click: Open the ad link
+      window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
+      return;
+    }
 
+    // First click: Copy the download link
     if (!downloadUrl) return;
+
     navigator.clipboard.writeText(downloadUrl).then(() => {
-        setIsCopied(true);
-        toast({
-            title: "Link Copied",
-            description: "The download link has been copied to your clipboard.",
-        });
-        setTimeout(() => {
-            setIsCopied(false);
-        }, 3000); // Reset after 3 seconds
+      setLinkCopied(true);
+      toast({
+        title: "Link Copied",
+        description: "The download link has been copied to your clipboard.",
+      });
     }).catch(err => {
-        console.error("Failed to copy link: ", err);
-        toast({
-            variant: "destructive",
-            title: "Copy Failed",
-            description: "Could not copy the link. Please try again.",
-        });
+      console.error("Failed to copy link: ", err);
+      toast({
+        variant: "destructive",
+        title: "Copy Failed",
+        description: "Could not copy the link. Please try again.",
+      });
     });
   };
 
@@ -275,16 +282,16 @@ export default function WatchPage() {
             {rawVideoUrl && (
               <div className="flex items-stretch gap-4">
                 {downloadUrl && (
-                  <Button asChild className="bg-primary hover:bg-primary/90 flex-1 px-4">
+                  <Button asChild size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
                     <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2" />
                       Download
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" onClick={handleCopyLink} className="flex-1 px-4">
-                  {isCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                  {isCopied ? "Copied" : "Direct Link Copy"}
+                <Button variant="outline" onClick={handleCopyLink} className="flex-1 px-4" size="default">
+                  {linkCopied ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                  {linkCopied ? "Open Ad Link" : "Direct Link Copy"}
                 </Button>
               </div>
             )}
@@ -315,7 +322,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
-
-    
