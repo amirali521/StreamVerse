@@ -51,6 +51,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 // Data structures from backend.json
@@ -544,59 +545,61 @@ export default function ManageContentPage() {
                 <TabsTrigger value="hollywood">Hollywood</TabsTrigger>
             </TabsList>
         </div>
-        <Table>
-            <TableHeader>
-            <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Categories</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-            </TableHeader>
-            <TableBody>
-            {filteredContent.length === 0 ? (
-                <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">No content found for this filter.</TableCell>
-                </TableRow>
-            ) : (
-                filteredContent.map(content => (
-                    <TableRow key={content.id}>
-                    <TableCell className="font-medium">{content.title}</TableCell>
-                    <TableCell className="capitalize">{content.type}</TableCell>
-                    <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
-                    <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete "{content.title}".
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
-                                    Delete
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                    </TableRow>
-                ))
-            )}
-            </TableBody>
-        </Table>
+        <ScrollArea className="h-[500px] rounded-md border">
+          <Table>
+              <TableHeader>
+              <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Categories</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+              </TableHeader>
+              <TableBody>
+              {filteredContent.length === 0 ? (
+                  <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24">No content found for this filter.</TableCell>
+                  </TableRow>
+              ) : (
+                  filteredContent.map(content => (
+                      <TableRow key={content.id}>
+                      <TableCell className="font-medium">{content.title}</TableCell>
+                      <TableCell className="capitalize">{content.type}</TableCell>
+                      <TableCell>{content.categories?.join(', ') || 'N/A'}</TableCell>
+                      <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingContent(content)}>
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                          </Button>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      This action cannot be undone. This will permanently delete "{content.title}".
+                                  </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(content.id, content.title)}>
+                                      Delete
+                                  </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                      </TableRow>
+                  ))
+              )}
+              </TableBody>
+          </Table>
+        </ScrollArea>
        </Tabs>
       </CardContent>
     </Card>
@@ -622,5 +625,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    
