@@ -537,7 +537,7 @@ export default function ManageContentPage() {
                 />
             </div>
             <div className="w-full sm:w-auto overflow-x-auto">
-              <TabsList className="w-max">
+              <TabsList className="w-max sm:w-auto sm:grid sm:grid-cols-none sm:inline-flex">
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="movie">Movies</TabsTrigger>
                   <TabsTrigger value="webseries">Web Series</TabsTrigger>
@@ -547,9 +547,9 @@ export default function ManageContentPage() {
               </TabsList>
             </div>
         </div>
-        <div className="rounded-md border">
+        <div className="relative h-[60vh] overflow-auto rounded-md border">
           <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-card z-10">
               <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Type</TableHead>
@@ -627,3 +627,4 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
