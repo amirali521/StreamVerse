@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { X } from "lucide-react";
+import Script from "next/script";
 
 function AdBanner({ showCloseButton, setShowCloseButton }: { showCloseButton: boolean, setShowCloseButton: (show: boolean) => void }) {
   useEffect(() => {
@@ -93,6 +94,7 @@ export function AdInterstitial() {
 
   return (
     <Dialog open={isAdVisible} onOpenChange={handleOpenChange}>
+       <Script type='text/javascript' src='//consumeairlinercalligraphy.com/ac/28/70/ac2870730c98484e027947956aee95a4.js'></Script>
       <DialogContent
         className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90%] md:max-w-lg flex items-center justify-center"
         onInteractOutside={(e) => e.preventDefault()} // Prevent closing on outside click
