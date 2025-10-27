@@ -61,3 +61,4 @@ export function createDownloadUrl(url: string): string {
   // For other URLs, assume it's a direct link and return it as is
   return url;
 }
+
