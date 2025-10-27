@@ -19,27 +19,32 @@ export function createEmbedUrl(url: string): string {
     url = iframeMatch[1];
   }
 
-  // Check for Dailymotion URL (handles standard, geo, partner, and media links)
+  // Check for Dailymotion URL
   const dailymotionRegex = /(?:https?:\/\/)?(?:www\.|geo\.)?dailymotion\.com\/(?:video|embed\/video|player\.html\?video=|partner\/[^/]+\/media\/video\/details\/)([a-zA-Z0-9]+)/;
   const dailymotionMatch = url.match(dailymotionRegex);
   if (dailymotionMatch) {
     const videoId = dailymotionMatch[1];
     return `https://www.dailymotion.com/embed/video/${videoId}?autoplay=1`;
   }
+  
+  // Check for Vimeo URL
+  const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(?:channels\/[a-zA-Z0-9]+\/)?([0-9]+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  if (vimeoMatch) {
+      const videoId = vimeoMatch[1];
+      return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
+  }
 
-  // Check for Google Drive URL and create a preview/embed link
+  // Check for Google Drive URL
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
-    // Check if it's already a preview/embed link
     if (url.includes('/preview') || url.includes('/embed')) {
       return url;
     }
-    // Construct the embeddable preview URL for iframe
     return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   
-  // Return the original URL if it's a direct video link but not a recognized service
   return url;
 }
 
@@ -52,18 +57,14 @@ export function createDownloadUrl(url: string): string {
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
-    // This URL attempts to force a direct download.
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   
-  // For Dailymotion, we don't provide a direct download link from the client.
-  // This is now handled by the get-download-url flow.
-  if (url.includes('dailymotion.com')) {
+  // For Dailymotion and Vimeo, downloads are handled by the server-side flow.
+  if (url.includes('dailymotion.com') || url.includes('vimeo.com')) {
     return "";
   }
 
   // For other URLs, assume it's a direct link and return it as is
   return url;
 }
-
-
