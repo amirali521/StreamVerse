@@ -31,6 +31,10 @@ export function createEmbedUrl(url: string): string {
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
+    // Check if it's already a preview/embed link
+    if (url.includes('/preview') || url.includes('/embed')) {
+      return url;
+    }
     // Construct the embeddable preview URL for iframe
     return `https://drive.google.com/file/d/${fileId}/preview`;
   }
@@ -61,4 +65,5 @@ export function createDownloadUrl(url: string): string {
   // For other URLs, assume it's a direct link and return it as is
   return url;
 }
+
 
