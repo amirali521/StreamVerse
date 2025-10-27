@@ -53,7 +53,7 @@ export function createDownloadUrl(url: string): string {
   }
   
   // For Dailymotion, we don't provide a direct download link from the client.
-  // This should be handled by a server-side process (like yt-dlp).
+  // This is now handled by the get-download-url flow.
   if (url.includes('dailymotion.com')) {
     return "";
   }

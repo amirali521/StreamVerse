@@ -7,12 +7,13 @@ import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/fires
 import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Copy, Check } from "lucide-react";
+import { Download, Copy, Check, Loader2 } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { getDownloadUrl } from "@/ai/flows/get-download-url";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -103,6 +104,7 @@ export default function WatchPage() {
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [adClicked, setAdClicked] = useState(false);
@@ -212,9 +214,45 @@ export default function WatchPage() {
   const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
   const poster = item.posterImageUrl || item.bannerImageUrl;
+  
+  const handleDownload = async () => {
+    if (!rawVideoUrl) return;
+
+    if (rawVideoUrl.includes('dailymotion.com')) {
+      setIsDownloading(true);
+      try {
+        const result = await getDownloadUrl({ url: rawVideoUrl });
+        window.open(result.downloadUrl, '_blank');
+      } catch (error) {
+        console.error("Error getting download link:", error);
+        toast({
+          variant: "destructive",
+          title: "Download Failed",
+          description: "Could not retrieve the download link for this video.",
+        });
+      } finally {
+        setIsDownloading(false);
+      }
+    } else if (downloadUrl) {
+       window.open(downloadUrl, '_blank');
+    }
+  };
+
 
   const handleAdOrCopyLink = () => {
-    if (!downloadUrl) return;
+    if (!rawVideoUrl) return;
+
+    // For Dailymotion, we can't get a simple copyable download link on the client.
+    // So we'll just copy the page link.
+    if (rawVideoUrl.includes('dailymotion.com')) {
+       navigator.clipboard.writeText(rawVideoUrl).then(() => {
+        toast({
+          title: "Link Copied",
+          description: "The video page link has been copied.",
+        });
+      });
+      return;
+    }
 
     if (adClicked) {
       // Second click: Copy the download link
@@ -284,16 +322,12 @@ export default function WatchPage() {
 
             {rawVideoUrl && (
               <div className="flex items-stretch gap-4">
-                {downloadUrl && (
-                  <Button asChild size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
-                    <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-                      <Download className="mr-2" />
-                      Download
-                    </a>
-                  </Button>
-                )}
+                <Button onClick={handleDownload} disabled={isDownloading} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
+                  {isDownloading ? <Loader2 className="mr-2 animate-spin" /> : <Download className="mr-2" />}
+                  Download
+                </Button>
                 <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
-                  {adClicked ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                   {adClicked && !rawVideoUrl.includes('dailymotion.com') ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
                   Copy Link
                 </Button>
               </div>
