@@ -11,7 +11,7 @@ export function createEmbedUrl(url: string): string {
     return "";
   }
 
-  // New: Check for an iframe embed code first and extract the src
+  // Check for an iframe embed code first and extract the src
   const iframeSrcRegex = /<iframe[^>]+src="([^"]+)"/;
   const iframeMatch = url.match(iframeSrcRegex);
   if (iframeMatch) {
@@ -25,22 +25,6 @@ export function createEmbedUrl(url: string): string {
   if (youtubeMatch) {
     const videoId = youtubeMatch[1];
     return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-  }
-
-  // Dailymotion URL
-  const dailymotionRegex = /(?:https?:\/\/)?(?:www\.|geo\.)?dailymotion\.com\/(?:video|embed\/video|player\.html\?video=|partner\/[^/]+\/media\/video\/details\/)([a-zA-Z0-9]+)/;
-  const dailymotionMatch = url.match(dailymotionRegex);
-  if (dailymotionMatch) {
-    const videoId = dailymotionMatch[1];
-    return `https://www.dailymotion.com/embed/video/${videoId}?autoplay=1`;
-  }
-  
-  // Vimeo URL
-  const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(?:channels\/[a-zA-Z0-9]+\/)?([0-9]+)/;
-  const vimeoMatch = url.match(vimeoRegex);
-  if (vimeoMatch) {
-      const videoId = vimeoMatch[1];
-      return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
   }
 
   // Google Drive URL
@@ -68,8 +52,8 @@ export function createDownloadUrl(url: string): string {
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   
-  // For Dailymotion, Vimeo, and YouTube downloads are handled by the server-side flow.
-  if (url.includes('dailymotion.com') || url.includes('vimeo.com') || url.includes('youtube.com') || url.includes('youtu.be')) {
+  // For YouTube downloads are handled by the server-side flow.
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
     return "";
   }
 

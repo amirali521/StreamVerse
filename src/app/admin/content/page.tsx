@@ -170,7 +170,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 )} />
                 {contentItem.type === 'movie' && (
                     <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
-                        <FormItem><FormLabel>Google Drive Video URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="Paste a YouTube or Google Drive link" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 )}
                 <FormField control={form.control} name="isFeatured" render={({ field }) => (
@@ -379,7 +379,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                         <Label htmlFor="episode-title">Title</Label>
                                                         <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
                                                         <Label htmlFor="episode-url">Video URL</Label>
-                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste a YouTube or Google Drive link" />
                                                     </div>
                                                     <DialogFooter>
                                                         <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
@@ -662,7 +662,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    
-
-    

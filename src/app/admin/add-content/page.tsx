@@ -378,8 +378,8 @@ export default function AddContentPage() {
                                 <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Video URL</FormLabel>
-                                    <FormControl><Input placeholder="Paste a direct video/embed link." {...field} /></FormControl>
-                                    <FormDescription>Main link for streaming (e.g., Google Drive, Dailymotion).</FormDescription><FormMessage /></FormItem>
+                                    <FormControl><Input placeholder="Paste a YouTube or Google Drive link" {...field} /></FormControl>
+                                    <FormDescription>Main link for streaming.</FormDescription><FormMessage /></FormItem>
                                 )} />
                             )}
                             <FormField control={form.control} name="imdbRating" render={({ field }) => (
@@ -431,7 +431,7 @@ export default function AddContentPage() {
                                                 <Label htmlFor="episode-title">Title</Label>
                                                 <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
                                                 <Label htmlFor="episode-url">Video URL</Label>
-                                                <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste a Google Drive or Dailymotion URL" />
+                                                <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste a YouTube or Google Drive link" />
                                             </div>
                                             <DialogFooter>
                                                 <Button variant="outline" type="button" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
@@ -474,5 +474,3 @@ export default function AddContentPage() {
     </div>
   );
 }
-
-    

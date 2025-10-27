@@ -218,7 +218,7 @@ export default function WatchPage() {
   const handleDownload = async () => {
     if (!rawVideoUrl) return;
 
-    if (rawVideoUrl.includes('dailymotion.com')) {
+    if (rawVideoUrl.includes('youtube.com') || rawVideoUrl.includes('youtu.be')) {
       setIsDownloading(true);
       try {
         const result = await getDownloadUrl({ url: rawVideoUrl });
@@ -242,9 +242,9 @@ export default function WatchPage() {
   const handleAdOrCopyLink = () => {
     if (!rawVideoUrl) return;
 
-    // For Dailymotion, we can't get a simple copyable download link on the client.
+    // For YouTube, we can't get a simple copyable download link on the client.
     // So we'll just copy the page link.
-    if (rawVideoUrl.includes('dailymotion.com')) {
+    if (rawVideoUrl.includes('youtube.com') || rawVideoUrl.includes('youtu.be')) {
        navigator.clipboard.writeText(rawVideoUrl).then(() => {
         toast({
           title: "Link Copied",
@@ -327,7 +327,7 @@ export default function WatchPage() {
                   Download
                 </Button>
                 <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
-                   {adClicked && !rawVideoUrl.includes('dailymotion.com') ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                   {adClicked && !rawVideoUrl.includes('youtube.com') && !rawVideoUrl.includes('youtu.be') ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
                   Copy Link
                 </Button>
               </div>
