@@ -19,7 +19,15 @@ export function createEmbedUrl(url: string): string {
     url = iframeMatch[1];
   }
 
-  // Check for Dailymotion URL
+  // YouTube URL
+  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const youtubeMatch = url.match(youtubeRegex);
+  if (youtubeMatch) {
+    const videoId = youtubeMatch[1];
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  }
+
+  // Dailymotion URL
   const dailymotionRegex = /(?:https?:\/\/)?(?:www\.|geo\.)?dailymotion\.com\/(?:video|embed\/video|player\.html\?video=|partner\/[^/]+\/media\/video\/details\/)([a-zA-Z0-9]+)/;
   const dailymotionMatch = url.match(dailymotionRegex);
   if (dailymotionMatch) {
@@ -27,7 +35,7 @@ export function createEmbedUrl(url: string): string {
     return `https://www.dailymotion.com/embed/video/${videoId}?autoplay=1`;
   }
   
-  // Check for Vimeo URL
+  // Vimeo URL
   const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(?:channels\/[a-zA-Z0-9]+\/)?([0-9]+)/;
   const vimeoMatch = url.match(vimeoRegex);
   if (vimeoMatch) {
@@ -35,7 +43,7 @@ export function createEmbedUrl(url: string): string {
       return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
   }
 
-  // Check for Google Drive URL
+  // Google Drive URL
   const fileIdMatch = url.match(/[-\w]{25,}/);
   if (fileIdMatch) {
     const fileId = fileIdMatch[0];
@@ -60,8 +68,8 @@ export function createDownloadUrl(url: string): string {
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   
-  // For Dailymotion and Vimeo, downloads are handled by the server-side flow.
-  if (url.includes('dailymotion.com') || url.includes('vimeo.com')) {
+  // For Dailymotion, Vimeo, and YouTube downloads are handled by the server-side flow.
+  if (url.includes('dailymotion.com') || url.includes('vimeo.com') || url.includes('youtube.com') || url.includes('youtu.be')) {
     return "";
   }
 
