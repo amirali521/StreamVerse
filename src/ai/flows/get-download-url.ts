@@ -35,10 +35,10 @@ const getDownloadUrlFlow = ai.defineFlow(
     const metadata = await ytDlpWrap.getVideoInfo(input.url);
     
     // Find the best quality direct video URL
-    // We prefer formats that are a single file (not DASH video + audio separate)
+    // We prefer formats that are a single file (not DASH video + audio separate) and have a URL
     const bestFormat = metadata.formats
       .filter(f => f.vcodec !== 'none' && f.acodec !== 'none' && f.url)
-      .sort((a, b) => (b.filesize || 0) - (a.filesize || 0))[0];
+      .sort((a, b) => (b.filesize || b.height || 0) - (a.filesize || a.height || 0))[0];
 
     if (!bestFormat || !bestFormat.url) {
       throw new Error('Could not find a downloadable format for the given URL.');
