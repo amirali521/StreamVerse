@@ -28,7 +28,10 @@ const getDownloadUrlFlow = ai.defineFlow(
     outputSchema: DownloadUrlOutputSchema,
   },
   async (input) => {
+    // Download the yt-dlp binary if it doesn't exist
+    await YTDlpWrap.downloadFromGithub();
     const ytDlpWrap = new YTDlpWrap();
+    
     const metadata = await ytDlpWrap.getVideoInfo(input.url);
     
     // Find the best quality direct video URL
