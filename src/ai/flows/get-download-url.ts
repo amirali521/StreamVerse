@@ -7,7 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import YTDlpWrap from 'yt-dlp-wrap';
 
 const DownloadUrlInputSchema = z.object({
@@ -28,9 +28,12 @@ const getDownloadUrlFlow = ai.defineFlow(
     outputSchema: DownloadUrlOutputSchema,
   },
   async (input) => {
+    // Specify a writable path for the yt-dlp binary
+    const ytDlpPath = '/tmp/yt-dlp';
+    
     // Download the yt-dlp binary if it doesn't exist
-    await YTDlpWrap.downloadFromGithub();
-    const ytDlpWrap = new YTDlpWrap();
+    await YTDlpWrap.downloadFromGithub(ytDlpPath);
+    const ytDlpWrap = new YTDlpWrap(ytDlpPath);
     
     const metadata = await ytDlpWrap.getVideoInfo(input.url);
     
@@ -41,6 +44,13 @@ const getDownloadUrlFlow = ai.defineFlow(
       .sort((a, b) => (b.filesize || b.height || 0) - (a.filesize || a.height || 0))[0];
 
     if (!bestFormat || !bestFormat.url) {
+      // If no single file format, try to find best video and audio and let the client handle it if possible
+      // This is a more advanced case, for now we throw an error.
+      // A future improvement could be to return separate video and audio URLs.
+      const videoOnly = metadata.formats.filter(f => f.vcodec !== 'none' && f.acodec === 'none' && f.url).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+      if (videoOnly && videoOnly.url) {
+          return { downloadUrl: videoOnly.url };
+      }
       throw new Error('Could not find a downloadable format for the given URL.');
     }
     
