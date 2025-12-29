@@ -12,6 +12,7 @@ import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { toast } from "@/hooks/use-toast";
+import { createEmbedUrl } from "@/lib/utils";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -207,7 +208,8 @@ export default function WatchPage() {
     notFound();
   }
   
-  const embedUrl = item.type === 'movie' ? item.embedUrl : selectedEpisode?.embedUrl;
+  const videoSourceUrl = item.type === 'movie' ? item.embedUrl : selectedEpisode?.embedUrl;
+  const embedUrl = videoSourceUrl ? createEmbedUrl(videoSourceUrl) : undefined;
   const downloadUrl = item.type === 'movie' ? item.downloadUrl : selectedEpisode?.downloadUrl;
   const poster = item.posterImageUrl || item.bannerImageUrl;
   

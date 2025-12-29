@@ -11,8 +11,33 @@ export function createEmbedUrl(url: string): string {
     return "";
   }
   
-  // This function now just returns the URL as-is, assuming it's already an embed link.
-  return url;
+  try {
+    const urlObject = new URL(url);
+    const hostname = urlObject.hostname;
+    const path = urlObject.pathname;
+
+    if (hostname.includes('dood')) {
+      // It's a DoodStream link. Convert '/d/' to '/e/'
+      if (path.startsWith('/d/')) {
+        return `https://${hostname}/e/${path.substring(3)}`;
+      }
+    }
+
+    if (hostname.includes('mixdrop')) {
+      // It's a Mixdrop link. Convert '/f/' to '/e/'
+       if (path.startsWith('/f/')) {
+        return `https://${hostname}/e/${path.substring(3)}`;
+      }
+    }
+    
+    // For other links (like direct mp4, or ones that are already embed links), return as is.
+    return url;
+    
+  } catch (error) {
+    console.error("Invalid URL for createEmbedUrl:", error);
+    // If URL is invalid, return it as is and let the iframe handle it.
+    return url;
+  }
 }
 
 export function createDownloadUrl(url: string): string {
