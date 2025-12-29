@@ -21,6 +21,7 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   createdAt?: Date;
   updatedAt?: Date;
   posterImageUrl?: string;
+  streamPlatform?: 'doodstream' | 'mixdrop';
 };
 
 function EpisodeSelector({ 
@@ -210,31 +211,28 @@ export default function WatchPage() {
     notFound();
   }
   
-  const rawVideoUrl = item.type === 'movie' ? item.googleDriveVideoUrl : selectedEpisode?.videoUrl;
-  const embedUrl = rawVideoUrl ? createEmbedUrl(rawVideoUrl) : "";
+  const rawVideoUrl = item.type === 'movie' ? item.streamUrl : selectedEpisode?.streamUrl;
+  const platform = item.type === 'movie' ? item.streamPlatform : selectedEpisode?.streamPlatform;
+  const embedUrl = rawVideoUrl && platform ? createEmbedUrl(rawVideoUrl, platform) : "";
   const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
   const poster = item.posterImageUrl || item.bannerImageUrl;
   
   const handleDownload = async () => {
     if (!rawVideoUrl) return;
 
-    if (rawVideoUrl.includes('youtube.com') || rawVideoUrl.includes('youtu.be')) {
-      setIsDownloading(true);
-      try {
-        const result = await getDownloadUrl({ url: rawVideoUrl });
-        window.open(result.downloadUrl, '_blank');
-      } catch (error) {
-        console.error("Error getting download link:", error);
-        toast({
-          variant: "destructive",
-          title: "Download Failed",
-          description: "Could not retrieve the download link for this video.",
-        });
-      } finally {
-        setIsDownloading(false);
-      }
-    } else if (downloadUrl) {
-       window.open(downloadUrl, '_blank');
+    setIsDownloading(true);
+    try {
+      const result = await getDownloadUrl({ url: rawVideoUrl });
+      window.open(result.downloadUrl, '_blank');
+    } catch (error) {
+      console.error("Error getting download link:", error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Could not retrieve the download link for this video.",
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -242,24 +240,12 @@ export default function WatchPage() {
   const handleAdOrCopyLink = () => {
     if (!rawVideoUrl) return;
 
-    // For YouTube, we can't get a simple copyable download link on the client.
-    // So we'll just copy the page link.
-    if (rawVideoUrl.includes('youtube.com') || rawVideoUrl.includes('youtu.be')) {
-       navigator.clipboard.writeText(rawVideoUrl).then(() => {
-        toast({
-          title: "Link Copied",
-          description: "The video page link has been copied.",
-        });
-      });
-      return;
-    }
-
     if (adClicked) {
       // Second click: Copy the download link
-      navigator.clipboard.writeText(downloadUrl).then(() => {
+      navigator.clipboard.writeText(rawVideoUrl).then(() => {
         toast({
           title: "Link Copied",
-          description: "The download link has been copied to your clipboard.",
+          description: "The stream URL has been copied to your clipboard.",
         });
       }).catch(err => {
         console.error("Failed to copy link: ", err);
@@ -327,7 +313,7 @@ export default function WatchPage() {
                   Download
                 </Button>
                 <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
-                   {adClicked && !rawVideoUrl.includes('youtube.com') && !rawVideoUrl.includes('youtu.be') ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
+                   {adClicked ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
                   Copy Link
                 </Button>
               </div>

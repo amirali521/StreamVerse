@@ -51,13 +51,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 // Data structures from backend.json
 interface Episode {
   episodeNumber: number;
   title: string;
-  videoUrl: string;
+  streamUrl: string;
+  streamPlatform: 'doodstream' | 'mixdrop';
 }
 
 interface Season {
@@ -73,7 +75,8 @@ interface Content {
   bannerImageUrl: string;
   posterImageUrl?: string;
   imdbRating?: number;
-  googleDriveVideoUrl?: string;
+  streamUrl?: string;
+  streamPlatform?: 'doodstream' | 'mixdrop';
   seasons?: Season[];
   categories?: string[];
   isFeatured?: boolean;
@@ -86,7 +89,8 @@ const editContentSchema = z.object({
   bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
   posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
-  googleDriveVideoUrl: z.string().optional(),
+  streamUrl: z.string().optional(),
+  streamPlatform: z.enum(["doodstream", "mixdrop"]).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
 });
@@ -101,7 +105,8 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             bannerImageUrl: contentItem.bannerImageUrl,
             posterImageUrl: contentItem.posterImageUrl || "",
             imdbRating: contentItem.imdbRating || 0,
-            googleDriveVideoUrl: contentItem.googleDriveVideoUrl || "",
+            streamUrl: contentItem.streamUrl || "",
+            streamPlatform: contentItem.streamPlatform || "doodstream",
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
         },
@@ -124,11 +129,12 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         };
 
         if (contentItem.type === 'movie') {
-            if (!values.googleDriveVideoUrl) {
-                form.setError("googleDriveVideoUrl", { type: "manual", message: "Video URL is required for movies." });
+            if (!values.streamUrl || !values.streamPlatform) {
+                form.setError("streamUrl", { type: "manual", message: "Video URL and Platform are required for movies." });
                 return;
             }
-            updatedData.googleDriveVideoUrl = values.googleDriveVideoUrl;
+            updatedData.streamUrl = values.streamUrl;
+            updatedData.streamPlatform = values.streamPlatform;
         }
 
         try {
@@ -169,9 +175,27 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                     <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 {contentItem.type === 'movie' && (
-                    <FormField control={form.control} name="googleDriveVideoUrl" render={({ field }) => (
-                        <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input placeholder="Paste a YouTube or Google Drive link" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="streamPlatform" render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                            <FormLabel>Platform</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select platform" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="doodstream">DoodStream</SelectItem>
+                                <SelectItem value="mixdrop">Mixdrop</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )} />
+                        <FormField control={form.control} name="streamUrl" render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                            <FormLabel>Video URL</FormLabel>
+                            <FormControl><Input placeholder="Paste Doodstream or Mixdrop link" {...field} /></FormControl>
+                            <FormMessage /></FormItem>
+                        )} />
+                    </div>
                 )}
                 <FormField control={form.control} name="isFeatured" render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -232,6 +256,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
     const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
     const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
     const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
+    const [newEpisodePlatform, setNewEpisodePlatform] = useState<'doodstream' | 'mixdrop'>('doodstream');
 
     const handleAddSeason = async () => {
         if (!firestore) return;
@@ -259,7 +284,8 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                 const newEpisode: Episode = {
                     episodeNumber: newEpisodeNumber,
                     title: newEpisodeTitle,
-                    videoUrl: newEpisodeUrl
+                    streamUrl: newEpisodeUrl,
+                    streamPlatform: newEpisodePlatform,
                 };
                 return { ...s, episodes: [...s.episodes, newEpisode] };
             }
@@ -287,7 +313,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
             if (s.seasonNumber === selectedSeason) {
                 const updatedEpisodes = s.episodes.map(e =>
                     e.episodeNumber === selectedEpisode.episodeNumber
-                    ? { ...e, title: newEpisodeTitle, videoUrl: newEpisodeUrl }
+                    ? { ...e, title: newEpisodeTitle, streamUrl: newEpisodeUrl, streamPlatform: newEpisodePlatform }
                     : e
                 );
                 return { ...s, episodes: updatedEpisodes };
@@ -368,6 +394,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                         const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
                                                         setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
                                                         setNewEpisodeUrl("");
+                                                        setNewEpisodePlatform("doodstream");
                                                         setAddEpisodeOpen(true);
                                                     }}>
                                                         <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
@@ -378,8 +405,16 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                     <div className="grid gap-4 py-4">
                                                         <Label htmlFor="episode-title">Title</Label>
                                                         <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                        <Label htmlFor="episode-platform">Platform</Label>
+                                                        <Select value={newEpisodePlatform} onValueChange={(val) => setNewEpisodePlatform(val as 'doodstream' | 'mixdrop')}>
+                                                            <SelectTrigger id="episode-platform"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="doodstream">DoodStream</SelectItem>
+                                                                <SelectItem value="mixdrop">Mixdrop</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
                                                         <Label htmlFor="episode-url">Video URL</Label>
-                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste a YouTube or Google Drive link" />
+                                                        <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste Doodstream or Mixdrop link" />
                                                     </div>
                                                     <DialogFooter>
                                                         <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
@@ -395,7 +430,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                     <div className="flex items-center gap-2">
                                                         <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
                                                             <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.videoUrl); setEditEpisodeOpen(true); }}>
+                                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.streamUrl); setNewEpisodePlatform(episode.streamPlatform); setEditEpisodeOpen(true); }}>
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
@@ -404,6 +439,14 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                                   <div className="grid gap-4 py-4">
                                                                       <Label htmlFor="edit-episode-title">Title</Label>
                                                                       <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
+                                                                       <Label htmlFor="edit-episode-platform">Platform</Label>
+                                                                        <Select value={newEpisodePlatform} onValueChange={(val) => setNewEpisodePlatform(val as 'doodstream' | 'mixdrop')}>
+                                                                            <SelectTrigger id="edit-episode-platform"><SelectValue /></SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="doodstream">DoodStream</SelectItem>
+                                                                                <SelectItem value="mixdrop">Mixdrop</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
                                                                       <Label htmlFor="edit-episode-url">Video URL</Label>
                                                                       <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
                                                                   </div>
