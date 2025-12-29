@@ -6,9 +6,27 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function createEmbedUrl(url: string): string {
-  if (!url || typeof url !== 'string') {
+export function createEmbedUrl(urlOrIframe: string): string {
+  if (!urlOrIframe || typeof urlOrIframe !== 'string') {
     return "";
+  }
+  
+  let url = urlOrIframe;
+
+  // Check if the input is an iframe tag
+  if (url.trim().startsWith('<iframe')) {
+    const srcMatch = url.match(/src="([^"]*)"/);
+    if (srcMatch && srcMatch[1]) {
+      url = srcMatch[1];
+    } else {
+      // If no src is found, return empty to avoid a broken player
+      return "";
+    }
+  }
+
+  // Handle protocol-relative URLs (e.g., //mxdrop.to/...)
+  if (url.startsWith('//')) {
+    url = 'https:' + url;
   }
   
   try {
