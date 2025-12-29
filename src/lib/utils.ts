@@ -14,7 +14,7 @@ export function createEmbedUrl(url: string, platform: 'doodstream' | 'mixdrop'):
   try {
     const urlObject = new URL(url);
 
-    if (platform === 'doodstream' || urlObject.hostname.includes('dood')) {
+    if (platform === 'doodstream' || urlObject.hostname.includes('dood') || urlObject.hostname.includes('myvidplay.com')) {
       const pathParts = urlObject.pathname.split('/');
       const videoId = pathParts.pop() || pathParts.pop(); // Handle trailing slash
       return `https://dood.yt/e/${videoId}`;
