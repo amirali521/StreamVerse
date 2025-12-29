@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,9 +60,11 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Search, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import Image from "next/image";
+import { searchContent, getContentDetails } from "./actions";
 
 // Data structures from backend.json
 interface Episode {
@@ -94,6 +96,10 @@ export default function AddContentPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const [contentType, setContentType] = useState<"movie" | "webseries" | "drama">("movie");
+  const [useTmdb, setUseTmdb] = useState(false);
+  const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
+  const [tmdbSearchResults, setTmdbSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // State for managing seasons and episodes
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -120,50 +126,53 @@ export default function AddContentPage() {
       isFeatured: false,
     },
   });
+  
+  const watchedContentType = useWatch({ control: form.control, name: 'type' });
+
+  const handleTmdbSearch = async () => {
+    if (!tmdbSearchQuery) return;
+    setIsSearching(true);
+    const results = await searchContent(tmdbSearchQuery, watchedContentType);
+    setTmdbSearchResults(results);
+    setIsSearching(false);
+  };
+  
+  const handleSelectTmdbResult = async (result: any) => {
+    const details = await getContentDetails(result.id, result.media_type === 'tv' ? 'webseries' : 'movie');
+    if (details) {
+        form.setValue("title", details.title);
+        form.setValue("description", details.description);
+        form.setValue("imdbRating", Number(details.imdbRating));
+        form.setValue("categories", details.categories.join(", "));
+        form.setValue("bannerImageUrl", details.bannerImageUrl);
+        form.setValue("posterImageUrl", details.posterImageUrl);
+        setTmdbSearchResults([]);
+        setTmdbSearchQuery(details.title);
+    }
+  };
+
 
   const hasMultiSeasonStructure = seasons.length > 0 && seasons.some(s => s.seasonNumber > 1);
 
   const handleAddSeason = () => {
-    // If we're creating the first explicit season, check if there are any "default" episodes
-    // and move them into this new season.
-    let defaultEpisodes: Episode[] = [];
-    if (seasons.length === 1 && seasons[0].seasonNumber === 1 && !hasMultiSeasonStructure) {
-        defaultEpisodes = seasons[0].episodes;
-    }
-    
-    const newSeasonNumber = seasons.length + 1;
+    const newSeasonNumber = seasons.length > 0 ? Math.max(...seasons.map(s => s.seasonNumber)) + 1 : 1;
     const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
-    
-    let newSeasons;
-    // If we only had a "default" season, replace it with a numbered season 1
-    if (seasons.length === 1 && seasons[0].seasonNumber === 1 && !hasMultiSeasonStructure) {
-        seasons[0].episodes = defaultEpisodes; // Add default episodes to season 1
-        newSeasons = [...seasons, newSeason];
-    } else if (seasons.length === 0) { // If starting completely fresh
-        const seasonOne: Season = { seasonNumber: 1, episodes: [] };
-        newSeasons = [seasonOne, newSeason];
-    }
-    else {
-        newSeasons = [...seasons, newSeason];
-    }
-    
-    // Ensure season numbers are contiguous if we manipulated them
-    const finalSeasons = newSeasons.map((s, i) => ({...s, seasonNumber: i + 1}));
-
-    setSeasons(finalSeasons);
+    setSeasons([...seasons, newSeason]);
     toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been staged.` });
   };
+  
 
   const handleAddEpisode = () => {
     if (!newEpisodeTitle || !newEpisodeUrl) return;
 
     let updatedSeasons = [...seasons];
+    const seasonNumberToAdd = (contentType === 'webseries' && hasMultiSeasonStructure && selectedSeason !== null) ? selectedSeason : 1;
 
-    // If we are in multi-season mode (accordions are visible)
-    if (hasMultiSeasonStructure) {
-        if (selectedSeason === null) return;
-        updatedSeasons = seasons.map(s => {
-            if (s.seasonNumber === selectedSeason) {
+    let seasonExists = updatedSeasons.some(s => s.seasonNumber === seasonNumberToAdd);
+
+    if (seasonExists) {
+        updatedSeasons = updatedSeasons.map(s => {
+            if (s.seasonNumber === seasonNumberToAdd) {
                 const newEpisodeNumber = (s.episodes?.length || 0) + 1;
                 const newEpisode: Episode = {
                     episodeNumber: newEpisodeNumber,
@@ -176,22 +185,9 @@ export default function AddContentPage() {
             return s;
         });
     } else {
-        // No explicit seasons, add to the default virtual season (Season 1)
-        const defaultSeason = updatedSeasons.find(s => s.seasonNumber === 1) || { seasonNumber: 1, episodes: [] };
-        const newEpisodeNumber = (defaultSeason.episodes?.length || 0) + 1;
-        const newEpisode: Episode = {
-            episodeNumber: newEpisodeNumber,
-            title: newEpisodeTitle,
-            streamUrl: newEpisodeUrl,
-            streamPlatform: newEpisodePlatform,
-        };
-        const updatedDefaultSeason = { ...defaultSeason, episodes: [...defaultSeason.episodes, newEpisode] };
-        // Replace or add the default season
-        if (updatedSeasons.some(s => s.seasonNumber === 1)) {
-            updatedSeasons = updatedSeasons.map(s => s.seasonNumber === 1 ? updatedDefaultSeason : s);
-        } else {
-            updatedSeasons.push(updatedDefaultSeason);
-        }
+        const newEpisode: Episode = { episodeNumber: 1, title: newEpisodeTitle, streamUrl: newEpisodeUrl, streamPlatform: newEpisodePlatform };
+        const newSeason: Season = { seasonNumber: 1, episodes: [newEpisode] };
+        updatedSeasons.push(newSeason);
     }
 
     setSeasons(updatedSeasons);
@@ -262,7 +258,6 @@ export default function AddContentPage() {
         contentData.streamUrl = values.streamUrl;
         contentData.streamPlatform = values.streamPlatform;
     } else {
-        // Save seasons only if there are any episodes within them
         const seasonsWithEpisodes = seasons.filter(s => s.episodes.length > 0);
         if (seasonsWithEpisodes.length === 0) {
            toast({
@@ -272,9 +267,7 @@ export default function AddContentPage() {
            });
            return;
         }
-        if (seasonsWithEpisodes.length > 0) {
-          contentData.seasons = seasonsWithEpisodes;
-        }
+        contentData.seasons = seasonsWithEpisodes;
     }
 
 
@@ -360,14 +353,15 @@ export default function AddContentPage() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* General Details Section */}
                     <div>
-                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">General Details</h3>
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                           <h3 className="text-lg font-semibold">General Details</h3>
+                            <div className="flex items-center space-x-2">
+                                <Label htmlFor="tmdb-switch">Auto-fill with TMDB</Label>
+                                <Switch id="tmdb-switch" checked={useTmdb} onCheckedChange={setUseTmdb} />
+                            </div>
+                        </div>
+
                         <div className="space-y-6 pt-4">
-                            <FormField control={form.control} name="title" render={({ field }) => (
-                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Enter content title" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
                             <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Content Type</FormLabel>
@@ -380,7 +374,7 @@ export default function AddContentPage() {
                                     } else if (val === 'movie') {
                                       setSeasons([]);
                                     }
-                                }} defaultValue={field.value}>
+                                }} defaultValue={field.value} disabled={useTmdb}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a content type" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     <SelectItem value="movie">Movie</SelectItem>
@@ -389,14 +383,52 @@ export default function AddContentPage() {
                                     </SelectContent>
                                 </Select><FormMessage /></FormItem>
                             )} />
+
+                            {useTmdb && (
+                                <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+                                     <h4 className="font-semibold text-center">Fetch from TMDB</h4>
+                                     <div className="flex w-full items-center space-x-2">
+                                        <Input
+                                            type="text"
+                                            placeholder={`Search for a ${watchedContentType}...`}
+                                            value={tmdbSearchQuery}
+                                            onChange={(e) => setTmdbSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleTmdbSearch(); }}}
+                                        />
+                                        <Button type="button" onClick={handleTmdbSearch} disabled={isSearching}>
+                                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                    {tmdbSearchResults.length > 0 && (
+                                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                                            {tmdbSearchResults.map((result) => (
+                                                <button key={result.id} type="button" onClick={() => handleSelectTmdbResult(result)} className="w-full text-left p-2 rounded-md hover:bg-accent flex items-center gap-4">
+                                                    <Image src={result.poster_path ? `https://image.tmdb.org/t/p/w92${result.poster_path}` : "/placeholder.svg"} alt="poster" width={40} height={60} className="rounded-sm" />
+                                                    <div>
+                                                        <p className="font-semibold">{result.title}</p>
+                                                        <p className="text-xs text-muted-foreground">{new Date(result.release_date).getFullYear()}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <FormField control={form.control} name="title" render={({ field }) => (
+                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Enter content title" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
+                            )} />
                              <FormField control={form.control} name="categories" render={({ field }) => (
-                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} disabled={useTmdb} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
-                                <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} disabled={useTmdb} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="posterImageUrl" render={({ field }) => (
-                                <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} disabled={useTmdb} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
                             )} />
                             {contentType === 'movie' && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -422,7 +454,7 @@ export default function AddContentPage() {
                                 </div>
                             )}
                             <FormField control={form.control} name="imdbRating" render={({ field }) => (
-                                <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="isFeatured" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -452,7 +484,7 @@ export default function AddContentPage() {
                                     <Dialog open={isAddEpisodeOpen} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
                                         <DialogTrigger asChild>
                                             <Button variant="outline" type="button" onClick={() => {
-                                                const seasonNumber = hasMultiSeasonStructure ? selectedSeason : 1;
+                                                const seasonNumber = (contentType === 'webseries' && hasMultiSeasonStructure) ? (selectedSeason || 1) : 1;
                                                 setSelectedSeason(seasonNumber);
                                                 const season = seasons.find(s => s.seasonNumber === seasonNumber);
                                                 const nextEpisodeNumber = (season?.episodes.length || 0) + 1;
@@ -493,7 +525,7 @@ export default function AddContentPage() {
                                 </div>
                             </div>
                             
-                            {contentType === 'webseries' && hasMultiSeasonStructure ? (
+                            {contentType === 'webseries' && seasons.length > 0 ? (
                                 <Accordion type="single" collapsible className="w-full" onValueChange={(value) => setSelectedSeason(Number(value.split('-')[1]))}>
                                     {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
                                     <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
@@ -503,11 +535,13 @@ export default function AddContentPage() {
                                         </AccordionContent>
                                     </AccordionItem>
                                     ))}
-                                    {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
                                 </Accordion>
                             ) : (
                                 <div className="pt-4">
-                                    {seasons[0] && seasons[0].episodes.length > 0 ? renderEpisodesForSeason(seasons[0]) : <p className="text-muted-foreground text-center py-8">No episodes yet. Add one to get started.</p>}
+                                    {(seasons[0] && seasons[0].episodes.length > 0) || contentType === 'drama'
+                                      ? renderEpisodesForSeason(seasons[0] || {seasonNumber: 1, episodes: []}) 
+                                      : <p className="text-muted-foreground text-center py-8">No episodes yet. Add one to get started.</p>
+                                    }
                                 </div>
                             )}
 
