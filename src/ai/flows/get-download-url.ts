@@ -9,6 +9,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import YTDlpWrap from 'yt-dlp-wrap';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const DownloadUrlInputSchema = z.object({
   url: z.string().url(),
@@ -16,7 +18,7 @@ const DownloadUrlInputSchema = z.object({
 export type DownloadUrlInput = z.infer<typeof DownloadUrlInputSchema>;
 
 const DownloadUrlOutputSchema = z.object({
-  downloadUrl: z.string().url(),
+  downloadUrl: z_string().url(),
 });
 export type DownloadUrlOutput = z.infer<typeof DownloadUrlOutputSchema>;
 
@@ -30,9 +32,13 @@ const getDownloadUrlFlow = ai.defineFlow(
   async (input) => {
     // Specify a writable path for the yt-dlp binary
     const ytDlpPath = '/tmp/yt-dlp';
-    
+
     // Download the yt-dlp binary if it doesn't exist
-    await YTDlpWrap.downloadFromGithub(ytDlpPath);
+    // We explicitly download the standalone version for linux.
+    if (!fs.existsSync(ytDlpPath)) {
+      await YTDlpWrap.downloadFromGithub(ytDlpPath, undefined, 'linux');
+    }
+    
     const ytDlpWrap = new YTDlpWrap(ytDlpPath);
     
     const metadata = await ytDlpWrap.getVideoInfo(input.url);
