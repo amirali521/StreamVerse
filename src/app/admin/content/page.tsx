@@ -88,7 +88,7 @@ const editContentSchema = z.object({
   bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
   posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
-  embedUrl: z.string().url().optional(),
+  embedUrl: z.string().optional(),
   downloadUrl: z.string().url().optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
@@ -177,8 +177,8 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                      <div className="space-y-4">
                         <FormField control={form.control} name="embedUrl" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Embed URL</FormLabel>
-                            <FormControl><Input placeholder="Paste embed link" {...field} /></FormControl>
+                            <FormLabel>Embed URL / Code</FormLabel>
+                            <FormControl><Input placeholder="Paste embed link or <iframe> code" {...field} /></FormControl>
                             <FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="downloadUrl" render={({ field }) => (
@@ -398,8 +398,8 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                     <div className="grid gap-4 py-4">
                                                         <Label htmlFor="episode-title">Title</Label>
                                                         <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                        <Label htmlFor="episode-embed-url">Embed URL</Label>
-                                                        <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link" />
+                                                        <Label htmlFor="episode-embed-url">Embed URL / Code</Label>
+                                                        <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link or <iframe> code" />
                                                         <Label htmlFor="episode-download-url">Download URL</Label>
                                                         <Input id="episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} placeholder="Paste download link" />
                                                     </div>
@@ -426,7 +426,7 @@ function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { cont
                                                                   <div className="grid gap-4 py-4">
                                                                       <Label htmlFor="edit-episode-title">Title</Label>
                                                                       <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                                      <Label htmlFor="edit-episode-embed-url">Embed URL</Label>
+                                                                      <Label htmlFor="edit-episode-embed-url">Embed URL / Code</Label>
                                                                       <Input id="edit-episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} />
                                                                       <Label htmlFor="edit-episode-download-url">Download URL</Label>
                                                                       <Input id="edit-episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} />
@@ -686,3 +686,5 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
+    

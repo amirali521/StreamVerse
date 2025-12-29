@@ -85,7 +85,7 @@ const contentSchema = z.object({
   type: z.enum(["movie", "webseries", "drama"]),
   bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
   posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
-  embedUrl: z.string().url().optional(),
+  embedUrl: z.string().optional(),
   downloadUrl: z.string().url().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
@@ -252,7 +252,7 @@ export default function AddContentPage() {
 
     if (values.type === 'movie') {
         if (!values.embedUrl || !values.downloadUrl) {
-            form.setError("embedUrl", { type: 'manual', message: 'Embed URL and Download URL are required for movies.' });
+            form.setError("embedUrl", { type: 'manual', message: 'Embed and Download URLs are required for movies.' });
             return;
         }
         contentData.embedUrl = values.embedUrl;
@@ -305,7 +305,7 @@ export default function AddContentPage() {
                             <div className="grid gap-4 py-4">
                                 <Label htmlFor="edit-episode-title">Title</Label>
                                 <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                <Label htmlFor="edit-episode-embed-url">Embed URL</Label>
+                                <Label htmlFor="edit-episode-embed-url">Embed URL / Code</Label>
                                 <Input id="edit-episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} />
                                 <Label htmlFor="edit-episode-download-url">Download URL</Label>
                                 <Input id="edit-episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} />
@@ -428,8 +428,8 @@ export default function AddContentPage() {
                                 <div className="space-y-4">
                                 <FormField control={form.control} name="embedUrl" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Embed URL</FormLabel>
-                                    <FormControl><Input placeholder="Paste embed link" {...field} /></FormControl>
+                                    <FormLabel>Embed URL / Code</FormLabel>
+                                    <FormControl><Input placeholder="Paste embed link or <iframe> code" {...field} /></FormControl>
                                     <FormDescription>The URL for the video player (e.g., from Doodstream, Mixdrop).</FormDescription><FormMessage /></FormItem>
                                 )} />
                                  <FormField control={form.control} name="downloadUrl" render={({ field }) => (
@@ -489,8 +489,8 @@ export default function AddContentPage() {
                                             <div className="grid gap-4 py-4">
                                                 <Label htmlFor="episode-title">Title</Label>
                                                 <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                <Label htmlFor="episode-embed-url">Embed URL</Label>
-                                                <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link" />
+                                                <Label htmlFor="episode-embed-url">Embed URL / Code</Label>
+                                                <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link or <iframe> code" />
                                                 <Label htmlFor="episode-download-url">Download URL</Label>
                                                 <Input id="episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} placeholder="Paste download link" />
                                             </div>
@@ -537,3 +537,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    
