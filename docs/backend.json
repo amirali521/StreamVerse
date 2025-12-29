@@ -40,18 +40,18 @@
           "type": "string",
           "description": "The title of the episode."
         },
-        "streamUrl": {
+        "embedUrl": {
           "type": "string",
           "format": "uri",
-          "description": "Video URL from Doodstream or Mixdrop."
+          "description": "The embeddable video URL for streaming."
         },
-        "streamPlatform": {
+        "downloadUrl": {
           "type": "string",
-          "enum": ["doodstream", "mixdrop"],
-          "description": "The platform for the episode stream URL."
+          "format": "uri",
+          "description": "The direct download URL for the video."
         }
       },
-      "required": ["episodeNumber", "title", "streamUrl", "streamPlatform"]
+      "required": ["episodeNumber", "title", "embedUrl", "downloadUrl"]
     },
     "Season": {
       "title": "Season",
@@ -103,15 +103,15 @@
           "type": "number",
           "description": "IMDb rating for the content."
         },
-        "streamUrl": {
+        "embedUrl": {
           "type": "string",
           "format": "uri",
-          "description": "Streaming URL for movies from Doodstream or Mixdrop."
+          "description": "The embeddable video URL for streaming (for movies)."
         },
-        "streamPlatform": {
-            "type": "string",
-            "enum": ["doodstream", "mixdrop"],
-            "description": "The platform for the movie stream URL."
+        "downloadUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The direct download URL for the video (for movies)."
         },
         "seasons": {
           "type": "array",

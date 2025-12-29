@@ -7,13 +7,11 @@ import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/fires
 import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Copy, Check, Loader2 } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState } from "react";
 import { VideoPlayer } from "@/components/video-player";
-import { createEmbedUrl, createDownloadUrl } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { getDownloadUrl } from "@/ai/flows/get-download-url";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -21,7 +19,6 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   createdAt?: Date;
   updatedAt?: Date;
   posterImageUrl?: string;
-  streamPlatform?: 'doodstream' | 'mixdrop';
 };
 
 function EpisodeSelector({ 
@@ -105,10 +102,9 @@ export default function WatchPage() {
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [adClicked, setAdClicked] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
-  const [adClicked, setAdClicked] = useState(false);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -211,41 +207,25 @@ export default function WatchPage() {
     notFound();
   }
   
-  const rawVideoUrl = item.type === 'movie' ? item.streamUrl : selectedEpisode?.streamUrl;
-  const platform = item.type === 'movie' ? item.streamPlatform : selectedEpisode?.streamPlatform;
-  const embedUrl = rawVideoUrl && platform ? createEmbedUrl(rawVideoUrl, platform) : "";
-  const downloadUrl = rawVideoUrl ? createDownloadUrl(rawVideoUrl) : "";
+  const embedUrl = item.type === 'movie' ? item.embedUrl : selectedEpisode?.embedUrl;
+  const downloadUrl = item.type === 'movie' ? item.downloadUrl : selectedEpisode?.downloadUrl;
   const poster = item.posterImageUrl || item.bannerImageUrl;
   
-  const handleDownload = async () => {
-    if (!rawVideoUrl) return;
-
-    setIsDownloading(true);
-    try {
-      const result = await getDownloadUrl({ url: rawVideoUrl });
-      window.open(result.downloadUrl, '_blank');
-    } catch (error) {
-      console.error("Error getting download link:", error);
-      toast({
-        variant: "destructive",
-        title: "Download Failed",
-        description: "Could not retrieve the download link for this video.",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
+  const handleDownload = () => {
+    if (!downloadUrl) return;
+    window.open(downloadUrl, '_blank');
   };
 
 
   const handleAdOrCopyLink = () => {
-    if (!rawVideoUrl) return;
+    if (!downloadUrl) return;
 
     if (adClicked) {
       // Second click: Copy the download link
-      navigator.clipboard.writeText(rawVideoUrl).then(() => {
+      navigator.clipboard.writeText(downloadUrl).then(() => {
         toast({
           title: "Link Copied",
-          description: "The stream URL has been copied to your clipboard.",
+          description: "The download URL has been copied to your clipboard.",
         });
       }).catch(err => {
         console.error("Failed to copy link: ", err);
@@ -306,10 +286,10 @@ export default function WatchPage() {
                 {item.description}
             </p>
 
-            {rawVideoUrl && (
+            {downloadUrl && (
               <div className="flex items-stretch gap-4">
-                <Button onClick={handleDownload} disabled={isDownloading} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
-                  {isDownloading ? <Loader2 className="mr-2 animate-spin" /> : <Download className="mr-2" />}
+                <Button onClick={handleDownload} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
+                  <Download className="mr-2" />
                   Download
                 </Button>
                 <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">

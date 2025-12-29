@@ -70,8 +70,8 @@ import { searchContent, getContentDetails } from "./actions";
 interface Episode {
   episodeNumber: number;
   title: string;
-  streamUrl: string;
-  streamPlatform: 'doodstream' | 'mixdrop';
+  embedUrl: string;
+  downloadUrl: string;
 }
 
 interface Season {
@@ -85,8 +85,8 @@ const contentSchema = z.object({
   type: z.enum(["movie", "webseries", "drama"]),
   bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
   posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
-  streamUrl: z.string().optional(),
-  streamPlatform: z.enum(["doodstream", "mixdrop"]).optional(),
+  embedUrl: z.string().url().optional(),
+  downloadUrl: z.string().url().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
@@ -108,8 +108,8 @@ export default function AddContentPage() {
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
-  const [newEpisodeUrl, setNewEpisodeUrl] = useState("");
-  const [newEpisodePlatform, setNewEpisodePlatform] = useState<'doodstream' | 'mixdrop'>('doodstream');
+  const [newEpisodeEmbedUrl, setNewEpisodeEmbedUrl] = useState("");
+  const [newEpisodeDownloadUrl, setNewEpisodeDownloadUrl] = useState("");
   
   const form = useForm<z.infer<typeof contentSchema>>({
     resolver: zodResolver(contentSchema),
@@ -119,8 +119,8 @@ export default function AddContentPage() {
       type: "movie",
       bannerImageUrl: "",
       posterImageUrl: "",
-      streamUrl: "",
-      streamPlatform: "doodstream",
+      embedUrl: "",
+      downloadUrl: "",
       imdbRating: 0,
       categories: "",
       isFeatured: false,
@@ -163,7 +163,7 @@ export default function AddContentPage() {
   
 
   const handleAddEpisode = () => {
-    if (!newEpisodeTitle || !newEpisodeUrl) return;
+    if (!newEpisodeTitle || !newEpisodeEmbedUrl || !newEpisodeDownloadUrl) return;
 
     let updatedSeasons = [...seasons];
     const seasonNumberToAdd = (contentType === 'webseries' && hasMultiSeasonStructure && selectedSeason !== null) ? selectedSeason : 1;
@@ -177,15 +177,15 @@ export default function AddContentPage() {
                 const newEpisode: Episode = {
                     episodeNumber: newEpisodeNumber,
                     title: newEpisodeTitle,
-                    streamUrl: newEpisodeUrl,
-                    streamPlatform: newEpisodePlatform,
+                    embedUrl: newEpisodeEmbedUrl,
+                    downloadUrl: newEpisodeDownloadUrl,
                 };
                 return { ...s, episodes: [...s.episodes, newEpisode] };
             }
             return s;
         });
     } else {
-        const newEpisode: Episode = { episodeNumber: 1, title: newEpisodeTitle, streamUrl: newEpisodeUrl, streamPlatform: newEpisodePlatform };
+        const newEpisode: Episode = { episodeNumber: 1, title: newEpisodeTitle, embedUrl: newEpisodeEmbedUrl, downloadUrl: newEpisodeDownloadUrl };
         const newSeason: Season = { seasonNumber: 1, episodes: [newEpisode] };
         updatedSeasons.push(newSeason);
     }
@@ -194,18 +194,18 @@ export default function AddContentPage() {
     toast({ title: "Episode Staged", description: `${newEpisodeTitle} has been staged.` });
     setAddEpisodeOpen(false);
     setNewEpisodeTitle("");
-    setNewEpisodeUrl("");
-    setNewEpisodePlatform("doodstream");
+    setNewEpisodeEmbedUrl("");
+    setNewEpisodeDownloadUrl("");
   };
 
   const handleEditEpisode = () => {
-    if (selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeUrl) return;
+    if (selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeEmbedUrl || !newEpisodeDownloadUrl) return;
 
     const updatedSeasons = seasons.map(s => {
         if (s.seasonNumber === selectedSeason) {
             const updatedEpisodes = s.episodes.map(e =>
                 e.episodeNumber === selectedEpisode.episodeNumber
-                ? { ...e, title: newEpisodeTitle, streamUrl: newEpisodeUrl, streamPlatform: newEpisodePlatform }
+                ? { ...e, title: newEpisodeTitle, embedUrl: newEpisodeEmbedUrl, downloadUrl: newEpisodeDownloadUrl }
                 : e
             );
             return { ...s, episodes: updatedEpisodes };
@@ -251,12 +251,12 @@ export default function AddContentPage() {
     };
 
     if (values.type === 'movie') {
-        if (!values.streamUrl || !values.streamPlatform) {
-            form.setError("streamUrl", { type: 'manual', message: 'Video URL and Platform are required for movies.' });
+        if (!values.embedUrl || !values.downloadUrl) {
+            form.setError("embedUrl", { type: 'manual', message: 'Embed URL and Download URL are required for movies.' });
             return;
         }
-        contentData.streamUrl = values.streamUrl;
-        contentData.streamPlatform = values.streamPlatform;
+        contentData.embedUrl = values.embedUrl;
+        contentData.downloadUrl = values.downloadUrl;
     } else {
         const seasonsWithEpisodes = seasons.filter(s => s.episodes.length > 0);
         if (seasonsWithEpisodes.length === 0) {
@@ -296,7 +296,7 @@ export default function AddContentPage() {
                 <div className="flex items-center gap-2">
                     <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeUrl(episode.streamUrl); setNewEpisodePlatform(episode.streamPlatform); setEditEpisodeOpen(true); }}>
+                            <Button variant="ghost" size="icon" type="button" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeEmbedUrl(episode.embedUrl); setNewEpisodeDownloadUrl(episode.downloadUrl); setEditEpisodeOpen(true); }}>
                                 <Edit className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
@@ -305,16 +305,10 @@ export default function AddContentPage() {
                             <div className="grid gap-4 py-4">
                                 <Label htmlFor="edit-episode-title">Title</Label>
                                 <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                <Label htmlFor="edit-episode-platform">Platform</Label>
-                                <Select value={newEpisodePlatform} onValueChange={(val) => setNewEpisodePlatform(val as 'doodstream' | 'mixdrop')}>
-                                    <SelectTrigger id="edit-episode-platform"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="doodstream">DoodStream</SelectItem>
-                                        <SelectItem value="mixdrop">Mixdrop</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Label htmlFor="edit-episode-url">Video URL</Label>
-                                <Input id="edit-episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} />
+                                <Label htmlFor="edit-episode-embed-url">Embed URL</Label>
+                                <Input id="edit-episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} />
+                                <Label htmlFor="edit-episode-download-url">Download URL</Label>
+                                <Input id="edit-episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} />
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" type="button" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
@@ -431,25 +425,18 @@ export default function AddContentPage() {
                                 <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} disabled={useTmdb} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
                             )} />
                             {contentType === 'movie' && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField control={form.control} name="streamPlatform" render={({ field }) => (
-                                <FormItem className="md:col-span-1">
-                                    <FormLabel>Platform</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select platform" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="doodstream">DoodStream</SelectItem>
-                                        <SelectItem value="mixdrop">Mixdrop</SelectItem>
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
+                                <div className="space-y-4">
+                                <FormField control={form.control} name="embedUrl" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Embed URL</FormLabel>
+                                    <FormControl><Input placeholder="Paste embed link" {...field} /></FormControl>
+                                    <FormDescription>The URL for the video player (e.g., from Doodstream, Mixdrop).</FormDescription><FormMessage /></FormItem>
                                 )} />
-                                <FormField control={form.control} name="streamUrl" render={({ field }) => (
-                                <FormItem className="md:col-span-2">
-                                    <FormLabel>Video URL</FormLabel>
-                                    <FormControl><Input placeholder="Paste Doodstream or Mixdrop link" {...field} /></FormControl>
-                                    <FormDescription>Main link for streaming.</FormDescription><FormMessage /></FormItem>
+                                 <FormField control={form.control} name="downloadUrl" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Download URL</FormLabel>
+                                    <FormControl><Input placeholder="Paste direct download link" {...field} /></FormControl>
+                                    <FormDescription>The direct link to the video file for downloading.</FormDescription><FormMessage /></FormItem>
                                 )} />
                                 </div>
                             )}
@@ -490,8 +477,8 @@ export default function AddContentPage() {
                                                 const nextEpisodeNumber = (season?.episodes.length || 0) + 1;
                                                 const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
                                                 setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
-                                                setNewEpisodeUrl("");
-                                                setNewEpisodePlatform("doodstream");
+                                                setNewEpisodeEmbedUrl("");
+                                                setNewEpisodeDownloadUrl("");
                                                 setAddEpisodeOpen(true);
                                             }}>
                                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
@@ -502,16 +489,10 @@ export default function AddContentPage() {
                                             <div className="grid gap-4 py-4">
                                                 <Label htmlFor="episode-title">Title</Label>
                                                 <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                <Label htmlFor="episode-platform">Platform</Label>
-                                                <Select value={newEpisodePlatform} onValueChange={(val) => setNewEpisodePlatform(val as 'doodstream' | 'mixdrop')}>
-                                                    <SelectTrigger id="episode-platform"><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="doodstream">DoodStream</SelectItem>
-                                                        <SelectItem value="mixdrop">Mixdrop</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Label htmlFor="episode-url">Video URL</Label>
-                                                <Input id="episode-url" value={newEpisodeUrl} onChange={(e) => setNewEpisodeUrl(e.target.value)} placeholder="Paste Doodstream or Mixdrop link" />
+                                                <Label htmlFor="episode-embed-url">Embed URL</Label>
+                                                <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link" />
+                                                <Label htmlFor="episode-download-url">Download URL</Label>
+                                                <Input id="episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} placeholder="Paste download link" />
                                             </div>
                                             <DialogFooter>
                                                 <Button variant="outline" type="button" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>

@@ -4,8 +4,8 @@ import type { Timestamp } from "firebase/firestore";
 export interface Episode {
   episodeNumber: number;
   title: string;
-  streamUrl: string;
-  streamPlatform: 'doodstream' | 'mixdrop';
+  embedUrl: string;
+  downloadUrl: string;
 }
 
 export interface Season {
@@ -21,8 +21,8 @@ export interface Content {
   bannerImageUrl: string;
   posterImageUrl?: string;
   imdbRating?: number;
-  streamUrl?: string;
-  streamPlatform?: 'doodstream' | 'mixdrop';
+  embedUrl?: string;
+  downloadUrl?: string;
   seasons?: Season[];
   categories?: string[];
   isFeatured?: boolean;
