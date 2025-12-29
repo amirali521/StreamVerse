@@ -48,8 +48,10 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
         const response = await fetch(url);
         const data = await response.json();
 
-        const posterPath = data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : '';
-        const bannerPath = data.backdrop_path ? `${TMDB_IMAGE_BASE_URL}${data.backdrop_path}` : posterPath; // fallback to poster
+        // Use poster_path for bannerImageUrl (cards) - this is the portrait image
+        const bannerPath = data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : '';
+        // Use backdrop_path for posterImageUrl (hero/player) - this is the landscape image
+        const posterPath = data.backdrop_path ? `${TMDB_IMAGE_BASE_URL}${data.backdrop_path}` : bannerPath; // fallback to banner
 
         return {
             title: data.title || data.name,
