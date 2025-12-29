@@ -18,7 +18,7 @@ const DownloadUrlInputSchema = z.object({
 export type DownloadUrlInput = z.infer<typeof DownloadUrlInputSchema>;
 
 const DownloadUrlOutputSchema = z.object({
-  downloadUrl: z_string().url(),
+  downloadUrl: z.string().url(),
 });
 export type DownloadUrlOutput = z.infer<typeof DownloadUrlOutputSchema>;
 
