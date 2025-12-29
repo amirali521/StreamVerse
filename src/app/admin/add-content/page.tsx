@@ -400,7 +400,7 @@ export default function AddContentPage() {
                                                     <Image src={result.poster_path ? `https://image.tmdb.org/t/p/w92${result.poster_path}` : "/placeholder.svg"} alt="poster" width={40} height={60} className="rounded-sm" />
                                                     <div>
                                                         <p className="font-semibold">{result.title}</p>
-                                                        <p className="text-xs text-muted-foreground">{new Date(result.release_date).getFullYear()}</p>
+                                                        {result.release_date && <p className="text-xs text-muted-foreground">{new Date(result.release_date).getFullYear()}</p>}
                                                     </div>
                                                 </button>
                                             ))}
