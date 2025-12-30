@@ -11,6 +11,8 @@ import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { generateSourceUrls } from "@/lib/video-sources";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
@@ -24,6 +26,8 @@ interface TmdbSeason {
   season_number: number;
   episodes: { episode_number: number }[];
 }
+
+const EPISODES_PER_PAGE = 50;
 
 function EpisodeSelector({ 
   content,
@@ -40,6 +44,8 @@ function EpisodeSelector({
 }) {
     const [tmdbSeasons, setTmdbSeasons] = useState<TmdbSeason[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+
 
     const hasManualEpisodes = useMemo(() => {
         return content.seasons && content.seasons.length > 0 && content.seasons.some(s => s.episodes.length > 0);
@@ -92,6 +98,25 @@ function EpisodeSelector({
     }, [hasManualEpisodes, content.seasons, tmdbSeasons]);
     
     const selectedSeasonData = seasonsToShow.find(s => s.seasonNumber === selectedSeasonNum);
+    const sortedEpisodes = useMemo(() => {
+        return selectedSeasonData?.episodes?.sort((a, b) => a.episodeNumber - b.episodeNumber) || [];
+    }, [selectedSeasonData]);
+
+    // Pagination logic
+    const totalPages = Math.ceil(sortedEpisodes.length / EPISODES_PER_PAGE);
+    const paginatedEpisodes = sortedEpisodes.slice((currentPage - 1) * EPISODES_PER_PAGE, currentPage * EPISODES_PER_PAGE);
+
+    const handleSeasonChange = (seasonNumber: number) => {
+        setSelectedSeasonNum(seasonNumber);
+        setCurrentPage(1); // Reset to first page of episodes on season change
+        const newSeason = seasonsToShow.find(s => s.seasonNumber === seasonNumber);
+        if (newSeason?.episodes && newSeason.episodes.length > 0) {
+            const firstEpisode = newSeason.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
+            setSelectedEpisodeNum(firstEpisode.episodeNumber);
+        } else {
+            setSelectedEpisodeNum(1); // Default to 1
+        }
+    };
   
     if (isLoading) {
         return (
@@ -126,16 +151,7 @@ function EpisodeSelector({
                   key={season.seasonNumber} 
                   size="sm"
                   variant={selectedSeasonNum === season.seasonNumber ? 'secondary' : 'outline'}
-                  onClick={() => {
-                    setSelectedSeasonNum(season.seasonNumber);
-                    // Automatically select the first episode of the new season
-                    if (season.episodes && season.episodes.length > 0) {
-                      const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
-                      setSelectedEpisodeNum(sortedEpisodes[0].episodeNumber);
-                    } else {
-                      setSelectedEpisodeNum(1); // Default to 1
-                    }
-                  }}
+                  onClick={() => handleSeasonChange(season.seasonNumber)}
                   className="transition-colors duration-200"
                 >
                   S{String(season.seasonNumber).padStart(2, '0')}
@@ -144,9 +160,22 @@ function EpisodeSelector({
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Episode</h3>
+                {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm text-muted-foreground">{`Page ${currentPage} of ${totalPages}`}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+            </div>
             <div className="flex flex-wrap gap-2">
-              {selectedSeasonData?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
+              {paginatedEpisodes.map(episode => (
                 <Button 
                   key={episode.episodeNumber}
                   variant={selectedEpisodeNum === episode.episodeNumber ? 'accent' : 'ghost'}
@@ -158,7 +187,7 @@ function EpisodeSelector({
                 </Button>
               ))}
             </div>
-             {(!selectedSeasonData?.episodes || selectedSeasonData.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes found for this season.</p>}
+             {sortedEpisodes.length === 0 && <p className="text-sm text-muted-foreground mt-2">No episodes found for this season.</p>}
           </div>
         </div>
       </CardContent>
@@ -183,17 +212,13 @@ export default function WatchPage() {
   const videoSources = useMemo(() => {
     if (!item) return [];
     
-    // For movies, prioritize the manual embedUrl.
-    if (item.type === 'movie') {
-      if (item.embedUrl) {
-        return [item.embedUrl]; // Manual override is highest priority
-      }
-      if (item.tmdbId) {
-        return generateSourceUrls('movie', item.tmdbId);
-      }
+    // Check for a manual override URL first. This applies to both movies and series.
+    // For series, this would be a top-level override if you want one link for the whole series.
+    if (item.embedUrl) {
+      return [item.embedUrl];
     }
-
-    // For series/dramas, check for manual episode data first.
+    
+    // For series/dramas, check for manual episode data next.
     if (item.type === 'webseries' || item.type === 'drama') {
       const manualSeason = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
       const manualEpisode = manualSeason?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
@@ -201,11 +226,16 @@ export default function WatchPage() {
       if (manualEpisode?.embedUrl) {
         return [manualEpisode.embedUrl]; // Use the specific manual embed URL for the episode
       }
-      
-      // If no manual URL for this episode, fall back to automatic TMDB-based sources
-      if (item.tmdbId) {
-        return generateSourceUrls(item.type, item.tmdbId, selectedSeasonNum, selectedEpisodeNum);
-      }
+    }
+
+    // If no manual URL, fall back to automatic TMDB-based multi-sourcing for all types.
+    if (item.tmdbId) {
+      return generateSourceUrls(
+        item.type,
+        item.tmdbId,
+        item.type === 'movie' ? undefined : selectedSeasonNum,
+        item.type === 'movie' ? undefined : selectedEpisodeNum
+      );
     }
 
     return []; // No video source found
@@ -363,3 +393,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
