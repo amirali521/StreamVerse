@@ -56,6 +56,7 @@ interface Content {
   categories?: string[];
   isFeatured?: boolean;
   tmdbId?: number;
+  embedUrl?: string;
 }
 
 const editContentSchema = z.object({
@@ -66,6 +67,7 @@ const editContentSchema = z.object({
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
+  embedUrl: z.string().optional(),
 });
 
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
@@ -80,6 +82,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             imdbRating: contentItem.imdbRating || 0,
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
+            embedUrl: contentItem.embedUrl || "",
         },
     });
 
@@ -96,13 +99,14 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             categories,
             imdbRating: values.imdbRating || 0,
             isFeatured: values.isFeatured || false,
+            embedUrl: values.embedUrl || "",
             updatedAt: serverTimestamp()
         };
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, updatedData);
-            onUpdate({ ...contentItem, ...updatedData, posterImageUrl: updatedData.posterImageUrl, isFeatured: updatedData.isFeatured });
+            await updateDoc(docRef, updatedData as any); // Cast to any to handle nested properties
+            onUpdate({ ...contentItem, ...updatedData });
             toast({ title: "Content Updated", description: `${values.title} has been updated.` });
             closeDialog();
         } catch (error: any) {
@@ -113,6 +117,22 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="embedUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Embed URL / Code (Optional Override)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                If filled, this source will be used instead of the default TMDB source.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -167,7 +187,7 @@ function EditContentModal({ contentItem, onOpenChange, onUpdate, isOpen }: { con
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit: {contentItem.title}</DialogTitle>
-                    <DialogDescription>Update the details for this content. Video content is sourced automatically from VidLink via its TMDB ID.</DialogDescription>
+                    <DialogDescription>Update the details for this content. The primary video source is managed automatically via its TMDB ID, but you can override it with a manual embed URL.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[70vh]">
                     <div className="py-4 pr-6">

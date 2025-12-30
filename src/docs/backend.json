@@ -27,50 +27,15 @@
       },
       "required": ["displayName", "email"]
     },
-    "Episode": {
-      "title": "Episode",
-      "description": "Represents a single episode within a season.",
-      "type": "object",
-      "properties": {
-        "episodeNumber": {
-          "type": "number",
-          "description": "The number of the episode."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the episode."
-        },
-        "videoUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Google Drive URL for the episode video."
-        }
-      },
-      "required": ["episodeNumber", "title", "videoUrl"]
-    },
-    "Season": {
-      "title": "Season",
-      "description": "Represents a season of a web series or drama.",
-      "type": "object",
-      "properties": {
-        "seasonNumber": {
-          "type": "number",
-          "description": "The number of the season."
-        },
-        "episodes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/entities/Episode"
-          }
-        }
-      },
-      "required": ["seasonNumber", "episodes"]
-    },
     "Content": {
       "title": "Content",
       "description": "Represents a movie, web series, or drama.",
       "type": "object",
       "properties": {
+        "tmdbId": {
+          "type": "number",
+          "description": "The Movie Database (TMDB) ID for sourcing video from VidLink."
+        },
         "title": {
           "type": "string",
           "description": "The title of the content."
@@ -98,18 +63,6 @@
           "type": "number",
           "description": "IMDb rating for the content."
         },
-        "googleDriveVideoUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Google Drive URL for the video (for movies only)."
-        },
-        "seasons": {
-          "type": "array",
-          "items": {
-            "$ref": "#/entities/Season"
-          },
-          "description": "Seasons for web series or dramas."
-        },
         "categories": {
             "type": "array",
             "items": {
@@ -120,6 +73,11 @@
         "isFeatured": {
             "type": "boolean",
             "description": "If true, this content will be featured in the hero banner on the homepage."
+        },
+        "embedUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional direct embed URL or iframe code. This will be used instead of TMDB if provided."
         },
         "createdAt": {
             "type": "string",
@@ -132,7 +90,7 @@
             "description": "The timestamp when the content was last updated."
         }
       },
-      "required": ["title", "description", "type", "bannerImageUrl"]
+      "required": ["title", "description", "type", "bannerImageUrl", "tmdbId"]
     }
   },
   "auth": {

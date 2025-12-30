@@ -44,12 +44,13 @@ const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
   type: z.enum(["movie", "webseries", "drama"]),
-  bannerImageUrl: z.string().min(1, "Please enter a URL for the card image."),
-  posterImageUrl: z.string().optional().or(z.literal('')),
+  bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
+  posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   tmdbId: z.coerce.number().min(1, "A TMDB ID is required to source the video."),
+  embedUrl: z.string().optional(),
 });
 
 export default function AddContentPage() {
@@ -72,6 +73,7 @@ export default function AddContentPage() {
       categories: "",
       isFeatured: false,
       tmdbId: 0,
+      embedUrl: "",
     },
   });
 
@@ -119,6 +121,7 @@ export default function AddContentPage() {
         imdbRating: values.imdbRating || 0,
         categories: categories,
         isFeatured: values.isFeatured || false,
+        embedUrl: values.embedUrl || "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
@@ -146,7 +149,7 @@ export default function AddContentPage() {
         <CardHeader>
           <CardTitle>Add New Content</CardTitle>
           <CardDescription>
-            Fill out the form to add a new movie, web series, or drama. Use TMDB search to auto-fill details, which will automatically source the video from VidLink.
+            Fill out the form to add a new movie, web series, or drama. Use TMDB search to auto-fill details.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -205,10 +208,26 @@ export default function AddContentPage() {
                                     <FormControl>
                                         <Input placeholder="Auto-filled from TMDB Search" {...field} readOnly />
                                     </FormControl>
-                                    <FormDescription>This ID is used to source the video from VidLink.</FormDescription>
+                                    <FormDescription>This ID is used to source video from VidLink.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )} />
+                            <FormField
+                                control={form.control}
+                                name="embedUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Embed URL / Code (Optional Override)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Use this to manually provide a video source. If filled, this will be used instead of the TMDB source.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Content Type</FormLabel>

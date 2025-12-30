@@ -11,6 +11,7 @@ import { Download } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "@/components/video-player";
+import { createEmbedUrl } from "@/lib/utils";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt' | 'seasons' | 'episodes'> & {
@@ -19,6 +20,7 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt' | 'seasons' | '
   updatedAt?: Date;
   posterImageUrl?: string;
   tmdbId?: number;
+  embedUrl?: string;
 };
 
 // Dummy types for season/episode selection, not from DB
@@ -156,15 +158,24 @@ export default function WatchPage() {
   
   const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
   const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
-
+  
   const embedUrl = useMemo(() => {
-    if (!item?.tmdbId) return undefined;
-
-    if (item.type === 'movie') {
-      return `https://vidlink.pro/movie/${item.tmdbId}`;
+    // Priority 1: Use manual embed URL if it exists.
+    if (item?.embedUrl) {
+      return createEmbedUrl(item.embedUrl);
     }
-    return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
+    
+    // Priority 2: Fallback to VidLink using TMDB ID.
+    if (item?.tmdbId) {
+      if (item.type === 'movie') {
+        return `https://vidlink.pro/movie/${item.tmdbId}`;
+      }
+      return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
+    }
+
+    return undefined; // No video source found
   }, [item, selectedSeasonNum, selectedEpisodeNum]);
+  
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -256,7 +267,7 @@ export default function WatchPage() {
             <VideoPlayer src={embedUrl} poster={poster} />
           ) : (
             <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
-              <p className="text-muted-foreground">{item.tmdbId ? 'Loading player...' : 'No TMDB ID found for this content.'}</p>
+              <p className="text-muted-foreground">No video source found for this content.</p>
             </div>
           )}
           
@@ -282,13 +293,15 @@ export default function WatchPage() {
                 {item.description}
             </p>
             
-            <Button onClick={() => window.open(embedUrl, '_blank')} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
-              <Download className="mr-2" />
-              Download / Watch on VidLink
-            </Button>
+            { embedUrl && item.embedUrl && // Show download button only for manual embeds
+              <Button onClick={() => window.open(item.embedUrl, '_blank')} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
+                <Download className="mr-2" />
+                Go to Source
+              </Button>
+            }
           </div>
 
-          {item.type !== 'movie' && item.tmdbId && (
+          {item.type !== 'movie' && item.tmdbId && !item.embedUrl && (
             <EpisodeSelector 
               tmdbId={item.tmdbId}
               selectedSeasonNum={selectedSeasonNum}
