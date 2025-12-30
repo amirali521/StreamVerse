@@ -336,7 +336,6 @@ export default function WatchPage() {
   }
 
   const poster = item.posterImageUrl || item.bannerImageUrl;
-  const isDubbed = item.categories?.some(cat => cat.toLowerCase() === 'hindi dubbed');
 
   return (
     <div className="bg-black text-white">
@@ -357,7 +356,7 @@ export default function WatchPage() {
                   <Button asChild>
                     <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
-                      Download {isDubbed ? '(Hindi)' : ''}
+                      Download Hindi Dubbed
                     </a>
                   </Button>
               )}
@@ -406,5 +405,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
