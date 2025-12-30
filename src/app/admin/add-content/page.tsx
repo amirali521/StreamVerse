@@ -98,6 +98,7 @@ export default function AddContentPage() {
   const [contentType, setContentType] = useState<"movie" | "webseries" | "drama">("movie");
   const [useTmdb, setUseTmdb] = useState(false);
   const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
+  const [tmdbSearchType, setTmdbSearchType] = useState<"movie" | "webseries" | "drama">("movie");
   const [tmdbSearchResults, setTmdbSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -127,12 +128,11 @@ export default function AddContentPage() {
     },
   });
   
-  const watchedContentType = useWatch({ control: form.control, name: 'type' });
 
   const handleTmdbSearch = async () => {
     if (!tmdbSearchQuery) return;
     setIsSearching(true);
-    const results = await searchContent(tmdbSearchQuery, watchedContentType);
+    const results = await searchContent(tmdbSearchQuery, tmdbSearchType);
     setTmdbSearchResults(results);
     setIsSearching(false);
   };
@@ -382,9 +382,22 @@ export default function AddContentPage() {
                                 <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
                                      <h4 className="font-semibold text-center">Fetch from TMDB</h4>
                                      <div className="flex w-full items-center space-x-2">
+                                         <Select
+                                            value={tmdbSearchType}
+                                            onValueChange={(value) => setTmdbSearchType(value as any)}
+                                        >
+                                            <SelectTrigger className="w-[150px]">
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="movie">Movie</SelectItem>
+                                                <SelectItem value="webseries">Web Series</SelectItem>
+                                                <SelectItem value="drama">Drama</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <Input
                                             type="text"
-                                            placeholder={`Search for a ${watchedContentType}...`}
+                                            placeholder={`Search for a ${tmdbSearchType}...`}
                                             value={tmdbSearchQuery}
                                             onChange={(e) => setTmdbSearchQuery(e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleTmdbSearch(); }}}
