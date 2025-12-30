@@ -12,6 +12,7 @@ import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "@/components/video-player";
 import { createEmbedUrl } from "@/lib/utils";
+import { generateSourceUrls } from "@/lib/video-sources";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt' | 'seasons' | 'episodes'> & {
@@ -159,21 +160,25 @@ export default function WatchPage() {
   const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
   const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
   
-  const embedUrl = useMemo(() => {
+  const videoSources = useMemo(() => {
+    if (!item) return [];
+
     // Priority 1: Use manual embed URL if it exists.
-    if (item?.embedUrl) {
-      return createEmbedUrl(item.embedUrl);
+    if (item.embedUrl) {
+      return [item.embedUrl];
     }
     
-    // Priority 2: Fallback to VidLink using TMDB ID.
-    if (item?.tmdbId) {
-      if (item.type === 'movie') {
-        return `https://vidlink.pro/movie/${item.tmdbId}`;
-      }
-      return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
+    // Priority 2: Fallback to generating URLs from all defined sources.
+    if (item.tmdbId) {
+      return generateSourceUrls(
+        item.type,
+        item.tmdbId,
+        selectedSeasonNum,
+        selectedEpisodeNum
+      );
     }
 
-    return undefined; // No video source found
+    return []; // No video source found
   }, [item, selectedSeasonNum, selectedEpisodeNum]);
   
 
@@ -263,11 +268,11 @@ export default function WatchPage() {
     <div className="bg-black text-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="w-full space-y-6">
-          {embedUrl ? (
-            <VideoPlayer src={embedUrl} poster={poster} />
+          {videoSources.length > 0 ? (
+            <VideoPlayer sources={videoSources} poster={poster} />
           ) : (
             <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
-              <p className="text-muted-foreground">No video source found for this content.</p>
+              <p className="text-muted-foreground">No video source configured for this content.</p>
             </div>
           )}
           
@@ -293,7 +298,7 @@ export default function WatchPage() {
                 {item.description}
             </p>
             
-            { embedUrl && item.embedUrl && // Show download button only for manual embeds
+            { item.embedUrl && // Show download button only for manual embeds
               <Button onClick={() => window.open(item.embedUrl, '_blank')} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
                 <Download className="mr-2" />
                 Go to Source
@@ -324,5 +329,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    
