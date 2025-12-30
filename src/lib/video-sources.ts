@@ -35,8 +35,8 @@ export function generateSourceUrls(
   tmdbId: number,
   season?: number,
   episode?: number
-): string[] {
-  const urls: string[] = [];
+): { name: string, url: string }[] {
+  const sources: { name: string, url: string }[] = [];
   
   for (const source of videoSources) {
     let url: string | undefined;
@@ -50,9 +50,10 @@ export function generateSourceUrls(
     }
     
     if (url) {
-      urls.push(url);
+      sources.push({ name: source.name, url: url });
     }
   }
 
-  return urls;
+  return sources;
 }
+

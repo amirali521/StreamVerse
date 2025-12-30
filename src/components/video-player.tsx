@@ -3,10 +3,16 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createEmbedUrl } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ServerCrash } from 'lucide-react';
+import { Button } from './ui/button';
+
+export interface VideoSource {
+    name: string;
+    url: string;
+}
 
 interface VideoPlayerProps {
-  sources: string[];
+  sources: VideoSource[];
   poster?: string;
 }
 
@@ -19,29 +25,11 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const currentSource = sources[currentSourceIndex];
 
   useEffect(() => {
-    // Reset state when sources array changes
-    setCurrentSourceIndex(0);
+    // Reset state when sources array changes or a new source is selected
     setIsLoading(true);
     setError(false);
-  }, [sources]);
+  }, [currentSource]);
 
-  useEffect(() => {
-    if (!currentSource) {
-      setError(true);
-      setIsLoading(false);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      // If the iframe is still loading after 8 seconds, assume it's a dead link and try the next source.
-      // The 'load' event might not fire reliably for cross-origin iframes that are blocked.
-      if (isLoading) {
-        handleError();
-      }
-    }, 8000); // 8-second timeout
-
-    return () => clearTimeout(timer);
-  }, [currentSource, isLoading]);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -49,49 +37,69 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   };
 
   const handleError = () => {
-    if (currentSourceIndex < sources.length - 1) {
-      // Move to the next source
-      setCurrentSourceIndex(prevIndex => prevIndex + 1);
-      setIsLoading(true); // Reset loading state for the new source
-    } else {
-      // No more sources to try
-      setError(true);
-      setIsLoading(false);
-    }
+    // A source failed to load, just show an error for this source.
+    setError(true);
+    setIsLoading(false);
   };
   
-  if (error) {
-    return (
-      <div className="aspect-video bg-black flex flex-col items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg text-center">
-        <p className="text-destructive font-semibold">Could not load video.</p>
-        <p className="text-muted-foreground mt-2 text-sm">All available sources failed.</p>
-      </div>
-    );
+  const handleSourceChange = (index: number) => {
+    if (index !== currentSourceIndex) {
+        setCurrentSourceIndex(index);
+    }
   }
 
   return (
-    <div className="w-full aspect-video bg-black relative">
-        {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">
-                    Loading player...
-                    {sources.length > 1 && ` (trying source ${currentSourceIndex + 1} of ${sources.length})`}
-                </p>
+    <div className="w-full space-y-4">
+        <div className="w-full aspect-video bg-black relative rounded-lg overflow-hidden border border-muted/20">
+            {isLoading && !error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">
+                        Loading: {currentSource?.name || 'player'}...
+                    </p>
+                </div>
+            )}
+
+             {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 text-center p-4">
+                    <ServerCrash className="h-10 w-10 text-destructive" />
+                    <p className="mt-4 font-semibold text-destructive">Could not load video from {currentSource.name}.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Please try a different server.</p>
+                </div>
+            )}
+            
+            {currentSource && (
+                <iframe
+                    key={currentSource.url} // This is crucial to force re-render the iframe when the source changes
+                    ref={iframeRef}
+                    src={createEmbedUrl(currentSource.url)}
+                    title="Embedded video player"
+                    frameBorder="0"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    className={`w-full h-full transition-opacity duration-300 ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
+                    onLoad={handleLoad}
+                    onError={handleError}
+                ></iframe>
+            )}
+        </div>
+        
+        {sources.length > 0 && (
+            <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Servers</h3>
+                <div className="flex flex-wrap gap-2">
+                    {sources.map((source, index) => (
+                        <Button
+                            key={source.name}
+                            variant={index === currentSourceIndex ? "secondary" : "outline"}
+                            onClick={() => handleSourceChange(index)}
+                        >
+                            {source.name}
+                        </Button>
+                    ))}
+                </div>
             </div>
         )}
-        <iframe
-            key={currentSource} // This is crucial to force re-render the iframe when the source changes
-            ref={iframeRef}
-            src={createEmbedUrl(currentSource)}
-            title="Embedded video player"
-            frameBorder="0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            className={`w-full h-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-            onLoad={handleLoad}
-            onError={handleError}
-        ></iframe>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
-import { VideoPlayer } from "@/components/video-player";
+import { VideoPlayer, type VideoSource } from "@/components/video-player";
 import { generateSourceUrls } from "@/lib/video-sources";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -209,26 +209,24 @@ export default function WatchPage() {
   const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
   const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
   
-  const videoSources = useMemo(() => {
+  const videoSources: VideoSource[] = useMemo(() => {
     if (!item) return [];
-    
-    // Check for a manual override URL first. This applies to both movies and series.
-    // For series, this would be a top-level override if you want one link for the whole series.
-    if (item.embedUrl) {
-      return [item.embedUrl];
+
+    // Highest priority: manual override URL.
+    if (item.type === 'movie' && item.embedUrl) {
+      return [{ name: 'Manual Override', url: item.embedUrl }];
     }
     
-    // For series/dramas, check for manual episode data next.
-    if (item.type === 'webseries' || item.type === 'drama') {
+    // Second priority: manual episode-specific URL for series.
+    if (item.type !== 'movie') {
       const manualSeason = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
       const manualEpisode = manualSeason?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
-      
       if (manualEpisode?.embedUrl) {
-        return [manualEpisode.embedUrl]; // Use the specific manual embed URL for the episode
+        return [{ name: 'Manual Override', url: manualEpisode.embedUrl }];
       }
     }
 
-    // If no manual URL, fall back to automatic TMDB-based multi-sourcing for all types.
+    // Lowest priority: automatically generated URLs from TMDB ID.
     if (item.tmdbId) {
       return generateSourceUrls(
         item.type,
