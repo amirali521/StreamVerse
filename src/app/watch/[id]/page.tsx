@@ -157,6 +157,15 @@ export default function WatchPage() {
   const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
   const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
 
+  const embedUrl = useMemo(() => {
+    if (!item?.tmdbId) return undefined;
+
+    if (item.type === 'movie') {
+      return `https://vidlink.pro/movie/${item.tmdbId}`;
+    }
+    return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
+  }, [item, selectedSeasonNum, selectedEpisodeNum]);
+
   useEffect(() => {
     async function getContentData(id: string) {
       if (!firestore || !id) return;
@@ -236,15 +245,6 @@ export default function WatchPage() {
   if (!item) {
     notFound();
   }
-  
-  const embedUrl = useMemo(() => {
-    if (!item?.tmdbId) return undefined;
-
-    if (item.type === 'movie') {
-      return `https://vidlink.pro/movie/${item.tmdbId}`;
-    }
-    return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
-  }, [item, selectedSeasonNum, selectedEpisodeNum]);
 
   const poster = item.posterImageUrl || item.bannerImageUrl;
 
@@ -311,3 +311,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    
