@@ -355,6 +355,7 @@ export default function ManageContentPage() {
                   <TabsTrigger value="drama">Dramas</TabsTrigger>
                   <TabsTrigger value="bollywood">Bollywood</TabsTrigger>
                   <TabsTrigger value="hollywood">Hollywood</TabsTrigger>
+                  <TabsTrigger value="hindi dubbed">Hindi Dubbed</TabsTrigger>
               </TabsList>
             </div>
         </div>
@@ -409,3 +410,5 @@ export default function ManageContentPage() {
     </div>
   );
 }
+
+    
