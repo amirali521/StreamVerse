@@ -41,10 +41,6 @@
             "embedUrl": {
                 "type": "string",
                 "format": "uri"
-            },
-            "downloadUrl": {
-                "type": "string",
-                "format": "uri"
             }
         },
         "required": ["episodeNumber", "embedUrl"]
@@ -121,7 +117,7 @@
         "downloadUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Optional direct download URL for a movie. Adds a download button."
+            "description": "Optional single direct download URL for the entire content (movie or series)."
         },
         "seasons": {
             "type": "array",
@@ -158,3 +154,5 @@
     }
   }
 }
+
+    

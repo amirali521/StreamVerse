@@ -88,7 +88,7 @@ function EpisodeSelector({
         if (hasManualEpisodes) {
             return content.seasons!.map(s => ({
                 seasonNumber: s.seasonNumber,
-                episodes: s.episodes.map(e => ({ episodeNumber: e.episodeNumber, downloadUrl: e.downloadUrl }))
+                episodes: s.episodes.map(e => ({ episodeNumber: e.episodeNumber }))
             })).sort((a,b) => a.seasonNumber - b.seasonNumber);
         }
         return tmdbSeasons.map(s => ({
@@ -143,14 +143,6 @@ function EpisodeSelector({
       <CardHeader>
         <div className="flex justify-between items-center">
          <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
-          {selectedEpisodeData?.downloadUrl && (
-              <Button asChild variant="outline">
-                <a href={selectedEpisodeData.downloadUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Ep {selectedEpisodeNum}
-                </a>
-              </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -344,6 +336,7 @@ export default function WatchPage() {
   }
 
   const poster = item.posterImageUrl || item.bannerImageUrl;
+  const isDubbed = item.categories?.some(cat => cat.toLowerCase() === 'hindi dubbed');
 
   return (
     <div className="bg-black text-white">
@@ -360,11 +353,11 @@ export default function WatchPage() {
           <div className="space-y-4">
              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
               <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
-              {item.type === 'movie' && item.downloadUrl && (
+              {item.downloadUrl && (
                   <Button asChild>
                     <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
-                      Download Movie
+                      Download {isDubbed ? '(Hindi)' : ''}
                     </a>
                   </Button>
               )}
@@ -413,3 +406,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    

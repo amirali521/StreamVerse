@@ -48,7 +48,6 @@ const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   embedUrl: z.string().min(1, "Embed URL is required."),
-  downloadUrl: z.string().optional(),
 });
 
 const seasonSchema = z.object({
@@ -67,8 +66,8 @@ const contentSchema = z.object({
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   tmdbId: z.coerce.number().optional(),
-  embedUrl: z.string().optional(), // For movies
-  downloadUrl: z.string().optional(), // For movie downloads
+  downloadUrl: z.string().optional(), // For any content type
+  embedUrl: z.string().optional(), // For movies only
   seasons: z.array(seasonSchema).optional(), // For series/dramas
 });
 
@@ -164,17 +163,6 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={control}
-                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.downloadUrl`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Download URL (Optional)</FormLabel>
-                                <FormControl><Input placeholder="Paste direct download link" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
                         Remove Episode
                     </Button>
@@ -184,7 +172,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "", downloadUrl: "" })}
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "" })}
             >
                 Add Episode
             </Button>
@@ -214,8 +202,8 @@ export default function AddContentPage() {
       categories: "",
       isFeatured: false,
       tmdbId: 0,
-      embedUrl: "",
       downloadUrl: "",
+      embedUrl: "",
       seasons: [],
     },
   });
@@ -279,13 +267,13 @@ export default function AddContentPage() {
         imdbRating: values.imdbRating || 0,
         categories: categories,
         isFeatured: values.isFeatured || false,
+        downloadUrl: values.downloadUrl || "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
     
     if (values.type === 'movie') {
         contentData.embedUrl = values.embedUrl || "";
-        contentData.downloadUrl = values.downloadUrl || "";
     } else {
         contentData.seasons = values.seasons || [];
     }
@@ -384,8 +372,24 @@ export default function AddContentPage() {
                                 </FormItem>
                             )} />
                             
+                            <FormField
+                                control={form.control}
+                                name="downloadUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Download URL (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Paste direct download link for the movie or series package" {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Provide a single direct download link for the content (e.g., Hindi Dubbed version).
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             {contentType === 'movie' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="embedUrl"
@@ -402,23 +406,6 @@ export default function AddContentPage() {
                                         </FormItem>
                                     )}
                                 />
-                                 <FormField
-                                    control={form.control}
-                                    name="downloadUrl"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Download URL (Movie, Optional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Paste direct download link here" {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Provide a direct download link for the movie.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                </div>
                             )}
                             
                             <FormField control={form.control} name="type" render={({ field }) => (
@@ -482,3 +469,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    

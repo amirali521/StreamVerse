@@ -5,7 +5,6 @@ export interface Episode {
   episodeNumber: number;
   title?: string;
   embedUrl: string;
-  downloadUrl?: string;
 }
 
 export interface Season {
@@ -26,7 +25,9 @@ export interface Content {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   tmdbId?: number;
-  embedUrl?: string; // For movies
-  downloadUrl?: string; // For movie downloads
+  downloadUrl?: string; // Universal download link
+  embedUrl?: string; // For movies only
   seasons?: Season[]; // For series/dramas
 }
+
+    
