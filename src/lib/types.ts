@@ -1,6 +1,17 @@
 
 import type { Timestamp } from "firebase/firestore";
 
+export interface Episode {
+  episodeNumber: number;
+  title?: string;
+  embedUrl: string;
+}
+
+export interface Season {
+  seasonNumber: number;
+  episodes: Episode[];
+}
+
 export interface Content {
   id: string;
   title: string;
@@ -14,5 +25,6 @@ export interface Content {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   tmdbId?: number;
-  embedUrl?: string;
+  embedUrl?: string; // For movies
+  seasons?: Season[]; // For series/dramas
 }

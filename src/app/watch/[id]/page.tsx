@@ -4,90 +4,109 @@
 import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/firestore";
-import type { Content as ContentType } from "@/lib/types";
+import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "@/components/video-player";
-import { createEmbedUrl } from "@/lib/utils";
 import { generateSourceUrls } from "@/lib/video-sources";
 
 // A version of the Content type for client-side processing with JS Dates
-type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt' | 'seasons' | 'episodes'> & {
+type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   id: string;
   createdAt?: Date;
   updatedAt?: Date;
-  posterImageUrl?: string;
-  tmdbId?: number;
-  embedUrl?: string;
 };
 
-// Dummy types for season/episode selection, not from DB
-interface Episode {
-  episodeNumber: number;
+// This type is for the TMDB API response
+interface TmdbSeason {
+  season_number: number;
+  episodes: { episode_number: number }[];
 }
-interface Season {
-  seasonNumber: number;
-  episodes: Episode[];
-}
-
 
 function EpisodeSelector({ 
+  content,
   selectedSeasonNum,
   setSelectedSeasonNum,
   selectedEpisodeNum,
   setSelectedEpisodeNum,
-  tmdbId
 }: {
+  content: ClientContent;
   selectedSeasonNum: number,
   setSelectedSeasonNum: (season: number) => void,
   selectedEpisodeNum: number,
   setSelectedEpisodeNum: (episode: number) => void,
-  tmdbId: number
 }) {
-    const [seasons, setSeasons] = useState<Season[]>([]);
+    const [tmdbSeasons, setTmdbSeasons] = useState<TmdbSeason[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const hasManualEpisodes = useMemo(() => {
+        return content.seasons && content.seasons.length > 0 && content.seasons.some(s => s.episodes.length > 0);
+    }, [content.seasons]);
+
     useEffect(() => {
-        async function fetchSeasons() {
-            if (!tmdbId) return;
+        // If there are manual episodes, we don't need to fetch from TMDB.
+        if (hasManualEpisodes || !content.tmdbId) {
+            setIsLoading(false);
+            return;
+        };
+
+        async function fetchSeasonsFromTmdb() {
             setIsLoading(true);
             try {
-                const response = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
+                const response = await fetch(`https://api.themoviedb.org/3/tv/${content.tmdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
                 const data = await response.json();
-
-                const seasonsData: Season[] = await Promise.all(data.seasons.filter((s:any) => s.season_number > 0).map(async (season: any) => {
-                    const seasonDetailResponse = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${season.season_number}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
+                
+                const seasonsData: TmdbSeason[] = await Promise.all(data.seasons.filter((s:any) => s.season_number > 0).map(async (season: any) => {
+                    const seasonDetailResponse = await fetch(`https://api.themoviedb.org/3/tv/${content.tmdbId}/season/${season.season_number}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
                     const seasonDetailData = await seasonDetailResponse.json();
                     return {
-                        seasonNumber: season.season_number,
-                        episodes: seasonDetailData.episodes.map((ep: any) => ({ episodeNumber: ep.episode_number }))
+                        season_number: season.season_number,
+                        episodes: seasonDetailData.episodes.map((ep: any) => ({ episode_number: ep.episode_number }))
                     };
                 }));
                 
-                setSeasons(seasonsData);
+                setTmdbSeasons(seasonsData);
             } catch (error) {
                 console.error("Failed to fetch season data from TMDB", error);
             }
             setIsLoading(false);
         }
 
-        fetchSeasons();
-    }, [tmdbId]);
+        fetchSeasonsFromTmdb();
+    }, [content.tmdbId, hasManualEpisodes]);
     
-    const selectedSeason = seasons.find(s => s.seasonNumber === selectedSeasonNum);
+    // Determine which seasons/episodes to show
+    const seasonsToShow = useMemo(() => {
+        if (hasManualEpisodes) {
+            return content.seasons!.map(s => ({
+                seasonNumber: s.seasonNumber,
+                episodes: s.episodes.map(e => ({ episodeNumber: e.episodeNumber }))
+            })).sort((a,b) => a.seasonNumber - b.seasonNumber);
+        }
+        return tmdbSeasons.map(s => ({
+            seasonNumber: s.season_number,
+            episodes: s.episodes.map(e => ({ episodeNumber: e.episode_number }))
+        })).sort((a,b) => a.seasonNumber - b.seasonNumber);
+    }, [hasManualEpisodes, content.seasons, tmdbSeasons]);
+    
+    const selectedSeasonData = seasonsToShow.find(s => s.seasonNumber === selectedSeasonNum);
   
     if (isLoading) {
         return (
              <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
-                <CardHeader>
-                    <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>Loading seasons...</p>
-                </CardContent>
+                <CardHeader><CardTitle className="text-xl">Seasons & Episodes</CardTitle></CardHeader>
+                <CardContent><p>Loading seasons...</p></CardContent>
+            </Card>
+        )
+    }
+
+    if (seasonsToShow.length === 0) {
+        return (
+             <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
+                <CardHeader><CardTitle className="text-xl">Seasons & Episodes</CardTitle></CardHeader>
+                <CardContent><p className="text-muted-foreground">No season or episode data is available for this series.</p></CardContent>
             </Card>
         )
     }
@@ -102,18 +121,19 @@ function EpisodeSelector({
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Season</h3>
             <div className="flex flex-wrap gap-2">
-              {seasons.map(season => (
+              {seasonsToShow.map(season => (
                 <Button 
                   key={season.seasonNumber} 
                   size="sm"
                   variant={selectedSeasonNum === season.seasonNumber ? 'secondary' : 'outline'}
                   onClick={() => {
                     setSelectedSeasonNum(season.seasonNumber);
+                    // Automatically select the first episode of the new season
                     if (season.episodes && season.episodes.length > 0) {
                       const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
                       setSelectedEpisodeNum(sortedEpisodes[0].episodeNumber);
                     } else {
-                      setSelectedEpisodeNum(1); // Default to 1 if no episodes found
+                      setSelectedEpisodeNum(1); // Default to 1
                     }
                   }}
                   className="transition-colors duration-200"
@@ -126,7 +146,7 @@ function EpisodeSelector({
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Episode</h3>
             <div className="flex flex-wrap gap-2">
-              {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
+              {selectedSeasonData?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
                   variant={selectedEpisodeNum === episode.episodeNumber ? 'accent' : 'ghost'}
@@ -138,7 +158,7 @@ function EpisodeSelector({
                 </Button>
               ))}
             </div>
-             {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes found for this season.</p>}
+             {(!selectedSeasonData?.episodes || selectedSeasonData.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes found for this season.</p>}
           </div>
         </div>
       </CardContent>
@@ -162,20 +182,30 @@ export default function WatchPage() {
   
   const videoSources = useMemo(() => {
     if (!item) return [];
-
-    // Priority 1: Use manual embed URL if it exists.
-    if (item.embedUrl) {
-      return [item.embedUrl];
-    }
     
-    // Priority 2: Fallback to generating URLs from all defined sources.
-    if (item.tmdbId) {
-      return generateSourceUrls(
-        item.type,
-        item.tmdbId,
-        selectedSeasonNum,
-        selectedEpisodeNum
-      );
+    // For movies, prioritize the manual embedUrl.
+    if (item.type === 'movie') {
+      if (item.embedUrl) {
+        return [item.embedUrl]; // Manual override is highest priority
+      }
+      if (item.tmdbId) {
+        return generateSourceUrls('movie', item.tmdbId);
+      }
+    }
+
+    // For series/dramas, check for manual episode data first.
+    if (item.type === 'webseries' || item.type === 'drama') {
+      const manualSeason = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
+      const manualEpisode = manualSeason?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
+      
+      if (manualEpisode?.embedUrl) {
+        return [manualEpisode.embedUrl]; // Use the specific manual embed URL for the episode
+      }
+      
+      // If no manual URL for this episode, fall back to automatic TMDB-based sources
+      if (item.tmdbId) {
+        return generateSourceUrls(item.type, item.tmdbId, selectedSeasonNum, selectedEpisodeNum);
+      }
     }
 
     return []; // No video source found
@@ -205,6 +235,17 @@ export default function WatchPage() {
       } as ClientContent;
       
       setItem(fetchedItem);
+
+      // Pre-select first season/episode if it's a series with manual data
+      if (fetchedItem.type !== 'movie' && fetchedItem.seasons && fetchedItem.seasons.length > 0) {
+        const firstSeason = fetchedItem.seasons.sort((a,b) => a.seasonNumber - b.seasonNumber)[0];
+        setSelectedSeasonNum(firstSeason.seasonNumber);
+        if (firstSeason.episodes && firstSeason.episodes.length > 0) {
+           const firstEpisode = firstSeason.episodes.sort((a,b) => a.episodeNumber - b.episodeNumber)[0];
+           setSelectedEpisodeNum(firstEpisode.episodeNumber);
+        }
+      }
+
 
       const allContentCol = collection(firestore, 'content');
       const allContentSnapshot = await getDocs(allContentCol);
@@ -297,18 +338,11 @@ export default function WatchPage() {
             <p className="text-base text-foreground/70">
                 {item.description}
             </p>
-            
-            { item.embedUrl && // Show download button only for manual embeds
-              <Button onClick={() => window.open(item.embedUrl, '_blank')} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
-                <Download className="mr-2" />
-                Go to Source
-              </Button>
-            }
           </div>
 
-          {item.type !== 'movie' && item.tmdbId && !item.embedUrl && (
+          {item.type !== 'movie' && (
             <EpisodeSelector 
-              tmdbId={item.tmdbId}
+              content={item}
               selectedSeasonNum={selectedSeasonNum}
               setSelectedSeasonNum={setSelectedSeasonNum}
               selectedEpisodeNum={selectedEpisodeNum}

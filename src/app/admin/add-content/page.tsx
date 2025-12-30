@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,12 +35,26 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { searchContent, getContentDetails } from "./actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+
+const episodeSchema = z.object({
+  episodeNumber: z.coerce.number().min(1, "Episode number is required."),
+  title: z.string().optional(),
+  embedUrl: z.string().min(1, "Embed URL is required."),
+});
+
+const seasonSchema = z.object({
+  seasonNumber: z.coerce.number().min(1, "Season number is required."),
+  episodes: z.array(episodeSchema),
+});
+
 
 const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -51,9 +65,120 @@ const contentSchema = z.object({
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
-  tmdbId: z.coerce.number().min(1, "A TMDB ID is required to source the video."),
-  embedUrl: z.string().optional(),
+  tmdbId: z.coerce.number().optional(),
+  embedUrl: z.string().optional(), // For movies
+  seasons: z.array(seasonSchema).optional(), // For series/dramas
 });
+
+
+function SeasonsEpisodesField({ control, getValues }: { control: any, getValues: any }) {
+    const { fields: seasonFields, append: appendSeason, remove: removeSeason } = useFieldArray({
+        control,
+        name: "seasons"
+    });
+
+    return (
+        <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+            <h4 className="font-semibold">Manual Season & Episode Management</h4>
+            <p className="text-sm text-muted-foreground">
+                Only use this if automatic source fetching (via TMDB ID) fails or for content not on TMDB.
+                This data will override the automatic fetching.
+            </p>
+
+            <Accordion type="multiple" className="w-full">
+                {seasonFields.map((season, seasonIndex) => (
+                    <AccordionItem value={`season-${seasonIndex}`} key={season.id}>
+                        <AccordionTrigger className="font-semibold">
+                            Season {getValues(`seasons.${seasonIndex}.seasonNumber`) || seasonIndex + 1}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                             <div className="space-y-4 p-2 border-l-2">
+                                <FormField
+                                    control={control}
+                                    name={`seasons.${seasonIndex}.seasonNumber`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Season Number</FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <EpisodeArrayField seasonIndex={seasonIndex} control={control} />
+
+                                <Button type="button" variant="destructive" size="sm" onClick={() => removeSeason(seasonIndex)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Season
+                                </Button>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => appendSeason({ seasonNumber: seasonFields.length + 1, episodes: [] })}
+            >
+                <Plus className="mr-2 h-4 w-4" /> Add Season
+            </Button>
+        </div>
+    );
+}
+
+function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, control: any }) {
+    const { fields: episodeFields, append: appendEpisode, remove: removeEpisode } = useFieldArray({
+        control,
+        name: `seasons.${seasonIndex}.episodes`
+    });
+
+    return (
+        <div className="space-y-4">
+            <h5 className="font-medium text-sm">Episodes</h5>
+            {episodeFields.map((episode, episodeIndex) => (
+                <div key={episode.id} className="p-3 bg-background/50 rounded-md border space-y-2">
+                     <FormField
+                        control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.episodeNumber`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Episode Number</FormLabel>
+                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Embed URL</FormLabel>
+                                <FormControl><Input placeholder="Paste video link here" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
+                        Remove Episode
+                    </Button>
+                </div>
+            ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "" })}
+            >
+                Add Episode
+            </Button>
+        </div>
+    );
+}
+
 
 export default function AddContentPage() {
   const firestore = useFirestore();
@@ -77,8 +202,11 @@ export default function AddContentPage() {
       isFeatured: false,
       tmdbId: 0,
       embedUrl: "",
+      seasons: [],
     },
   });
+
+  const contentType = form.watch("type");
 
   const handleTmdbSearch = async () => {
     if (!tmdbSearchQuery) return;
@@ -137,10 +265,16 @@ export default function AddContentPage() {
         imdbRating: values.imdbRating || 0,
         categories: categories,
         isFeatured: values.isFeatured || false,
-        embedUrl: values.embedUrl || "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
+    
+    if (values.type === 'movie') {
+        contentData.embedUrl = values.embedUrl || "";
+    } else {
+        contentData.seasons = values.seasons || [];
+    }
+
 
     try {
       await addDoc(collection(firestore, "content"), contentData);
@@ -228,28 +362,32 @@ export default function AddContentPage() {
                                 <FormItem>
                                     <FormLabel>TMDB ID</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Auto-filled from TMDB Search" {...field} readOnly />
+                                        <Input placeholder="Auto-filled from TMDB Search" {...field} />
                                     </FormControl>
-                                    <FormDescription>This ID is used to source video from VidLink and other multi-sources.</FormDescription>
+                                    <FormDescription>This ID is used for automatic source fetching. Leave blank for fully manual content.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField
-                                control={form.control}
-                                name="embedUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Embed URL / Code (Optional Override)</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Paste Doodstream, Mixdrop link, etc." {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            If VidLink fails or for specific versions (like Hindi Dubbed), paste a source URL here. This will be used first.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            
+                            {contentType === 'movie' && (
+                                <FormField
+                                    control={form.control}
+                                    name="embedUrl"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Embed URL / Code (Movie Override)</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Paste Doodstream, Mixdrop link, etc." {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                                For movies, this will override the automatic TMDB source fetching.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            
                             <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Content Type</FormLabel>
@@ -298,6 +436,11 @@ export default function AddContentPage() {
                             )} />
                         </div>
                     </div>
+                    
+                    {(contentType === 'webseries' || contentType === 'drama') && (
+                        <SeasonsEpisodesField control={form.control} getValues={form.getValues} />
+                    )}
+
                     <Button type="submit">Add Content</Button>
                 </form>
             </Form>

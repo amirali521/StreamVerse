@@ -6,7 +6,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, MoreVertical } from "lucide-react";
+import { Edit, Trash2, Search, MoreVertical, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,28 +36,27 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Content, Season, Episode } from "@/lib/types";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+const episodeSchema = z.object({
+  episodeNumber: z.coerce.number().min(1, "Episode number is required."),
+  title: z.string().optional(),
+  embedUrl: z.string().min(1, "Embed URL is required."),
+});
 
-interface Content {
-  id: string;
-  title: string;
-  description: string;
-  type: "movie" | "webseries" | "drama";
-  bannerImageUrl: string;
-  posterImageUrl?: string;
-  imdbRating?: number;
-  categories?: string[];
-  isFeatured?: boolean;
-  tmdbId?: number;
-  embedUrl?: string;
-}
+const seasonSchema = z.object({
+  seasonNumber: z.coerce.number().min(1, "Season number is required."),
+  episodes: z.array(episodeSchema),
+});
+
 
 const editContentSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -67,8 +66,119 @@ const editContentSchema = z.object({
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
-  embedUrl: z.string().optional(),
+  embedUrl: z.string().optional(), // For Movies
+  seasons: z.array(seasonSchema).optional(), // For Series
 });
+
+
+function SeasonsEpisodesField({ control, getValues }: { control: any, getValues: any }) {
+    const { fields: seasonFields, append: appendSeason, remove: removeSeason } = useFieldArray({
+        control,
+        name: "seasons"
+    });
+
+    return (
+        <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mt-6">
+            <h4 className="font-semibold">Manual Season & Episode Management</h4>
+            <p className="text-sm text-muted-foreground">
+                Only use this if automatic source fetching (via TMDB ID) fails or for content not on TMDB.
+                This data will override the automatic fetching.
+            </p>
+
+            <Accordion type="multiple" className="w-full">
+                {seasonFields.map((season, seasonIndex) => (
+                    <AccordionItem value={`season-${seasonIndex}`} key={season.id}>
+                        <AccordionTrigger className="font-semibold">
+                            Season {getValues(`seasons.${seasonIndex}.seasonNumber`) || seasonIndex + 1}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                             <div className="space-y-4 p-2 border-l-2">
+                                <FormField
+                                    control={control}
+                                    name={`seasons.${seasonIndex}.seasonNumber`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Season Number</FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <EpisodeArrayField seasonIndex={seasonIndex} control={control} />
+
+                                <Button type="button" variant="destructive" size="sm" onClick={() => removeSeason(seasonIndex)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Season
+                                </Button>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => appendSeason({ seasonNumber: seasonFields.length + 1, episodes: [] })}
+            >
+                <Plus className="mr-2 h-4 w-4" /> Add Season
+            </Button>
+        </div>
+    );
+}
+
+function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, control: any }) {
+    const { fields: episodeFields, append: appendEpisode, remove: removeEpisode } = useFieldArray({
+        control,
+        name: `seasons.${seasonIndex}.episodes`
+    });
+
+    return (
+        <div className="space-y-4">
+            <h5 className="font-medium text-sm">Episodes</h5>
+            {episodeFields.map((episode, episodeIndex) => (
+                <div key={episode.id} className="p-3 bg-background/50 rounded-md border space-y-2">
+                     <FormField
+                        control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.episodeNumber`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Episode Number</FormLabel>
+                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Embed URL</FormLabel>
+                                <FormControl><Input placeholder="Paste video link here" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
+                        Remove Episode
+                    </Button>
+                </div>
+            ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "" })}
+            >
+                Add Episode
+            </Button>
+        </div>
+    );
+}
+
 
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
     const firestore = useFirestore();
@@ -83,8 +193,11 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
             embedUrl: contentItem.embedUrl || "",
+            seasons: contentItem.seasons || [],
         },
     });
+
+    const contentType = contentItem.type;
 
     async function onSubmit(values: z.infer<typeof editContentSchema>) {
         if (!firestore) return;
@@ -99,13 +212,19 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             categories,
             imdbRating: values.imdbRating || 0,
             isFeatured: values.isFeatured || false,
-            embedUrl: values.embedUrl || "",
             updatedAt: serverTimestamp()
         };
 
+        if (contentType === 'movie') {
+            updatedData.embedUrl = values.embedUrl || "";
+        } else {
+            updatedData.seasons = values.seasons || [];
+        }
+
+
         try {
             const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, updatedData as any); // Cast to any to handle nested properties
+            await updateDoc(docRef, updatedData as any);
             onUpdate({ ...contentItem, ...updatedData });
             toast({ title: "Content Updated", description: `${values.title} has been updated.` });
             closeDialog();
@@ -117,22 +236,24 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="embedUrl"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Embed URL / Code (Optional Override)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                If filled, this source will be used instead of the default TMDB source.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                {contentType === 'movie' && (
+                    <FormField
+                        control={form.control}
+                        name="embedUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Embed URL / Code (Movie Override)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    If filled, this source will be used instead of the default TMDB source.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -172,6 +293,11 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                         </FormControl>
                     </FormItem>
                 )} />
+
+                {(contentType === 'webseries' || contentType === 'drama') && (
+                    <SeasonsEpisodesField control={form.control} getValues={form.getValues} />
+                )}
+
                 <DialogFooter>
                     <Button variant="outline" type="button" onClick={closeDialog}>Cancel</Button>
                     <Button type="submit">Save Changes</Button>
@@ -184,10 +310,15 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
 function EditContentModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Edit: {contentItem.title}</DialogTitle>
-                    <DialogDescription>Update the details for this content. The primary video source is managed automatically via its TMDB ID, but you can override it with a manual embed URL.</DialogDescription>
+                    <DialogDescription>
+                        {contentItem.type === 'movie' 
+                         ? "Update movie details. Use the override URL for manual sources."
+                         : "Update series details. You can manually manage seasons and episodes if automatic fetching fails."
+                        }
+                    </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[70vh]">
                     <div className="py-4 pr-6">
@@ -319,7 +450,7 @@ export default function ManageContentPage() {
       );
     }
     
-    return filtered;
+    return filtered.sort((a: any, b: any) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
   }, [contentList, activeTab, searchTerm]);
 
 
@@ -410,5 +541,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    
