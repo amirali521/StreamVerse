@@ -9,6 +9,10 @@ import { collection, getDocs, type Timestamp } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
 import { HeroBanner } from "@/components/hero-banner";
+import { getUpcomingMovies } from "@/lib/tmdb";
+import { UpcomingHeroBanner } from "@/components/upcoming-hero-banner";
+import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
+
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -21,6 +25,7 @@ type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
 export default function Home() {
   const firestore = useFirestore();
   const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
+  const [upcomingMovies, setUpcomingMovies] = useState<any[]>([]);
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
@@ -37,6 +42,20 @@ export default function Home() {
 
       setLoading(true);
       try {
+        // Fetch upcoming movies from TMDB and generate AI summaries
+        const upcoming = await getUpcomingMovies();
+        const upcomingWithSummaries = await Promise.all(
+          upcoming.map(async (movie) => {
+            const summary = await generateHeroSummary({
+              title: movie.title,
+              description: movie.overview,
+            });
+            return { ...movie, aiSummary: summary.cinematicDescription };
+          })
+        );
+        setUpcomingMovies(upcomingWithSummaries);
+
+
         const contentCol = collection(firestore, 'content');
         const contentSnapshot = await getDocs(contentCol);
 
@@ -98,6 +117,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {heroContent.length > 0 && <HeroBanner items={heroContent} />}
+      {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
       <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">

@@ -42,7 +42,7 @@ export async function searchTMDB(query: string, type: 'movie' | 'tv' | 'multi'):
 export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<any> {
     if (!TMDB_API_KEY) return null;
     
-    const url = `${TMDB_BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}&append_to_response=credits,images`;
+    const url = `${TMDB_BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}&append_to_response=credits,images,videos`;
 
     try {
         const response = await fetch(url);
@@ -53,6 +53,10 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
         // Use backdrop_path for posterImageUrl (hero/player) - this is the landscape image
         const posterPath = data.backdrop_path ? `${TMDB_IMAGE_BASE_URL}${data.backdrop_path}` : bannerPath; // fallback to banner
 
+        const trailer = data.videos?.results?.find(
+          (video: any) => video.site === 'YouTube' && video.type === 'Trailer'
+        );
+
         return {
             title: data.title || data.name,
             description: data.overview,
@@ -60,9 +64,37 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
             categories: data.genres?.map((g: any) => g.name) || [],
             bannerImageUrl: bannerPath,
             posterImageUrl: posterPath,
+            trailerUrl: trailer ? `https://www.youtube.com/embed/${trailer.key}` : null,
         };
     } catch (error) {
         console.error("Error getting TMDB details:", error);
         return null;
+    }
+}
+
+export async function getUpcomingMovies(): Promise<any[]> {
+    if (!TMDB_API_KEY) return [];
+
+    const url = `${TMDB_BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Get details for each upcoming movie to fetch trailers
+        const moviesWithDetails = await Promise.all(
+            data.results.slice(0, 5).map(async (movie: any) => {
+                const details = await getTMDBDetails(movie.id, 'movie');
+                return {
+                    ...movie,
+                    ...details
+                };
+            })
+        );
+        return moviesWithDetails;
+
+    } catch (error) {
+        console.error("Error fetching upcoming movies:", error);
+        return [];
     }
 }
