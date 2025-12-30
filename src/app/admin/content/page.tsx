@@ -6,7 +6,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Search, MoreVertical } from "lucide-react";
+import { Edit, Trash2, Search, MoreVertical } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -33,14 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { z } from "zod";
@@ -53,19 +45,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 
-// Data structures from backend.json
-interface Episode {
-  episodeNumber: number;
-  title: string;
-  embedUrl: string;
-  downloadUrl: string;
-}
-
-interface Season {
-  seasonNumber: number;
-  episodes: Episode[];
-}
-
 interface Content {
   id: string;
   title: string;
@@ -74,22 +53,17 @@ interface Content {
   bannerImageUrl: string;
   posterImageUrl?: string;
   imdbRating?: number;
-  embedUrl?: string;
-  downloadUrl?: string;
-  seasons?: Season[];
   categories?: string[];
   isFeatured?: boolean;
+  tmdbId?: number;
 }
 
-// Reusable form for editing content details
 const editContentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
   bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
   posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
-  embedUrl: z.string().optional(),
-  downloadUrl: z.string().url().optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
 });
@@ -104,8 +78,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             bannerImageUrl: contentItem.bannerImageUrl,
             posterImageUrl: contentItem.posterImageUrl || "",
             imdbRating: contentItem.imdbRating || 0,
-            embedUrl: contentItem.embedUrl || "",
-            downloadUrl: contentItem.downloadUrl || "",
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
         },
@@ -126,15 +98,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             isFeatured: values.isFeatured || false,
             updatedAt: serverTimestamp()
         };
-
-        if (contentItem.type === 'movie') {
-            if (!values.embedUrl || !values.downloadUrl) {
-                form.setError("embedUrl", { type: "manual", message: "Embed and Download URLs are required for movies." });
-                return;
-            }
-            updatedData.embedUrl = values.embedUrl;
-            updatedData.downloadUrl = values.downloadUrl;
-        }
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
@@ -173,22 +136,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 <FormField control={form.control} name="imdbRating" render={({ field }) => (
                     <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                {contentItem.type === 'movie' && (
-                     <div className="space-y-4">
-                        <FormField control={form.control} name="embedUrl" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Embed URL / Code</FormLabel>
-                            <FormControl><Input placeholder="Paste embed link or <iframe> code" {...field} /></FormControl>
-                            <FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="downloadUrl" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Download URL</FormLabel>
-                            <FormControl><Input placeholder="Paste download link" {...field} /></FormControl>
-                            <FormMessage /></FormItem>
-                        )} />
-                    </div>
-                )}
                 <FormField control={form.control} name="isFeatured" render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                         <div className="space-y-0.5">
@@ -214,14 +161,13 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     );
 }
 
-// Edit Modal for Movies
-function EditMovieModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
+function EditContentModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Edit Movie: {contentItem.title}</DialogTitle>
-                    <DialogDescription>Update the details for this movie.</DialogDescription>
+                    <DialogTitle>Edit: {contentItem.title}</DialogTitle>
+                    <DialogDescription>Update the details for this content. Video content is sourced automatically from VidLink via its TMDB ID.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[70vh]">
                     <div className="py-4 pr-6">
@@ -232,237 +178,6 @@ function EditMovieModal({ contentItem, onOpenChange, onUpdate, isOpen }: { conte
                       />
                     </div>
                 </ScrollArea>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-
-// Edit Modal for Web Series / Dramas
-function EditSeriesModal({ contentItem, onOpenChange, onUpdate, isOpen }: { contentItem: Content, isOpen: boolean, onOpenChange: (open: boolean) => void, onUpdate: (updatedContent: Content) => void }) {
-    const firestore = useFirestore();
-    const [seasons, setSeasons] = useState<Season[]>(contentItem.seasons || []);
-    const [isAddEpisodeOpen, setAddEpisodeOpen] = useState(false);
-    const [isEditEpisodeOpen, setEditEpisodeOpen] = useState(false);
-    const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
-    const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
-    const [newEpisodeTitle, setNewEpisodeTitle] = useState("");
-    const [newEpisodeEmbedUrl, setNewEpisodeEmbedUrl] = useState("");
-    const [newEpisodeDownloadUrl, setNewEpisodeDownloadUrl] = useState("");
-
-    const handleAddSeason = async () => {
-        if (!firestore) return;
-        const newSeasonNumber = seasons.length + 1;
-        const newSeason: Season = { seasonNumber: newSeasonNumber, episodes: [] };
-        const updatedSeasons = [...seasons, newSeason];
-
-        try {
-            const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
-            setSeasons(updatedSeasons);
-            onUpdate({ ...contentItem, seasons: updatedSeasons });
-            toast({ title: "Season Added", description: `Season ${newSeasonNumber} has been added.` });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
-    };
-
-    const handleAddEpisode = async () => {
-        if (!firestore || selectedSeason === null || !newEpisodeTitle || !newEpisodeEmbedUrl || !newEpisodeDownloadUrl) return;
-
-        const updatedSeasons = seasons.map(s => {
-            if (s.seasonNumber === selectedSeason) {
-                const newEpisodeNumber = (s.episodes?.length || 0) + 1;
-                const newEpisode: Episode = {
-                    episodeNumber: newEpisodeNumber,
-                    title: newEpisodeTitle,
-                    embedUrl: newEpisodeEmbedUrl,
-                    downloadUrl: newEpisodeDownloadUrl,
-                };
-                return { ...s, episodes: [...s.episodes, newEpisode] };
-            }
-            return s;
-        });
-
-        try {
-            const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
-            setSeasons(updatedSeasons);
-            onUpdate({ ...contentItem, seasons: updatedSeasons });
-            toast({ title: "Episode Added", description: `${newEpisodeTitle} has been added to Season ${selectedSeason}.` });
-            setAddEpisodeOpen(false);
-            setNewEpisodeTitle("");
-            setNewEpisodeEmbedUrl("");
-            setNewEpisodeDownloadUrl("");
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
-    };
-
-    const handleEditEpisode = async () => {
-        if (!firestore || selectedSeason === null || !selectedEpisode || !newEpisodeTitle || !newEpisodeEmbedUrl || !newEpisodeDownloadUrl) return;
-
-        const updatedSeasons = seasons.map(s => {
-            if (s.seasonNumber === selectedSeason) {
-                const updatedEpisodes = s.episodes.map(e =>
-                    e.episodeNumber === selectedEpisode.episodeNumber
-                    ? { ...e, title: newEpisodeTitle, embedUrl: newEpisodeEmbedUrl, downloadUrl: newEpisodeDownloadUrl }
-                    : e
-                );
-                return { ...s, episodes: updatedEpisodes };
-            }
-            return s;
-        });
-
-        try {
-            const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
-            setSeasons(updatedSeasons);
-            onUpdate({ ...contentItem, seasons: updatedSeasons });
-            toast({ title: "Episode Updated" });
-            setEditEpisodeOpen(false);
-        } catch (e: any) {
-            toast({ variant: "destructive", title: "Error", description: e.message });
-        }
-    };
-
-    const handleDeleteEpisode = async (seasonNumber: number, episode: Episode) => {
-        if (!firestore) return;
-
-        const updatedSeasons = seasons.map(s => {
-            if (s.seasonNumber === seasonNumber) {
-                const filteredEpisodes = s.episodes.filter(e => e.episodeNumber !== episode.episodeNumber);
-                const renumberedEpisodes = filteredEpisodes.map((ep, index) => ({ ...ep, episodeNumber: index + 1 }));
-                return { ...s, episodes: renumberedEpisodes };
-            }
-            return s;
-        });
-
-        try {
-            const docRef = doc(firestore, "content", contentItem.id);
-            await updateDoc(docRef, { seasons: updatedSeasons, updatedAt: serverTimestamp() });
-            setSeasons(updatedSeasons);
-            onUpdate({ ...contentItem, seasons: updatedSeasons });
-            toast({ title: "Episode Deleted" });
-        } catch(e: any) {
-            toast({ variant: "destructive", title: "Error", description: e.message });
-        }
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>Manage: {contentItem.title}</DialogTitle>
-                    <DialogDescription>Add, edit, or remove seasons and episodes for this {contentItem.type}.</DialogDescription>
-                </DialogHeader>
-                 <ScrollArea className="max-h-[70vh]">
-                    <div className="space-y-6 pr-6">
-                      {/* General Details Form */}
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4">General Details</h3>
-                        <EditContentForm
-                            contentItem={contentItem}
-                            onUpdate={onUpdate}
-                            closeDialog={() => onOpenChange(false)}
-                        />
-                      </div>
-                      {/* Season Management */}
-                      <div>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
-                            {contentItem.type === 'webseries' && <Button onClick={handleAddSeason}><PlusCircle className="mr-2 h-4 w-4" /> Add Season</Button>}
-                        </div>
-                        <Accordion type="single" collapsible className="w-full">
-                            {seasons.sort((a,b) => a.seasonNumber - b.seasonNumber).map(season => (
-                                <AccordionItem value={`item-${season.seasonNumber}`} key={season.seasonNumber}>
-                                    <AccordionTrigger className="text-xl">Season {season.seasonNumber}</AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="flex justify-end mb-4">
-                                            <Dialog open={isAddEpisodeOpen && selectedSeason === season.seasonNumber} onOpenChange={(isOpen) => !isOpen && setAddEpisodeOpen(false)}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" onClick={() => {
-                                                        setSelectedSeason(season.seasonNumber);
-                                                        const nextEpisodeNumber = (season.episodes?.length || 0) + 1;
-                                                        const formattedEpisodeNumber = String(nextEpisodeNumber).padStart(2, '0');
-                                                        setNewEpisodeTitle(`Episode ${formattedEpisodeNumber}`);
-                                                        setNewEpisodeEmbedUrl("");
-                                                        setNewEpisodeDownloadUrl("");
-                                                        setAddEpisodeOpen(true);
-                                                    }}>
-                                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Episode
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader><DialogTitle>Add Episode to Season {season.seasonNumber}</DialogTitle></DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <Label htmlFor="episode-title">Title</Label>
-                                                        <Input id="episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                        <Label htmlFor="episode-embed-url">Embed URL / Code</Label>
-                                                        <Input id="episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} placeholder="Paste embed link or <iframe> code" />
-                                                        <Label htmlFor="episode-download-url">Download URL</Label>
-                                                        <Input id="episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} placeholder="Paste download link" />
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button variant="outline" onClick={() => setAddEpisodeOpen(false)}>Cancel</Button>
-                                                        <Button onClick={handleAddEpisode}>Save Episode</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {season.episodes && season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber).map(episode => (
-                                                <div key={episode.episodeNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                                    <p>Ep {episode.episodeNumber}: {episode.title}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <Dialog open={isEditEpisodeOpen && selectedEpisode?.episodeNumber === episode.episodeNumber} onOpenChange={(isOpen) => !isOpen && setEditEpisodeOpen(false)}>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(season.seasonNumber); setSelectedEpisode(episode); setNewEpisodeTitle(episode.title); setNewEpisodeEmbedUrl(episode.embedUrl); setNewEpisodeDownloadUrl(episode.downloadUrl); setEditEpisodeOpen(true); }}>
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogHeader><DialogTitle>Edit Episode {episode.episodeNumber}</DialogTitle></DialogHeader>
-                                                                  <div className="grid gap-4 py-4">
-                                                                      <Label htmlFor="edit-episode-title">Title</Label>
-                                                                      <Input id="edit-episode-title" value={newEpisodeTitle} onChange={(e) => setNewEpisodeTitle(e.target.value)} />
-                                                                      <Label htmlFor="edit-episode-embed-url">Embed URL / Code</Label>
-                                                                      <Input id="edit-episode-embed-url" value={newEpisodeEmbedUrl} onChange={(e) => setNewEpisodeEmbedUrl(e.target.value)} />
-                                                                      <Label htmlFor="edit-episode-download-url">Download URL</Label>
-                                                                      <Input id="edit-episode-download-url" value={newEpisodeDownloadUrl} onChange={(e) => setNewEpisodeDownloadUrl(e.target.value)} />
-                                                                  </div>
-                                                                <DialogFooter>
-                                                                    <Button variant="outline" onClick={() => setEditEpisodeOpen(false)}>Cancel</Button>
-                                                                    <Button onClick={handleEditEpisode}>Save Changes</Button>
-                                                                </DialogFooter>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader><AlertDialogTitle>Delete Episode?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{episode.title}".</AlertDialogDescription></AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteEpisode(season.seasonNumber, episode)}>Delete</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {(!season.episodes || season.episodes.length === 0) && <p className="text-sm text-muted-foreground text-center py-4">No episodes yet.</p>}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            ))}
-                            {(!seasons || seasons.length === 0) && <p className="text-muted-foreground text-center py-8">No seasons found. Add one to get started.</p>}
-                        </Accordion>
-                      </div>
-                    </div>
-                </ScrollArea>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
@@ -568,7 +283,6 @@ export default function ManageContentPage() {
   const filteredContent = useMemo(() => {
     let filtered = contentList;
 
-    // Filter by active tab
     if (activeTab !== "all") {
         if (["movie", "webseries", "drama"].includes(activeTab)) {
             filtered = filtered.filter(item => item.type === activeTab);
@@ -579,7 +293,6 @@ export default function ManageContentPage() {
         }
     }
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(item =>
         item.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -665,26 +378,14 @@ export default function ManageContentPage() {
       </CardContent>
     </Card>
 
-    {editingContent && editingContent.type === 'movie' && (
-        <EditMovieModal
+    {editingContent && (
+        <EditContentModal
             isOpen={!!editingContent}
             onOpenChange={(open) => !open && setEditingContent(null)}
             contentItem={editingContent}
             onUpdate={handleUpdate}
         />
     )}
-
-    {editingContent && editingContent.type !== 'movie' && (
-        <EditSeriesModal
-            isOpen={!!editingContent}
-            onOpenChange={(open) => !open && setEditingContent(null)}
-            contentItem={editingContent}
-            onUpdate={handleUpdate}
-        />
-    )}
-
     </div>
   );
 }
-
-    

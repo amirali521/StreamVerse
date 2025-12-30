@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  env: {
+    NEXT_PUBLIC_TMDB_API_KEY: process.env.TMDB_API_KEY,
+  },
   images: {
     remotePatterns: [
       {

@@ -4,40 +4,90 @@
 import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/firestore";
-import type { Content as ContentType, Season, Episode } from "@/lib/types";
+import type { Content as ContentType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Copy, Check } from "lucide-react";
+import { Download } from "lucide-react";
 import { ContentCarousel } from "@/components/content-carousel";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "@/components/video-player";
-import { toast } from "@/hooks/use-toast";
-import { createEmbedUrl } from "@/lib/utils";
 
 // A version of the Content type for client-side processing with JS Dates
-type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
+type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt' | 'seasons' | 'episodes'> & {
   id: string;
   createdAt?: Date;
   updatedAt?: Date;
   posterImageUrl?: string;
+  tmdbId?: number;
 };
 
+// Dummy types for season/episode selection, not from DB
+interface Episode {
+  episodeNumber: number;
+}
+interface Season {
+  seasonNumber: number;
+  episodes: Episode[];
+}
+
+
 function EpisodeSelector({ 
-  item,
-  selectedSeason,
-  setSelectedSeason,
-  selectedEpisode,
-  setSelectedEpisode
+  selectedSeasonNum,
+  setSelectedSeasonNum,
+  selectedEpisodeNum,
+  setSelectedEpisodeNum,
+  tmdbId
 }: {
-  item: ClientContent,
-  selectedSeason: Season | null,
-  setSelectedSeason: (season: Season | null) => void,
-  selectedEpisode: Episode | null,
-  setSelectedEpisode: (episode: Episode | null) => void
+  selectedSeasonNum: number,
+  setSelectedSeasonNum: (season: number) => void,
+  selectedEpisodeNum: number,
+  setSelectedEpisodeNum: (episode: number) => void,
+  tmdbId: number
 }) {
-  if (!item.seasons || item.seasons.length === 0) return null;
+    const [seasons, setSeasons] = useState<Season[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchSeasons() {
+            if (!tmdbId) return;
+            setIsLoading(true);
+            try {
+                const response = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
+                const data = await response.json();
+
+                const seasonsData: Season[] = await Promise.all(data.seasons.filter((s:any) => s.season_number > 0).map(async (season: any) => {
+                    const seasonDetailResponse = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${season.season_number}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
+                    const seasonDetailData = await seasonDetailResponse.json();
+                    return {
+                        seasonNumber: season.season_number,
+                        episodes: seasonDetailData.episodes.map((ep: any) => ({ episodeNumber: ep.episode_number }))
+                    };
+                }));
+                
+                setSeasons(seasonsData);
+            } catch (error) {
+                console.error("Failed to fetch season data from TMDB", error);
+            }
+            setIsLoading(false);
+        }
+
+        fetchSeasons();
+    }, [tmdbId]);
+    
+    const selectedSeason = seasons.find(s => s.seasonNumber === selectedSeasonNum);
   
-  const sortedSeasons = [...item.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
+    if (isLoading) {
+        return (
+             <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
+                <CardHeader>
+                    <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>Loading seasons...</p>
+                </CardContent>
+            </Card>
+        )
+    }
 
   return (
     <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
@@ -49,18 +99,18 @@ function EpisodeSelector({
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Season</h3>
             <div className="flex flex-wrap gap-2">
-              {sortedSeasons.map(season => (
+              {seasons.map(season => (
                 <Button 
                   key={season.seasonNumber} 
                   size="sm"
-                  variant={selectedSeason?.seasonNumber === season.seasonNumber ? 'secondary' : 'outline'}
+                  variant={selectedSeasonNum === season.seasonNumber ? 'secondary' : 'outline'}
                   onClick={() => {
-                    setSelectedSeason(season);
+                    setSelectedSeasonNum(season.seasonNumber);
                     if (season.episodes && season.episodes.length > 0) {
                       const sortedEpisodes = [...season.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
-                      setSelectedEpisode(sortedEpisodes[0]);
+                      setSelectedEpisodeNum(sortedEpisodes[0].episodeNumber);
                     } else {
-                      setSelectedEpisode(null);
+                      setSelectedEpisodeNum(1); // Default to 1 if no episodes found
                     }
                   }}
                   className="transition-colors duration-200"
@@ -76,16 +126,16 @@ function EpisodeSelector({
               {selectedSeason?.episodes?.sort((a,b) => a.episodeNumber - b.episodeNumber).map(episode => (
                 <Button 
                   key={episode.episodeNumber}
-                  variant={selectedEpisode?.episodeNumber === episode.episodeNumber ? 'accent' : 'ghost'}
+                  variant={selectedEpisodeNum === episode.episodeNumber ? 'accent' : 'ghost'}
                   className="aspect-square p-0 h-12 w-12 text-sm font-bold transition-colors duration-200 hover:bg-accent/80"
-                  onClick={() => setSelectedEpisode(episode)}
+                  onClick={() => setSelectedEpisodeNum(episode.episodeNumber)}
                   size="sm"
                 >
                   {String(episode.episodeNumber).padStart(2, '0')}
                 </Button>
               ))}
             </div>
-             {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes in this season.</p>}
+             {(!selectedSeason?.episodes || selectedSeason.episodes.length === 0) && <p className="text-sm text-muted-foreground mt-2">No episodes found for this season.</p>}
           </div>
         </div>
       </CardContent>
@@ -103,9 +153,9 @@ export default function WatchPage() {
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adClicked, setAdClicked] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
-  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
+  
+  const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
+  const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
 
   useEffect(() => {
     async function getContentData(id: string) {
@@ -131,23 +181,11 @@ export default function WatchPage() {
       
       setItem(fetchedItem);
 
-      // Default selections for series/drama
-      if (fetchedItem.type !== 'movie' && fetchedItem.seasons && fetchedItem.seasons.length > 0) {
-        const sortedSeasons = [...fetchedItem.seasons].sort((a,b) => a.seasonNumber - b.seasonNumber);
-        const firstSeason = sortedSeasons[0];
-        setSelectedSeason(firstSeason);
-        if (firstSeason.episodes && firstSeason.episodes.length > 0) {
-          const sortedEpisodes = [...firstSeason.episodes].sort((a,b) => a.episodeNumber - b.episodeNumber);
-          setSelectedEpisode(sortedEpisodes[0]);
-        }
-      }
-
-      // Fetch all other content for carousels
       const allContentCol = collection(firestore, 'content');
       const allContentSnapshot = await getDocs(allContentCol);
 
       const allContent: ClientContent[] = allContentSnapshot.docs
-        .filter(doc => doc.id !== fetchedItem.id) // Exclude the current item
+        .filter(doc => doc.id !== fetchedItem.id)
         .map(doc => {
             const contentData = doc.data();
             return {
@@ -158,7 +196,6 @@ export default function WatchPage() {
             } as ClientContent
         });
 
-      // Related content (based on categories, then type)
       const getRelatedContent = () => {
           const itemCategories = fetchedItem.categories || [];
           if (itemCategories.length > 0) {
@@ -177,14 +214,11 @@ export default function WatchPage() {
 
       setRelated(getRelatedContent().slice(0, 10));
 
-      // New Releases
       const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
       setNewReleases(sortedNewReleases.slice(0, 10));
 
-      // Trending
       const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
       setTrending(sortedTrending.slice(0, 10));
-
 
       setLoading(false);
     }
@@ -193,11 +227,6 @@ export default function WatchPage() {
       getContentData(id);
     }
   }, [id, firestore]);
-  
-  // Reset the copy button state when the video source changes
-  useEffect(() => {
-    setAdClicked(false);
-  }, [item, selectedEpisode]);
   
 
   if (loading) {
@@ -208,66 +237,31 @@ export default function WatchPage() {
     notFound();
   }
   
-  const videoSourceUrl = item.type === 'movie' ? item.embedUrl : selectedEpisode?.embedUrl;
-  const embedUrl = videoSourceUrl ? createEmbedUrl(videoSourceUrl) : undefined;
-  const downloadUrl = item.type === 'movie' ? item.downloadUrl : selectedEpisode?.downloadUrl;
-  const poster = item.posterImageUrl || item.bannerImageUrl;
-  
-  const handleDownload = () => {
-    if (!downloadUrl) return;
-    window.open(downloadUrl, '_blank');
-  };
+  const embedUrl = useMemo(() => {
+    if (!item?.tmdbId) return undefined;
 
-
-  const handleAdOrCopyLink = () => {
-    if (!downloadUrl) return;
-
-    if (adClicked) {
-      // Second click: Copy the download link
-      navigator.clipboard.writeText(downloadUrl).then(() => {
-        toast({
-          title: "Link Copied",
-          description: "The download URL has been copied to your clipboard.",
-        });
-      }).catch(err => {
-        console.error("Failed to copy link: ", err);
-        toast({
-          variant: "destructive",
-          title: "Copy Failed",
-          description: "Could not copy the link. Please try again.",
-        });
-      });
-    } else {
-      // First click: Open the ad link and update state
-      window.open('https://consumeairlinercalligraphy.com/fxb23pzau?key=8dadd4c3cf5b492400bb18194308fb90', '_blank');
-      setAdClicked(true);
-      toast({
-        title: "Ad Opened",
-        description: "Click the button again to copy the download link.",
-      });
+    if (item.type === 'movie') {
+      return `https://vidlink.pro/movie/${item.tmdbId}`;
     }
-  };
+    return `https://vidlink.pro/tv/${item.tmdbId}/${selectedSeasonNum}/${selectedEpisodeNum}`;
+  }, [item, selectedSeasonNum, selectedEpisodeNum]);
+
+  const poster = item.posterImageUrl || item.bannerImageUrl;
 
   return (
     <div className="bg-black text-white">
-      {/* Main Content: Player, Details, Episodes */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="w-full space-y-6">
-          {/* Video Player */}
           {embedUrl ? (
             <VideoPlayer src={embedUrl} poster={poster} />
           ) : (
             <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
-              <p className="text-muted-foreground">{item.type !== 'movie' ? 'Select an episode to play.' : 'No video available.'}</p>
+              <p className="text-muted-foreground">{item.tmdbId ? 'Loading player...' : 'No TMDB ID found for this content.'}</p>
             </div>
           )}
           
-          {/* Content Details */}
           <div className="space-y-4">
             <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
-            {item.type !== 'movie' && selectedEpisode && (
-              <p className="text-lg text-primary mt-1">{`S${String(selectedSeason?.seasonNumber).padStart(2, '0')}E${String(selectedEpisode?.episodeNumber).padStart(2, '0')}: ${selectedEpisode?.title}`}</p>
-            )}
 
             <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
               {item.imdbRating && (
@@ -287,36 +281,26 @@ export default function WatchPage() {
             <p className="text-base text-foreground/70">
                 {item.description}
             </p>
-
-            {downloadUrl && (
-              <div className="flex items-stretch gap-4">
-                <Button onClick={handleDownload} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
-                  <Download className="mr-2" />
-                  Download
-                </Button>
-                <Button variant="outline" onClick={handleAdOrCopyLink} className="flex-1 px-4" size="default">
-                   {adClicked ? <Check className="mr-2 text-green-500" /> : <Copy className="mr-2" />}
-                  Copy Link
-                </Button>
-              </div>
-            )}
+            
+            <Button onClick={() => window.open(embedUrl, '_blank')} size="default" className="bg-primary hover:bg-primary/90 flex-1 px-4">
+              <Download className="mr-2" />
+              Download / Watch on VidLink
+            </Button>
           </div>
 
-          {/* Episode Selector */}
-          {item.type !== 'movie' && (
+          {item.type !== 'movie' && item.tmdbId && (
             <EpisodeSelector 
-              item={item}
-              selectedSeason={selectedSeason}
-              setSelectedSeason={setSelectedSeason}
-              selectedEpisode={selectedEpisode}
-              setSelectedEpisode={setSelectedEpisode}
+              tmdbId={item.tmdbId}
+              selectedSeasonNum={selectedSeasonNum}
+              setSelectedSeasonNum={setSelectedSeasonNum}
+              selectedEpisodeNum={selectedEpisodeNum}
+              setSelectedEpisodeNum={setSelectedEpisodeNum}
             />
           )}
 
         </div>
       </div>
       
-      {/* Carousels */}
       <div className="space-y-16 py-12">
         {related.length > 0 && (
           <ContentCarousel title="More Like This" items={related} />

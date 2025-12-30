@@ -11,5 +11,3 @@ export async function searchContent(query: string, type: 'movie' | 'webseries' |
 export async function getContentDetails(id: number, type: 'movie' | 'tv') {
   return await getTMDBDetails(id, type);
 }
-
-    
