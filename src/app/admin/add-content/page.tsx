@@ -83,10 +83,10 @@ const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
   description: z.string().min(1, "Description is required."),
   type: z.enum(["movie", "webseries", "drama"]),
-  bannerImageUrl: z.string().url("Please enter a valid URL for the card image."),
-  posterImageUrl: z.string().url("Please enter a valid URL for the poster image.").optional().or(z.literal('')),
+  bannerImageUrl: z.string().min(1, "Please enter a URL for the card image."),
+  posterImageUrl: z.string().optional().or(z.literal('')),
   embedUrl: z.string().optional(),
-  downloadUrl: z.string().url().optional(),
+  downloadUrl: z.string().optional(),
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
@@ -138,7 +138,7 @@ export default function AddContentPage() {
   };
   
   const handleSelectTmdbResult = async (result: any) => {
-    const details = await getContentDetails(result.id, result.media_type === 'tv' ? 'webseries' : 'movie');
+    const details = await getContentDetails(result.id, result.media_type);
     if (details) {
         form.setValue("title", details.title);
         form.setValue("description", details.description);
@@ -251,8 +251,8 @@ export default function AddContentPage() {
     };
 
     if (values.type === 'movie') {
-        if (!values.embedUrl || !values.downloadUrl) {
-            form.setError("embedUrl", { type: 'manual', message: 'Embed and Download URLs are required for movies.' });
+        if (!values.embedUrl) {
+            form.setError("embedUrl", { type: 'manual', message: 'Embed URL/Code is required for movies.' });
             return;
         }
         contentData.embedUrl = values.embedUrl;
