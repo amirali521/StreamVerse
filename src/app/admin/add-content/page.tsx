@@ -96,7 +96,6 @@ export default function AddContentPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const [contentType, setContentType] = useState<"movie" | "webseries" | "drama">("movie");
-  const [useTmdb, setUseTmdb] = useState(false);
   const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
   const [tmdbSearchType, setTmdbSearchType] = useState<"movie" | "webseries" | "drama">("movie");
   const [tmdbSearchResults, setTmdbSearchResults] = useState<any[]>([]);
@@ -138,7 +137,9 @@ export default function AddContentPage() {
   };
   
   const handleSelectTmdbResult = async (result: any) => {
-    const details = await getContentDetails(result.id, result.media_type);
+    const tmdbType = tmdbSearchType === 'movie' ? 'movie' : 'tv';
+    const details = await getContentDetails(result.id, tmdbType);
+
     if (details) {
         form.setValue("title", details.title);
         form.setValue("description", details.description);
@@ -351,7 +352,7 @@ export default function AddContentPage() {
         <CardHeader>
           <CardTitle>Add New Content</CardTitle>
           <CardDescription>
-            Fill out the form to add a new movie, web series, or drama.
+            Fill out the form to add a new movie, web series, or drama. Use TMDB to auto-fill details.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -361,13 +362,51 @@ export default function AddContentPage() {
                     <div>
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                            <h3 className="text-lg font-semibold">General Details</h3>
-                            <div className="flex items-center space-x-2">
-                                <Label htmlFor="tmdb-switch">Auto-fill with TMDB</Label>
-                                <Switch id="tmdb-switch" checked={useTmdb} onCheckedChange={setUseTmdb} />
-                            </div>
                         </div>
 
                         <div className="space-y-6 pt-4">
+                            <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+                                <h4 className="font-semibold text-center">Auto-fill with TMDB</h4>
+                                <div className="flex w-full items-center space-x-2">
+                                    <Select
+                                    value={tmdbSearchType}
+                                    onValueChange={(value) => setTmdbSearchType(value as any)}
+                                >
+                                    <SelectTrigger className="w-[150px]">
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="movie">Movie</SelectItem>
+                                        <SelectItem value="webseries">Web Series</SelectItem>
+                                        <SelectItem value="drama">Drama</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="text"
+                                    placeholder={`Search for a ${tmdbSearchType}...`}
+                                    value={tmdbSearchQuery}
+                                    onChange={(e) => setTmdbSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleTmdbSearch(); }}}
+                                />
+                                <Button type="button" onClick={handleTmdbSearch} disabled={isSearching}>
+                                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                            {tmdbSearchResults.length > 0 && (
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {tmdbSearchResults.map((result) => (
+                                        <button key={result.id} type="button" onClick={() => handleSelectTmdbResult(result)} className="w-full text-left p-2 rounded-md hover:bg-accent flex items-center gap-4">
+                                            <Image src={result.poster_path ? `https://image.tmdb.org/t/p/w92${result.poster_path}` : "/placeholder.svg"} alt="poster" width={40} height={60} className="rounded-sm" />
+                                            <div>
+                                                <p className="font-semibold">{result.title}</p>
+                                                {result.release_date && <p className="text-xs text-muted-foreground">{new Date(result.release_date).getFullYear()}</p>}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            </div>
+
                             <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Content Type</FormLabel>
@@ -380,7 +419,7 @@ export default function AddContentPage() {
                                     } else if (val === 'movie') {
                                       setSeasons([]);
                                     }
-                                }} value={field.value} disabled={useTmdb}>
+                                }} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a content type" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     <SelectItem value="movie">Movie</SelectItem>
@@ -390,64 +429,20 @@ export default function AddContentPage() {
                                 </Select><FormMessage /></FormItem>
                             )} />
 
-                            {useTmdb && (
-                                <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
-                                     <h4 className="font-semibold text-center">Fetch from TMDB</h4>
-                                     <div className="flex w-full items-center space-x-2">
-                                         <Select
-                                            value={tmdbSearchType}
-                                            onValueChange={(value) => setTmdbSearchType(value as any)}
-                                        >
-                                            <SelectTrigger className="w-[150px]">
-                                                <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="movie">Movie</SelectItem>
-                                                <SelectItem value="webseries">Web Series</SelectItem>
-                                                <SelectItem value="drama">Drama</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <Input
-                                            type="text"
-                                            placeholder={`Search for a ${tmdbSearchType}...`}
-                                            value={tmdbSearchQuery}
-                                            onChange={(e) => setTmdbSearchQuery(e.target.value)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleTmdbSearch(); }}}
-                                        />
-                                        <Button type="button" onClick={handleTmdbSearch} disabled={isSearching}>
-                                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                        </Button>
-                                    </div>
-                                    {tmdbSearchResults.length > 0 && (
-                                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                                            {tmdbSearchResults.map((result) => (
-                                                <button key={result.id} type="button" onClick={() => handleSelectTmdbResult(result)} className="w-full text-left p-2 rounded-md hover:bg-accent flex items-center gap-4">
-                                                    <Image src={result.poster_path ? `https://image.tmdb.org/t/p/w92${result.poster_path}` : "/placeholder.svg"} alt="poster" width={40} height={60} className="rounded-sm" />
-                                                    <div>
-                                                        <p className="font-semibold">{result.title}</p>
-                                                        {result.release_date && <p className="text-xs text-muted-foreground">{new Date(result.release_date).getFullYear()}</p>}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
                             <FormField control={form.control} name="title" render={({ field }) => (
-                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Enter content title" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Enter content title" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="categories" render={({ field }) => (
-                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} disabled={useTmdb} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
-                                <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} disabled={useTmdb} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="posterImageUrl" render={({ field }) => (
-                                <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} disabled={useTmdb} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input placeholder="https://example.com/poster.jpg" {...field} /></FormControl><FormDescription>Optional. Used for the hero banner and video player. If blank, the banner image will be used.</FormDescription><FormMessage /></FormItem>
                             )} />
                             {contentType === 'movie' && (
                                 <div className="space-y-4">
