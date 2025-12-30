@@ -4,6 +4,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
+import { Button } from "@/components/ui/button";
+import { LayoutDashboard, PlusCircle, Bot } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -25,6 +29,35 @@ function LogoIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+function AdminHeader() {
+  const pathname = usePathname();
+  const navItems = [
+    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/add-content", label: "Add Manually", icon: PlusCircle },
+    { href: "/admin/assistant", label: "AI Assistant", icon: Bot },
+  ];
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <Link href="/" className="flex items-center space-x-2 text-foreground">
+        <LogoIcon className="h-8 w-8" />
+        <span className="font-bold font-headline text-3xl">StreamVerse</span>
+      </Link>
+      <div className="flex items-center gap-2 rounded-lg bg-card p-1 border">
+        {navItems.map(item => (
+           <Button key={item.href} asChild variant={pathname === item.href ? "secondary" : "ghost"} className="gap-2">
+            <Link href={item.href}>
+              <item.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{item.label}</span>
+            </Link>
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { isAdmin, isLoading } = useAdminStatus();
@@ -48,18 +81,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col min-h-full items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-4xl space-y-8">
-        <div className="flex justify-center">
-            <Link href="/" className="flex items-center space-x-2 text-foreground">
-                <LogoIcon className="h-8 w-8" />
-                <span className="font-bold font-headline text-3xl">StreamVerse</span>
-            </Link>
-        </div>
+    <div className="flex flex-col min-h-full items-center justify-start p-4 bg-background">
+      <div className="w-full max-w-5xl space-y-8">
+        <AdminHeader />
         {children}
       </div>
     </div>
   );
 }
-
-    
