@@ -39,6 +39,8 @@ import { Search, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { searchContent, getContentDetails } from "./actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const contentSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -58,6 +60,7 @@ export default function AddContentPage() {
   const router = useRouter();
   const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
   const [tmdbSearchType, setTmdbSearchType] = useState<"movie" | "webseries" | "drama">("movie");
+  const [tmdbSearchIsDubbed, setTmdbSearchIsDubbed] = useState(false);
   const [tmdbSearchResults, setTmdbSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
@@ -80,7 +83,7 @@ export default function AddContentPage() {
   const handleTmdbSearch = async () => {
     if (!tmdbSearchQuery) return;
     setIsSearching(true);
-    const results = await searchContent(tmdbSearchQuery, tmdbSearchType);
+    const results = await searchContent(tmdbSearchQuery, tmdbSearchType, tmdbSearchIsDubbed);
     setTmdbSearchResults(results);
     setIsSearching(false);
   };
@@ -94,7 +97,20 @@ export default function AddContentPage() {
         form.setValue("title", details.title);
         form.setValue("description", details.description);
         form.setValue("imdbRating", Number(details.imdbRating));
-        form.setValue("categories", details.categories.join(", "));
+        
+        let currentCategories = form.getValues("categories") || "";
+        let newCategories = details.categories || [];
+
+        if (tmdbSearchIsDubbed && !newCategories.some((c: string) => c.toLowerCase() === 'hindi dubbed')) {
+          newCategories.push("Hindi Dubbed");
+        }
+        
+        const combinedCategories = [...currentCategories.split(',').map(c => c.trim()), ...newCategories]
+            .filter((value, index, self) => self.findIndex(v => v.toLowerCase() === value.toLowerCase()) === index && value)
+            .join(', ');
+        
+        form.setValue("categories", combinedCategories);
+        
         form.setValue("bannerImageUrl", details.bannerImageUrl);
         form.setValue("posterImageUrl", details.posterImageUrl);
         
@@ -188,6 +204,12 @@ export default function AddContentPage() {
                                     {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                 </Button>
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="dubbed-search" checked={tmdbSearchIsDubbed} onCheckedChange={(checked) => setTmdbSearchIsDubbed(!!checked)} />
+                                <Label htmlFor="dubbed-search" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Search for Hindi Dubbed version
+                                </Label>
+                            </div>
                             {tmdbSearchResults.length > 0 && (
                                 <div className="space-y-2 max-h-60 overflow-y-auto">
                                     {tmdbSearchResults.map((result) => (
@@ -208,7 +230,7 @@ export default function AddContentPage() {
                                     <FormControl>
                                         <Input placeholder="Auto-filled from TMDB Search" {...field} readOnly />
                                     </FormControl>
-                                    <FormDescription>This ID is used to source video from VidLink.</FormDescription>
+                                    <FormDescription>This ID is used to source video from VidLink and other multi-sources.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -219,10 +241,10 @@ export default function AddContentPage() {
                                     <FormItem>
                                         <FormLabel>Embed URL / Code (Optional Override)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
+                                            <Input placeholder="Paste Doodstream, Mixdrop link, etc." {...field} />
                                         </FormControl>
                                         <FormDescription>
-                                            Use this to manually provide a video source. If filled, this will be used instead of the TMDB source.
+                                            If VidLink fails or for specific versions (like Hindi Dubbed), paste a source URL here. This will be used first.
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>
@@ -247,7 +269,7 @@ export default function AddContentPage() {
                                 <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Enter a short description" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="categories" render={({ field }) => (
-                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Romance" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Categories / Tags</FormLabel><FormControl><Input placeholder="e.g. Bollywood, Action, Hindi Dubbed" {...field} /></FormControl><FormDescription>Enter comma-separated tags.</FormDescription><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
                                 <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormDescription>Used for carousels and grids.</FormDescription><FormMessage /></FormItem>
