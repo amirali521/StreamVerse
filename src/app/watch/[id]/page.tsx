@@ -11,7 +11,7 @@ import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer, type VideoSource } from "@/components/video-player";
 import { generateSourceUrls } from "@/lib/video-sources";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 
 // A version of the Content type for client-side processing with JS Dates
@@ -88,7 +88,7 @@ function EpisodeSelector({
         if (hasManualEpisodes) {
             return content.seasons!.map(s => ({
                 seasonNumber: s.seasonNumber,
-                episodes: s.episodes.map(e => ({ episodeNumber: e.episodeNumber }))
+                episodes: s.episodes.map(e => ({ episodeNumber: e.episodeNumber, downloadUrl: e.downloadUrl }))
             })).sort((a,b) => a.seasonNumber - b.seasonNumber);
         }
         return tmdbSeasons.map(s => ({
@@ -101,6 +101,8 @@ function EpisodeSelector({
     const sortedEpisodes = useMemo(() => {
         return selectedSeasonData?.episodes?.sort((a, b) => a.episodeNumber - b.episodeNumber) || [];
     }, [selectedSeasonData]);
+
+    const selectedEpisodeData = sortedEpisodes.find(e => e.episodeNumber === selectedEpisodeNum);
 
     // Pagination logic
     const totalPages = Math.ceil(sortedEpisodes.length / EPISODES_PER_PAGE);
@@ -139,7 +141,17 @@ function EpisodeSelector({
   return (
     <Card className="bg-background/80 border-0 md:border md:bg-card mt-6">
       <CardHeader>
-        <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
+        <div className="flex justify-between items-center">
+         <CardTitle className="text-xl">Seasons & Episodes</CardTitle>
+          {selectedEpisodeData?.downloadUrl && (
+              <Button asChild variant="outline">
+                <a href={selectedEpisodeData.downloadUrl} target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Ep {selectedEpisodeNum}
+                </a>
+              </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -346,7 +358,17 @@ export default function WatchPage() {
           )}
           
           <div className="space-y-4">
-            <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
+             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
+              {item.type === 'movie' && item.downloadUrl && (
+                  <Button asChild>
+                    <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Movie
+                    </a>
+                  </Button>
+              )}
+            </div>
 
             <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
               {item.imdbRating && (
@@ -391,5 +413,3 @@ export default function WatchPage() {
     </div>
   );
 }
-
-    

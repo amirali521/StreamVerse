@@ -50,6 +50,7 @@ const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   embedUrl: z.string().min(1, "Embed URL is required."),
+  downloadUrl: z.string().optional(),
 });
 
 const seasonSchema = z.object({
@@ -67,6 +68,7 @@ const editContentSchema = z.object({
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   embedUrl: z.string().optional(), // For Movies
+  downloadUrl: z.string().optional(), // For Movie downloads
   seasons: z.array(seasonSchema).optional(), // For Series
 });
 
@@ -156,8 +158,19 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL</FormLabel>
+                                <FormLabel>Embed URL (Streaming)</FormLabel>
                                 <FormControl><Input placeholder="Paste video link here" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.downloadUrl`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Download URL (Optional)</FormLabel>
+                                <FormControl><Input placeholder="Paste direct download link" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -171,7 +184,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "" })}
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "", downloadUrl: "" })}
             >
                 Add Episode
             </Button>
@@ -193,6 +206,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
             embedUrl: contentItem.embedUrl || "",
+            downloadUrl: contentItem.downloadUrl || "",
             seasons: contentItem.seasons || [],
         },
     });
@@ -217,6 +231,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
 
         if (contentType === 'movie') {
             updatedData.embedUrl = values.embedUrl || "";
+            updatedData.downloadUrl = values.downloadUrl || "";
         } else {
             updatedData.seasons = values.seasons || [];
         }
@@ -237,22 +252,40 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {contentType === 'movie' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="embedUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL / Code (Movie Override)</FormLabel>
+                                <FormLabel>Embed URL (Movie Override)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Paste Doodstream link, iframe, etc." {...field} />
+                                    <Input placeholder="Paste Doodstream link, etc." {...field} />
                                 </FormControl>
                                 <FormDescription>
-                                    If filled, this source will be used instead of the default TMDB source.
+                                    Overrides the automatic source.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
+                     <FormField
+                        control={form.control}
+                        name="downloadUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Download URL (Movie, Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Paste direct download link" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Adds a download button.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    </div>
                 )}
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
