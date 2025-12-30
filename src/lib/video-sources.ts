@@ -13,9 +13,19 @@ export const videoSources: VideoSource[] = [
     seriesUrlTemplate: 'https://vidlink.pro/tv/{tmdbId}/{season}/{episode}',
   },
   {
-    name: '2Embed',
+    name: 'AutoEmbed',
+    movieUrlTemplate: 'https://autoembed.cc/movie?tmdb={tmdbId}',
+    seriesUrlTemplate: 'https://autoembed.cc/tv?tmdb={tmdbId}&s={season}&e={episode}',
+  },
+  {
+    name: '2Embed.cc',
     movieUrlTemplate: 'https://www.2embed.cc/embed/{tmdbId}',
     seriesUrlTemplate: 'https://www.2embed.cc/embedtv/{tmdbId}&s={season}&e={episode}',
+  },
+  {
+    name: '2Embed.skin',
+    movieUrlTemplate: 'https://www.2embed.skin/embed/{tmdbId}',
+    seriesUrlTemplate: 'https://www.2embed.skin/embedtv/{tmdbId}&s={season}&e={episode}',
   },
   {
     name: 'SmashyStream',
