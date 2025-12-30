@@ -450,13 +450,13 @@ export default function AddContentPage() {
                                 <FormItem>
                                     <FormLabel>Embed URL / Code</FormLabel>
                                     <FormControl><Input placeholder="Paste embed link or <iframe> code" {...field} /></FormControl>
-                                    <FormDescription>The URL for the video player (e.g., from Doodstream, Mixdrop).</FormDescription><FormMessage /></FormItem>
+                                    <FormDescription>The URL for the video player (e.g., from Vidlinks Pro, Doodstream).</FormDescription><FormMessage /></FormItem>
                                 )} />
                                  <FormField control={form.control} name="downloadUrl" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Download URL</FormLabel>
                                     <FormControl><Input placeholder="Paste direct download link" {...field} /></FormControl>
-                                    <FormDescription>The direct link to the video file for downloading.</FormDescription><FormMessage /></FormItem>
+                                    <FormDescription>The direct link for downloading (e.g., from Vidlinks Pro).</FormDescription><FormMessage /></FormItem>
                                 )} />
                                 </div>
                             )}
