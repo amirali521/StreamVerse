@@ -146,6 +146,18 @@ export default function AddContentPage() {
         form.setValue("categories", details.categories.join(", "));
         form.setValue("bannerImageUrl", details.bannerImageUrl);
         form.setValue("posterImageUrl", details.posterImageUrl);
+        
+        // Auto-select the content type in the main form
+        const selectedType = tmdbSearchType as "movie" | "webseries" | "drama";
+        form.setValue("type", selectedType);
+        setContentType(selectedType);
+
+        if (selectedType !== 'movie' && seasons.length === 0) {
+            setSeasons([{ seasonNumber: 1, episodes: [] }]);
+        } else if (selectedType === 'movie') {
+            setSeasons([]);
+        }
+
         setTmdbSearchResults([]);
         setTmdbSearchQuery(details.title);
     }
@@ -368,7 +380,7 @@ export default function AddContentPage() {
                                     } else if (val === 'movie') {
                                       setSeasons([]);
                                     }
-                                }} defaultValue={field.value} disabled={useTmdb}>
+                                }} value={field.value} disabled={useTmdb}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a content type" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     <SelectItem value="movie">Movie</SelectItem>
@@ -454,7 +466,7 @@ export default function AddContentPage() {
                                 </div>
                             )}
                             <FormField control={form.control} name="imdbRating" render={({ field }) => (
-                                <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} disabled={useTmdb} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" min="0" max="10" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="isFeatured" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
