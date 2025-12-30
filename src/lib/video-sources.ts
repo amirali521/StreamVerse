@@ -22,12 +22,16 @@ export const videoSources: VideoSource[] = [
     movieUrlTemplate: 'https://player.smashy.stream/movie/{tmdbId}',
     seriesUrlTemplate: 'https://player.smashy.stream/tv/{tmdbId}/{season}/{episode}',
   },
-  // Add other sources here in the future
-  // {
-  //   name: 'SuperEmbed',
-  //   movieUrlTemplate: 'https://superembed.stream/movie/{tmdbId}',
-  //   seriesUrlTemplate: 'https://superembed.stream/tv/{tmdbId}-{season}-{episode}',
-  // },
+  {
+    name: 'SuperEmbed',
+    movieUrlTemplate: 'https://superembed.stream/movie/{tmdbId}',
+    seriesUrlTemplate: 'https://superembed.stream/tv/{tmdbId}-{season}-{episode}',
+  },
+  {
+    name: 'MoviesAPI',
+    movieUrlTemplate: 'https://moviesapi.club/movie/{tmdbId}',
+    seriesUrlTemplate: 'https://moviesapi.club/tv/{tmdbId}-{season}-{episode}',
+  }
 ];
 
 export function generateSourceUrls(
@@ -56,4 +60,3 @@ export function generateSourceUrls(
 
   return sources;
 }
-
