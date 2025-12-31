@@ -72,7 +72,10 @@ export function AdInterstitial() {
 
   useEffect(() => {
     const handleBlur = () => {
+      // When the window loses focus, try to bring it back.
+      // This helps counter the pop-under effect.
       if (isAdVisible) {
+        window.focus();
         setShowCloseButton(true);
       }
     };
