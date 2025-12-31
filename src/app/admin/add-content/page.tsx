@@ -35,7 +35,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Search, Loader2, Plus, Trash2 } from "lucide-react";
+import { Search, Loader2, Plus, Trash2, Palette } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { searchContent, getContentDetails } from "./actions";
@@ -43,11 +43,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+const playerSettingsSchema = z.object({
+  primaryColor: z.string().optional(),
+  autoplay: z.boolean().optional(),
+  loop: z.boolean().optional(),
+});
 
 const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   embedUrl: z.string().min(1, "Embed URL is required."),
+  playerSettings: playerSettingsSchema.optional(),
 });
 
 const seasonSchema = z.object({
@@ -68,8 +74,58 @@ const contentSchema = z.object({
   tmdbId: z.coerce.number().optional(),
   downloadUrl: z.string().optional(), // For any content type
   embedUrl: z.string().optional(), // For movies only
+  playerSettings: playerSettingsSchema.optional(), // For movie embedUrl
   seasons: z.array(seasonSchema).optional(), // For series/dramas
 });
+
+function PlayerSettingsFields({ basePath, control }: { basePath: string, control: any }) {
+    return (
+        <div className="space-y-3 rounded-lg border bg-muted/20 p-3 mt-2">
+            <h5 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Bunny.net Player Settings</h5>
+            <FormField
+                control={control}
+                name={`${basePath}.primaryColor`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Primary Color</FormLabel>
+                        <FormControl>
+                            <div className="flex items-center gap-2">
+                                <Input type="color" className="w-12 h-10 p-1" {...field} />
+                                <Input className="w-auto flex-1" placeholder="#8A2BE2" {...field} />
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <div className="flex gap-4">
+               <FormField
+                    control={control}
+                    name={`${basePath}.autoplay`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel>Autoplay</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name={`${basePath}.loop`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel>Loop</FormLabel>
+                        </FormItem>
+                    )}
+                />
+            </div>
+             <FormDescription className="text-xs">
+                These settings apply to Bunny.net video URLs.
+            </FormDescription>
+        </div>
+    );
+}
 
 
 function SeasonsEpisodesField({ control, getValues }: { control: any, getValues: any }) {
@@ -163,6 +219,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             </FormItem>
                         )}
                     />
+                    <PlayerSettingsFields basePath={`seasons.${seasonIndex}.episodes.${episodeIndex}.playerSettings`} control={control} />
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
                         Remove Episode
                     </Button>
@@ -274,6 +331,7 @@ export default function AddContentPage() {
     
     if (values.type === 'movie') {
         contentData.embedUrl = values.embedUrl || "";
+        contentData.playerSettings = values.playerSettings || {};
     } else {
         contentData.seasons = values.seasons || [];
     }
@@ -397,12 +455,13 @@ export default function AddContentPage() {
                                         <FormItem>
                                             <FormLabel>Embed URL / Code (Movie Override)</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Paste Doodstream, Mixdrop link, etc." {...field} />
+                                                <Input placeholder="Paste Doodstream, Mixdrop, Bunny.net link, etc." {...field} />
                                             </FormControl>
                                             <FormDescription>
                                                 For movies, this will override the automatic TMDB source fetching.
                                             </FormDescription>
                                             <FormMessage />
+                                             <PlayerSettingsFields basePath="playerSettings" control={form.control} />
                                         </FormItem>
                                     )}
                                 />

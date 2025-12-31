@@ -1,10 +1,17 @@
 
 import type { Timestamp } from "firebase/firestore";
 
+export interface PlayerSettings {
+  primaryColor?: string;
+  autoplay?: boolean;
+  loop?: boolean;
+}
+
 export interface Episode {
   episodeNumber: number;
   title?: string;
   embedUrl: string;
+  playerSettings?: PlayerSettings;
 }
 
 export interface Season {
@@ -27,6 +34,7 @@ export interface Content {
   tmdbId?: number;
   downloadUrl?: string; // Universal download link
   embedUrl?: string; // For movies only
+  playerSettings?: PlayerSettings; // For movie embedUrl
   seasons?: Season[]; // For series/dramas
 }
 

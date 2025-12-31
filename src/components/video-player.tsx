@@ -5,10 +5,13 @@ import { useEffect, useState, useRef } from 'react';
 import { createEmbedUrl, getSrcFromIframe } from '@/lib/utils';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
+import type { PlayerSettings } from '@/lib/types';
+
 
 export interface VideoSource {
     name: string;
     url: string;
+    settings?: PlayerSettings;
 }
 
 interface VideoPlayerProps {
@@ -24,8 +27,28 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   
   const currentSource = sources[currentSourceIndex];
   
-  // Determine the final URL to use, whether it's a direct URL or extracted from an iframe snippet.
-  const videoUrl = currentSource ? createEmbedUrl(getSrcFromIframe(currentSource.url)) : "";
+  // Apply player settings to Bunny.net URLs
+  const videoUrl = useMemo(() => {
+    if (!currentSource) return "";
+    let url = getSrcFromIframe(currentSource.url);
+    url = createEmbedUrl(url);
+
+    if (url.includes('b-cdn.net') && currentSource.settings) {
+        const urlObject = new URL(url);
+        if (currentSource.settings.primaryColor) {
+            urlObject.searchParams.set('primaryColor', currentSource.settings.primaryColor.substring(1)); // remove #
+        }
+        if (currentSource.settings.autoplay) {
+            urlObject.searchParams.set('autoplay', 'true');
+        }
+        if (currentSource.settings.loop) {
+            urlObject.searchParams.set('loop', 'true');
+        }
+        return urlObject.toString();
+    }
+
+    return url;
+  }, [currentSource]);
 
   useEffect(() => {
     // Reset state when sources array changes or a new source is selected

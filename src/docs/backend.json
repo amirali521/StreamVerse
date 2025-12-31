@@ -27,6 +27,25 @@
       },
       "required": ["displayName", "email"]
     },
+    "PlayerSettings": {
+      "title": "Player Settings",
+      "description": "Customization settings for the video player, particularly for Bunny.net.",
+      "type": "object",
+      "properties": {
+        "primaryColor": {
+          "type": "string",
+          "description": "The primary accent color for the player UI (hex code)."
+        },
+        "autoplay": {
+          "type": "boolean",
+          "description": "Whether the video should autoplay."
+        },
+        "loop": {
+          "type": "boolean",
+          "description": "Whether the video should loop."
+        }
+      }
+    },
     "Episode": {
         "title": "Episode",
         "description": "Represents a single episode within a season.",
@@ -41,6 +60,9 @@
             "embedUrl": {
                 "type": "string",
                 "format": "uri"
+            },
+            "playerSettings": {
+                "$ref": "#/entities/PlayerSettings"
             }
         },
         "required": ["episodeNumber", "embedUrl"]
@@ -114,6 +136,10 @@
             "format": "uri",
             "description": "Optional direct embed URL (for movies) or iframe code. This will be used instead of automated sources if provided."
         },
+        "playerSettings": {
+            "$ref": "#/entities/PlayerSettings",
+            "description": "Player customization settings for the movie's embedUrl."
+        },
         "downloadUrl": {
             "type": "string",
             "format": "uri",
@@ -154,5 +180,4 @@
     }
   }
 }
-
     
