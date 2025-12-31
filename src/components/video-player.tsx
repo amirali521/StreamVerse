@@ -37,7 +37,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
         const settings = currentSource.settings;
 
         if (settings.primaryColor) {
-            urlObject.searchParams.set('primaryColor', settings.primaryColor.substring(1)); // remove #
+            urlObject.searchParams.set('primaryColor', settings.primaryColor.replace('#', ''));
         }
         if (settings.autoplay) urlObject.searchParams.set('autoplay', 'true');
         if (settings.loop) urlObject.searchParams.set('loop', 'true');
@@ -89,7 +89,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
 
   return (
     <div className="w-full space-y-4">
-        <div className="w-full aspect-video bg-black relative rounded-lg overflow-hidden border border-muted/20 video-player-container">
+        <div className="w-full h-[60vh] bg-black relative rounded-lg overflow-hidden border border-muted/20 video-player-container">
             {isLoading && !error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -141,5 +141,3 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
     </div>
   );
 }
-
-    
