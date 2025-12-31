@@ -70,7 +70,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
 
   return (
     <div className="w-full space-y-4">
-        <div className="w-full aspect-video bg-black relative rounded-lg overflow-hidden border border-muted/20">
+        <div className="w-full aspect-video bg-black relative rounded-lg overflow-hidden border border-muted/20 video-player-container">
             {isLoading && !error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -93,7 +93,6 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                  <div
                     className={`w-full h-full transition-opacity duration-300 ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
                     dangerouslySetInnerHTML={{ __html: currentSource.url }}
-                    onLoad={handleLoad} // This might not fire consistently for nested iframes
                  ></div>
               ) : (
                 <iframe
