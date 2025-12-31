@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { createEmbedUrl } from '@/lib/utils';
+import { createEmbedUrl, getSrcFromIframe } from '@/lib/utils';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
 
@@ -16,25 +16,6 @@ interface VideoPlayerProps {
   poster?: string;
 }
 
-function IframeRenderer({ html }: { html: string }) {
-    const iframeRef = useRef<HTMLIFrameElement>(null);
-
-    useEffect(() => {
-        if (iframeRef.current) {
-            const doc = iframeRef.current.contentWindow?.document;
-            if (doc) {
-                doc.open();
-                doc.write(html);
-                doc.close();
-            }
-        }
-    }, [html]);
-
-    // This is a simple container iframe. The actual player iframe will be written inside it.
-    return <iframe ref={iframeRef} title="Embedded video player" className="w-full h-full" frameBorder="0" allowFullScreen />;
-}
-
-
 export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +23,9 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const currentSource = sources[currentSourceIndex];
-  const isIframeSnippet = currentSource?.url.trim().startsWith('<iframe');
+  
+  // Determine the final URL to use, whether it's a direct URL or extracted from an iframe snippet.
+  const videoUrl = currentSource ? createEmbedUrl(getSrcFromIframe(currentSource.url)) : "";
 
   useEffect(() => {
     // Reset state when sources array changes or a new source is selected
@@ -89,16 +72,10 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
             )}
             
             {currentSource && (
-              isIframeSnippet ? (
-                 <div
-                    className={`w-full h-full transition-opacity duration-300 ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
-                    dangerouslySetInnerHTML={{ __html: currentSource.url }}
-                 ></div>
-              ) : (
                 <iframe
-                    key={currentSource.url} // This is crucial to force re-render the iframe when the source changes
+                    key={videoUrl} // This is crucial to force re-render the iframe when the source changes
                     ref={iframeRef}
-                    src={createEmbedUrl(currentSource.url)}
+                    src={videoUrl}
                     title="Embedded video player"
                     frameBorder="0"
                     allow="autoplay; fullscreen; picture-in-picture"
@@ -107,7 +84,6 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                     onLoad={handleLoad}
                     onError={handleError}
                 ></iframe>
-              )
             )}
         </div>
         
