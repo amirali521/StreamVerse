@@ -16,6 +16,25 @@ interface VideoPlayerProps {
   poster?: string;
 }
 
+function IframeRenderer({ html }: { html: string }) {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    useEffect(() => {
+        if (iframeRef.current) {
+            const doc = iframeRef.current.contentWindow?.document;
+            if (doc) {
+                doc.open();
+                doc.write(html);
+                doc.close();
+            }
+        }
+    }, [html]);
+
+    // This is a simple container iframe. The actual player iframe will be written inside it.
+    return <iframe ref={iframeRef} title="Embedded video player" className="w-full h-full" frameBorder="0" allowFullScreen />;
+}
+
+
 export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,6 +42,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const currentSource = sources[currentSourceIndex];
+  const isIframeSnippet = currentSource?.url.trim().startsWith('<iframe');
 
   useEffect(() => {
     // Reset state when sources array changes or a new source is selected
@@ -69,6 +89,13 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
             )}
             
             {currentSource && (
+              isIframeSnippet ? (
+                 <div
+                    className={`w-full h-full transition-opacity duration-300 ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
+                    dangerouslySetInnerHTML={{ __html: currentSource.url }}
+                    onLoad={handleLoad} // This might not fire consistently for nested iframes
+                 ></div>
+              ) : (
                 <iframe
                     key={currentSource.url} // This is crucial to force re-render the iframe when the source changes
                     ref={iframeRef}
@@ -81,6 +108,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                     onLoad={handleLoad}
                     onError={handleError}
                 ></iframe>
+              )
             )}
         </div>
         

@@ -6,22 +6,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function createEmbedUrl(urlOrIframe: string): string {
-  if (!urlOrIframe || typeof urlOrIframe !== 'string') {
+export function createEmbedUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
     return "";
-  }
-  
-  let url = urlOrIframe;
-
-  // Check if the input is an iframe tag
-  if (url.trim().startsWith('<iframe')) {
-    const srcMatch = url.match(/src="([^"]*)"/);
-    if (srcMatch && srcMatch[1]) {
-      url = srcMatch[1];
-    } else {
-      // If no src is found, return empty to avoid a broken player
-      return "";
-    }
   }
 
   // Handle protocol-relative URLs (e.g., //mxdrop.to/...)
@@ -44,7 +31,7 @@ export function createEmbedUrl(urlOrIframe: string): string {
     if (hostname.includes('mixdrop')) {
       // It's a Mixdrop link. Convert '/f/' to '/e/'
        if (path.startsWith('/f/')) {
-        return `https://${hostname}/e/${path.substring(3)}`;
+        return `https://mixdrop.co/e/${path.substring(3)}`;
       }
     }
     
@@ -53,7 +40,7 @@ export function createEmbedUrl(urlOrIframe: string): string {
     
   } catch (error) {
     console.error("Invalid URL for createEmbedUrl:", error);
-    // If URL is invalid, return it as is and let the iframe handle it.
+    // If URL is invalid, it might be a snippet or something else, return as is.
     return url;
   }
 }
