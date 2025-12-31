@@ -46,6 +46,16 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
         if (typeof settings.volume === 'number') {
             urlObject.searchParams.set('volume', String(settings.volume));
         }
+        if (settings.customCss) {
+            urlObject.searchParams.set('customCss', settings.customCss);
+        }
+        if (settings.resume) {
+            urlObject.searchParams.set('resume', 'true');
+        }
+        if (settings.heatmap) {
+            urlObject.searchParams.set('watchTime', 'true');
+        }
+
 
         return urlObject.toString();
     }
@@ -131,3 +141,5 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
     </div>
   );
 }
+
+    

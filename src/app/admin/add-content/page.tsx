@@ -35,7 +35,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Search, Loader2, Plus, Trash2, Palette, Keyboard, Volume2 } from "lucide-react";
+import { Search, Loader2, Plus, Trash2, Palette, Keyboard, Volume2, Eye, GitBranch, Code } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { searchContent, getContentDetails } from "./actions";
@@ -51,6 +51,9 @@ const playerSettingsSchema = z.object({
   muted: z.boolean().optional(),
   hotkeys: z.boolean().optional(),
   volume: z.number().min(0).max(1).optional(),
+  customCss: z.string().optional(),
+  resume: z.boolean().optional(),
+  heatmap: z.boolean().optional(),
 });
 
 const episodeSchema = z.object({
@@ -119,6 +122,18 @@ function PlayerSettingsFields({ basePath, control }: { basePath: string, control
                     </FormItem>
                 )}
             />
+             <FormField
+                control={control}
+                name={`${basePath}.customCss`}
+                render={({ field }) => (
+                    <FormItem>
+                         <FormLabel className="flex items-center gap-2"><Code className="w-4 h-4" /> Custom CSS</FormLabel>
+                         <FormControl>
+                            <Textarea placeholder="body { background-color: #000; }" {...field} />
+                         </FormControl>
+                    </FormItem>
+                )}
+            />
             <div className="flex flex-wrap gap-x-4 gap-y-2">
                <FormField
                     control={control}
@@ -157,6 +172,26 @@ function PlayerSettingsFields({ basePath, control }: { basePath: string, control
                         <FormItem className="flex items-center gap-2 space-y-0">
                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             <FormLabel className="flex items-center gap-1"><Keyboard className="w-4 h-4" /> Hotkeys</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name={`${basePath}.heatmap`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel className="flex items-center gap-1"><Eye className="w-4 h-4" /> Heatmap</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name={`${basePath}.resume`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel className="flex items-center gap-1"><GitBranch className="w-4 h-4" /> Resumable</FormLabel>
                         </FormItem>
                     )}
                 />

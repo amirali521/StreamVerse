@@ -8,6 +8,9 @@ export interface PlayerSettings {
   muted?: boolean;
   hotkeys?: boolean;
   volume?: number;
+  customCss?: string;
+  resume?: boolean;
+  heatmap?: boolean;
 }
 
 export interface Episode {

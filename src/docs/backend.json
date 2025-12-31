@@ -55,6 +55,18 @@
         "volume": {
             "type": "number",
             "description": "Default volume from 0 to 1."
+        },
+        "customCss": {
+          "type": "string",
+          "description": "Custom CSS rules to apply to the player."
+        },
+        "resume": {
+            "type": "boolean",
+            "description": "Whether the player should remember the last playback position."
+        },
+        "heatmap": {
+            "type": "boolean",
+            "description": "Whether to display the watchtime heatmap on the progress bar."
         }
       }
     },
@@ -192,4 +204,5 @@
     }
   }
 }
+
     
