@@ -4,7 +4,7 @@
 import { notFound, useParams } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { doc, getDoc, collection, getDocs, type Timestamp } from "firebase/firestore";
-import type { Content as ContentType, Season, Episode, PlayerSettings } from "@/lib/types";
+import type { Content as ContentType, Season, Episode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContentCarousel } from "@/components/content-carousel";
@@ -215,13 +215,10 @@ export default function WatchPage() {
   
   const videoSources: VideoSource[] = useMemo(() => {
     if (!item) return [];
-    
-    let settings: PlayerSettings | undefined;
 
     // Highest priority: manual override URL.
     if (item.type === 'movie' && item.embedUrl) {
-      settings = item.playerSettings;
-      return [{ name: 'Manual Override', url: item.embedUrl, settings }];
+      return [{ name: 'Manual Override', url: item.embedUrl }];
     }
     
     // Second priority: manual episode-specific URL for series.
@@ -229,8 +226,7 @@ export default function WatchPage() {
       const manualSeason = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
       const manualEpisode = manualSeason?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
       if (manualEpisode?.embedUrl) {
-        settings = manualEpisode.playerSettings;
-        return [{ name: 'Manual Override', url: manualEpisode.embedUrl, settings }];
+        return [{ name: 'Manual Override', url: manualEpisode.embedUrl }];
       }
     }
 

@@ -6,7 +6,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, MoreVertical, Plus, Palette, Keyboard, Volume2, Eye, GitBranch, Code } from "lucide-react";
+import { Edit, Trash2, Search, MoreVertical, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,26 +45,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Content, Season, Episode } from "@/lib/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
-
-const playerSettingsSchema = z.object({
-  primaryColor: z.string().optional(),
-  autoplay: z.boolean().optional(),
-  loop: z.boolean().optional(),
-  muted: z.boolean().optional(),
-  hotkeys: z.boolean().optional(),
-  volume: z.number().min(0).max(1).optional(),
-  customCss: z.string().optional(),
-  resume: z.boolean().optional(),
-  heatmap: z.boolean().optional(),
-});
 
 const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   embedUrl: z.string().min(1, "Embed URL is required."),
-  playerSettings: playerSettingsSchema.optional(),
 });
 
 const seasonSchema = z.object({
@@ -83,127 +68,8 @@ const editContentSchema = z.object({
   isFeatured: z.boolean().optional(),
   downloadUrl: z.string().optional(), // For any content type
   embedUrl: z.string().optional(), // For movies only
-  playerSettings: playerSettingsSchema.optional(),
   seasons: z.array(seasonSchema).optional(), // For Series
 });
-
-function PlayerSettingsFields({ basePath, control }: { basePath: string, control: any }) {
-    return (
-        <div className="space-y-4 rounded-lg border bg-muted/20 p-3 mt-2">
-            <h5 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Bunny.net Player Settings</h5>
-            <FormField
-                control={control}
-                name={`${basePath}.primaryColor`}
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Primary Color</FormLabel>
-                        <FormControl>
-                            <div className="flex items-center gap-2">
-                                <Input type="color" className="w-12 h-10 p-1" {...field} />
-                                <Input className="w-auto flex-1" placeholder="#8A2BE2" {...field} />
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={control}
-                name={`${basePath}.volume`}
-                render={({ field }) => (
-                    <FormItem>
-                         <FormLabel className="flex items-center gap-2"><Volume2 className="w-4 h-4" /> Volume</FormLabel>
-                         <FormControl>
-                            <Slider
-                                defaultValue={[field.value ?? 1]}
-                                max={1}
-                                step={0.1}
-                                onValueChange={(value) => field.onChange(value[0])}
-                            />
-                         </FormControl>
-                    </FormItem>
-                )}
-            />
-              <FormField
-                control={control}
-                name={`${basePath}.customCss`}
-                render={({ field }) => (
-                    <FormItem>
-                         <FormLabel className="flex items-center gap-2"><Code className="w-4 h-4" /> Custom CSS</FormLabel>
-                         <FormControl>
-                            <Textarea placeholder="body { background-color: #000; }" {...field} />
-                         </FormControl>
-                    </FormItem>
-                )}
-            />
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-               <FormField
-                    control={control}
-                    name={`${basePath}.autoplay`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel>Autoplay</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name={`${basePath}.loop`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel>Loop</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name={`${basePath}.muted`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel>Muted</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={control}
-                    name={`${basePath}.hotkeys`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel className="flex items-center gap-1"><Keyboard className="w-4 h-4" /> Hotkeys</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name={`${basePath}.heatmap`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel className="flex items-center gap-1"><Eye className="w-4 h-4" /> Heatmap</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name={`${basePath}.resume`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <FormLabel className="flex items-center gap-1"><GitBranch className="w-4 h-4" /> Resumable</FormLabel>
-                        </FormItem>
-                    )}
-                />
-            </div>
-             <FormDescription className="text-xs pt-2">
-                These settings only apply to video URLs from Bunny.net.
-            </FormDescription>
-        </div>
-    );
-}
 
 
 function SeasonsEpisodesField({ control, getValues }: { control: any, getValues: any }) {
@@ -297,7 +163,6 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             </FormItem>
                         )}
                     />
-                    <PlayerSettingsFields basePath={`seasons.${seasonIndex}.episodes.${episodeIndex}.playerSettings`} control={control} />
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
                         Remove Episode
                     </Button>
@@ -330,7 +195,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             isFeatured: contentItem.isFeatured || false,
             downloadUrl: contentItem.downloadUrl || "",
             embedUrl: contentItem.embedUrl || "",
-            playerSettings: contentItem.playerSettings || { primaryColor: '#8A2BE2', autoplay: false, loop: false, volume: 1, hotkeys: true, muted: false, resume: true, heatmap: false },
             seasons: contentItem.seasons || [],
         },
     });
@@ -356,7 +220,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
 
         if (contentType === 'movie') {
             updatedData.embedUrl = values.embedUrl || "";
-            updatedData.playerSettings = values.playerSettings || {};
         } else {
             updatedData.seasons = values.seasons || [];
         }
@@ -406,7 +269,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                                     Overrides the automatic source.
                                 </FormDescription>
                                 <FormMessage />
-                                <PlayerSettingsFields basePath="playerSettings" control={form.control} />
                             </FormItem>
                         )}
                     />
@@ -698,5 +560,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    

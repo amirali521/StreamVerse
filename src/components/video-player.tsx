@@ -5,13 +5,12 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { getSrcFromIframe } from '@/lib/utils';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
-import type { PlayerSettings } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 
 export interface VideoSource {
     name: string;
     url: string;
-    settings?: PlayerSettings;
 }
 
 interface VideoPlayerProps {
@@ -26,41 +25,11 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const currentSource = sources[currentSourceIndex];
+  const isIframeSnippet = currentSource?.url?.trim().startsWith('<iframe');
   
-  // Apply player settings to Bunny.net URLs
   const videoUrl = useMemo(() => {
     if (!currentSource) return "";
-    let url = getSrcFromIframe(currentSource.url);
-
-    if (url.includes('b-cdn.net') && currentSource.settings) {
-        const urlObject = new URL(url);
-        const settings = currentSource.settings;
-
-        if (settings.primaryColor) {
-            urlObject.searchParams.set('primaryColor', settings.primaryColor.replace('#', ''));
-        }
-        if (settings.autoplay) urlObject.searchParams.set('autoplay', 'true');
-        if (settings.loop) urlObject.searchParams.set('loop', 'true');
-        if (settings.muted) urlObject.searchParams.set('muted', 'true');
-        if (settings.hotkeys === false) urlObject.searchParams.set('hotkeys', 'false');
-        if (typeof settings.volume === 'number') {
-            urlObject.searchParams.set('volume', String(settings.volume));
-        }
-        if (settings.customCss) {
-            urlObject.searchParams.set('customCss', settings.customCss);
-        }
-        if (settings.resume) {
-            urlObject.searchParams.set('resume', 'true');
-        }
-        if (settings.heatmap) {
-            urlObject.searchParams.set('watchTime', 'true');
-        }
-
-
-        return urlObject.toString();
-    }
-
-    return url;
+    return getSrcFromIframe(currentSource.url);
   }, [currentSource]);
 
   useEffect(() => {
@@ -107,7 +76,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                 </div>
             )}
             
-            {currentSource && (
+            {currentSource && videoUrl && (
                 <iframe
                     key={videoUrl} // This is crucial to force re-render the iframe when the source changes
                     ref={iframeRef}

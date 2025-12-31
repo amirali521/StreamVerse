@@ -27,6 +27,41 @@
       },
       "required": ["displayName", "email"]
     },
+    "Episode": {
+        "title": "Episode",
+        "description": "Represents a single episode within a season.",
+        "type": "object",
+        "properties": {
+            "episodeNumber": {
+                "type": "number"
+            },
+            "title": {
+                "type": "string"
+            },
+            "embedUrl": {
+                "type": "string",
+                "format": "uri"
+            }
+        },
+        "required": ["episodeNumber", "embedUrl"]
+    },
+    "Season": {
+        "title": "Season",
+        "description": "Represents a season of a web series or drama.",
+        "type": "object",
+        "properties": {
+            "seasonNumber": {
+                "type": "number"
+            },
+            "episodes": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/entities/Episode"
+                }
+            }
+        },
+        "required": ["seasonNumber", "episodes"]
+    },
     "Content": {
       "title": "Content",
       "description": "Represents a movie, web series, or drama.",
@@ -34,7 +69,7 @@
       "properties": {
         "tmdbId": {
           "type": "number",
-          "description": "The Movie Database (TMDB) ID for sourcing video from VidLink."
+          "description": "The Movie Database (TMDB) ID for sourcing video."
         },
         "title": {
           "type": "string",
@@ -74,6 +109,23 @@
             "type": "boolean",
             "description": "If true, this content will be featured in the hero banner on the homepage."
         },
+        "embedUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional direct embed URL (for movies) or iframe code. This will be used instead of automated sources if provided."
+        },
+        "downloadUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional single direct download URL for the entire content (movie or series)."
+        },
+        "seasons": {
+            "type": "array",
+            "items": {
+                "$ref": "#/entities/Season"
+            },
+            "description": "Manual override for seasons and episodes, for series and dramas."
+        },
         "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -85,7 +137,7 @@
             "description": "The timestamp when the content was last updated."
         }
       },
-      "required": ["title", "description", "type", "bannerImageUrl", "tmdbId"]
+      "required": ["title", "description", "type", "bannerImageUrl"]
     }
   },
   "auth": {
