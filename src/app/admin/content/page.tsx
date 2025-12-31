@@ -6,7 +6,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, MoreVertical, Plus, Palette } from "lucide-react";
+import { Edit, Trash2, Search, MoreVertical, Plus, Palette, Keyboard, Volume2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,11 +46,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Content, Season, Episode } from "@/lib/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 
 const playerSettingsSchema = z.object({
   primaryColor: z.string().optional(),
   autoplay: z.boolean().optional(),
   loop: z.boolean().optional(),
+  muted: z.boolean().optional(),
+  hotkeys: z.boolean().optional(),
+  volume: z.number().min(0).max(1).optional(),
 });
 
 const episodeSchema = z.object({
@@ -82,7 +86,7 @@ const editContentSchema = z.object({
 
 function PlayerSettingsFields({ basePath, control }: { basePath: string, control: any }) {
     return (
-        <div className="space-y-3 rounded-lg border bg-muted/20 p-3 mt-2">
+        <div className="space-y-4 rounded-lg border bg-muted/20 p-3 mt-2">
             <h5 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Bunny.net Player Settings</h5>
             <FormField
                 control={control}
@@ -100,7 +104,24 @@ function PlayerSettingsFields({ basePath, control }: { basePath: string, control
                     </FormItem>
                 )}
             />
-            <div className="flex gap-4">
+             <FormField
+                control={control}
+                name={`${basePath}.volume`}
+                render={({ field }) => (
+                    <FormItem>
+                         <FormLabel className="flex items-center gap-2"><Volume2 className="w-4 h-4" /> Volume</FormLabel>
+                         <FormControl>
+                            <Slider
+                                defaultValue={[field.value ?? 1]}
+                                max={1}
+                                step={0.1}
+                                onValueChange={(value) => field.onChange(value[0])}
+                            />
+                         </FormControl>
+                    </FormItem>
+                )}
+            />
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
                <FormField
                     control={control}
                     name={`${basePath}.autoplay`}
@@ -121,9 +142,29 @@ function PlayerSettingsFields({ basePath, control }: { basePath: string, control
                         </FormItem>
                     )}
                 />
+                 <FormField
+                    control={control}
+                    name={`${basePath}.muted`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel>Muted</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name={`${basePath}.hotkeys`}
+                    render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel className="flex items-center gap-1"><Keyboard className="w-4 h-4" /> Hotkeys</FormLabel>
+                        </FormItem>
+                    )}
+                />
             </div>
-             <FormDescription className="text-xs">
-                These settings apply to Bunny.net video URLs.
+             <FormDescription className="text-xs pt-2">
+                These settings only apply to video URLs from Bunny.net.
             </FormDescription>
         </div>
     );
@@ -254,7 +295,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             isFeatured: contentItem.isFeatured || false,
             downloadUrl: contentItem.downloadUrl || "",
             embedUrl: contentItem.embedUrl || "",
-            playerSettings: contentItem.playerSettings || { primaryColor: '#8A2BE2', autoplay: false, loop: false },
+            playerSettings: contentItem.playerSettings || { primaryColor: '#8A2BE2', autoplay: false, loop: false, volume: 1, hotkeys: true, muted: false },
             seasons: contentItem.seasons || [],
         },
     });

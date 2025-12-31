@@ -43,6 +43,18 @@
         "loop": {
           "type": "boolean",
           "description": "Whether the video should loop."
+        },
+        "muted": {
+          "type": "boolean",
+          "description": "Whether the video should start muted."
+        },
+        "hotkeys": {
+            "type": "boolean",
+            "description": "Enable or disable keyboard shortcuts."
+        },
+        "volume": {
+            "type": "number",
+            "description": "Default volume from 0 to 1."
         }
       }
     },

@@ -5,6 +5,9 @@ export interface PlayerSettings {
   primaryColor?: string;
   autoplay?: boolean;
   loop?: boolean;
+  muted?: boolean;
+  hotkeys?: boolean;
+  volume?: number;
 }
 
 export interface Episode {

@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { createEmbedUrl, getSrcFromIframe } from '@/lib/utils';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { getSrcFromIframe } from '@/lib/utils';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
 import type { PlayerSettings } from '@/lib/types';
@@ -31,19 +31,22 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
   const videoUrl = useMemo(() => {
     if (!currentSource) return "";
     let url = getSrcFromIframe(currentSource.url);
-    url = createEmbedUrl(url);
 
     if (url.includes('b-cdn.net') && currentSource.settings) {
         const urlObject = new URL(url);
-        if (currentSource.settings.primaryColor) {
-            urlObject.searchParams.set('primaryColor', currentSource.settings.primaryColor.substring(1)); // remove #
+        const settings = currentSource.settings;
+
+        if (settings.primaryColor) {
+            urlObject.searchParams.set('primaryColor', settings.primaryColor.substring(1)); // remove #
         }
-        if (currentSource.settings.autoplay) {
-            urlObject.searchParams.set('autoplay', 'true');
+        if (settings.autoplay) urlObject.searchParams.set('autoplay', 'true');
+        if (settings.loop) urlObject.searchParams.set('loop', 'true');
+        if (settings.muted) urlObject.searchParams.set('muted', 'true');
+        if (settings.hotkeys === false) urlObject.searchParams.set('hotkeys', 'false');
+        if (typeof settings.volume === 'number') {
+            urlObject.searchParams.set('volume', String(settings.volume));
         }
-        if (currentSource.settings.loop) {
-            urlObject.searchParams.set('loop', 'true');
-        }
+
         return urlObject.toString();
     }
 
@@ -103,7 +106,6 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                     frameBorder="0"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
-                    className={`w-full h-full transition-opacity duration-300 ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
                     onLoad={handleLoad}
                     onError={handleError}
                 ></iframe>
