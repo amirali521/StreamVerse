@@ -360,7 +360,7 @@ export default function WatchPage() {
         </div>
       </div>
       
-      <div className="space-y-16 py-12">
+      <div className="space-y-8 py-8">
         {related.length > 0 && (
           <ContentCarousel title="More Like This" items={related} />
         )}

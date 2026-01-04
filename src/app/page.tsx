@@ -120,7 +120,7 @@ export default function Home() {
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
-      <div className="py-12 px-4 md:px-6 lg:px-8 space-y-16">
+      <div className="py-8 px-4 md:px-6 lg:px-8 space-y-8">
         {trending.length === 0 && popularDramas.length === 0 ? (
           <div className="text-center text-muted-foreground">
             <p>No content has been added yet.</p>
