@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContentCarousel } from "@/components/content-carousel";
 import { useEffect, useState, useMemo } from "react";
 import { VideoPlayer, type VideoSource } from "@/components/video-player";
-import { createEmbedUrl, createDownloadUrl } from "@/lib/video-sources";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 
@@ -172,21 +171,27 @@ export default function WatchPage() {
     if (!url) return null;
 
     return {
-        name: 'Google Drive',
-        url: createEmbedUrl(url)
+        name: 'Video Player',
+        url: url,
     };
   }, [item, selectedSeasonNum, selectedEpisodeNum]);
 
   const downloadUrl: string | null = useMemo(() => {
     if (!item) return null;
     
-    // For series, download link is on the main content. For movies, it's also on the main content.
-    if (item.downloadUrl) {
-        return createDownloadUrl(item.downloadUrl);
+    let url: string | undefined;
+
+    if (item.type === 'movie') {
+      url = item.downloadUrl;
+    } else {
+      // For series, the main downloadUrl is for the package. Episode downloads are separate.
+      const season = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
+      const episode = season?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
+      url = (episode as any)?.downloadUrl || item.downloadUrl;
     }
     
-    return null;
-  }, [item]);
+    return url || null;
+  }, [item, selectedSeasonNum, selectedEpisodeNum]);
   
 
   useEffect(() => {
@@ -349,3 +354,5 @@ export default function WatchPage() {
     </div>
   );
 }
+
+    

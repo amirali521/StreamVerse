@@ -42,11 +42,12 @@ import { searchContent, getContentDetails } from "./actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { createDownloadUrl, createEmbedUrl } from "@/lib/utils";
 
 const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
-  embedUrl: z.string().min(1, "Embed URL is required."),
+  googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
 });
 
 const seasonSchema = z.object({
@@ -65,8 +66,7 @@ const contentSchema = z.object({
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   tmdbId: z.coerce.number().optional(),
-  downloadUrl: z.string().optional(), // For any content type
-  embedUrl: z.string().optional(), // For movies only
+  googleDriveUrl: z.string().optional(), // For any content type
   seasons: z.array(seasonSchema).optional(), // For series/dramas
 });
 
@@ -81,7 +81,7 @@ function SeasonsEpisodesField({ control, getValues }: { control: any, getValues:
         <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
             <h4 className="font-semibold">Season & Episode Management</h4>
             <p className="text-sm text-muted-foreground">
-                For series and dramas, add seasons and episodes below. Use a Google Drive link for the embed URL.
+                For series and dramas, add seasons and episodes below. Use a Google Drive link for each episode.
             </p>
 
             <Accordion type="multiple" className="w-full">
@@ -152,10 +152,10 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                     />
                      <FormField
                         control={control}
-                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.googleDriveUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL (Google Drive)</FormLabel>
+                                <FormLabel>Google Drive URL</FormLabel>
                                 <FormControl><Input placeholder="Paste Google Drive link here" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -170,7 +170,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, embedUrl: "" })}
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, googleDriveUrl: "" })}
             >
                 Add Episode
             </Button>
@@ -200,8 +200,7 @@ export default function AddContentPage() {
       categories: "",
       isFeatured: false,
       tmdbId: 0,
-      downloadUrl: "",
-      embedUrl: "",
+      googleDriveUrl: "",
       seasons: [],
     },
   });
@@ -265,15 +264,24 @@ export default function AddContentPage() {
         imdbRating: values.imdbRating || 0,
         categories: categories,
         isFeatured: values.isFeatured || false,
-        downloadUrl: values.downloadUrl || "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
     
     if (values.type === 'movie') {
-        contentData.embedUrl = values.embedUrl || "";
+        contentData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
+        contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
     } else {
-        contentData.seasons = values.seasons || [];
+        contentData.seasons = (values.seasons || []).map(season => ({
+            ...season,
+            episodes: season.episodes.map(episode => ({
+                ...episode,
+                embedUrl: createEmbedUrl(episode.googleDriveUrl),
+                downloadUrl: createDownloadUrl(episode.googleDriveUrl),
+                googleDriveUrl: undefined // Don't save the original URL
+            }))
+        }));
+        contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : ""; // Package download
     }
 
 
@@ -372,39 +380,20 @@ export default function AddContentPage() {
                             
                             <FormField
                                 control={form.control}
-                                name="downloadUrl"
+                                name="googleDriveUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Download URL (Google Drive)</FormLabel>
+                                        <FormLabel>Google Drive URL (Movie or Series Package)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Paste Google Drive link for the movie or series package" {...field} />
+                                            <Input placeholder="Paste Google Drive share link here" {...field} />
                                         </FormControl>
                                         <FormDescription>
-                                            Provide a single Google Drive share link for the entire content.
+                                            For movies, this is the video file. For series, this is the download link for the entire season/series package.
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-
-                            {contentType === 'movie' && (
-                                <FormField
-                                    control={form.control}
-                                    name="embedUrl"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Embed URL (Google Drive)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Paste Google Drive link for the movie" {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Provide the Google Drive share link for the movie.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
                             
                             <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem>
@@ -467,3 +456,5 @@ export default function AddContentPage() {
     </div>
   );
 }
+
+    

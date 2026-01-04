@@ -5,6 +5,7 @@ export interface Episode {
   episodeNumber: number;
   title?: string;
   embedUrl: string;
+  downloadUrl?: string;
 }
 
 export interface Season {
@@ -29,3 +30,5 @@ export interface Content {
   embedUrl?: string; // For movies only
   seasons?: Season[]; // For series/dramas
 }
+
+    
