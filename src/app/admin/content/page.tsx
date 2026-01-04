@@ -80,10 +80,9 @@ function SeasonsEpisodesField({ control, getValues }: { control: any, getValues:
 
     return (
         <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mt-6">
-            <h4 className="font-semibold">Manual Season & Episode Management</h4>
+            <h4 className="font-semibold">Season & Episode Management</h4>
             <p className="text-sm text-muted-foreground">
-                Only use this if automatic source fetching (via TMDB ID) fails or for content not on TMDB.
-                This data will override the automatic fetching.
+                For series and dramas, add seasons and episodes below. Use a Google Drive link for the embed URL.
             </p>
 
             <Accordion type="multiple" className="w-full">
@@ -157,8 +156,8 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL (Streaming)</FormLabel>
-                                <FormControl><Input placeholder="Paste video link here" {...field} /></FormControl>
+                                <FormLabel>Embed URL (Google Drive)</FormLabel>
+                                <FormControl><Input placeholder="Paste Google Drive link here" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -244,12 +243,12 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                     name="downloadUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Download URL (Optional)</FormLabel>
+                            <FormLabel>Download URL (Google Drive)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Paste direct download link" {...field} />
+                                <Input placeholder="Paste Google Drive share link" {...field} />
                             </FormControl>
                             <FormDescription>
-                                Provide a single direct download link for the content (e.g., Hindi Dubbed version).
+                                Provide a single Google Drive link for the content.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -261,12 +260,12 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                         name="embedUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL (Movie Override)</FormLabel>
+                                <FormLabel>Embed URL (Google Drive)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Paste Doodstream, Bunny.net link, etc." {...field} />
+                                    <Input placeholder="Paste Google Drive share link" {...field} />
                                 </FormControl>
                                 <FormDescription>
-                                    Overrides the automatic source.
+                                    Provide the Google Drive share link for the movie.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -334,8 +333,8 @@ function EditContentModal({ contentItem, onOpenChange, onUpdate, isOpen }: { con
                     <DialogTitle>Edit: {contentItem.title}</DialogTitle>
                     <DialogDescription>
                         {contentItem.type === 'movie' 
-                         ? "Update movie details. Use the override URL for manual sources."
-                         : "Update series details. You can manually manage seasons and episodes if automatic fetching fails."
+                         ? "Update movie details."
+                         : "Update series details. You can manually manage seasons and episodes."
                         }
                     </DialogDescription>
                 </DialogHeader>

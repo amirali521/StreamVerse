@@ -14,29 +14,25 @@ export interface VideoSource {
 }
 
 interface VideoPlayerProps {
-  sources: VideoSource[];
+  source: VideoSource | null;
   poster?: string;
 }
 
-export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
-  const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+export function VideoPlayer({ source, poster }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
-  const currentSource = sources[currentSourceIndex];
-  const isIframeSnippet = currentSource?.url?.trim().startsWith('<iframe');
-  
   const videoUrl = useMemo(() => {
-    if (!currentSource) return "";
-    return getSrcFromIframe(currentSource.url);
-  }, [currentSource]);
+    if (!source) return "";
+    return getSrcFromIframe(source.url);
+  }, [source]);
 
   useEffect(() => {
     // Reset state when sources array changes or a new source is selected
     setIsLoading(true);
     setError(false);
-  }, [currentSource]);
+  }, [source]);
 
 
   const handleLoad = () => {
@@ -50,12 +46,6 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
     setIsLoading(false);
   };
   
-  const handleSourceChange = (index: number) => {
-    if (index !== currentSourceIndex) {
-        setCurrentSourceIndex(index);
-    }
-  }
-
   return (
     <div className="w-full space-y-4">
         <div className="video-player-container w-full aspect-video bg-black relative rounded-lg overflow-hidden border border-muted/20">
@@ -63,7 +53,7 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
                     <p className="mt-4 text-muted-foreground">
-                        Loading: {currentSource?.name || 'player'}...
+                        Loading: {source?.name || 'player'}...
                     </p>
                 </div>
             )}
@@ -71,12 +61,12 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
              {error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 text-center p-4">
                     <ServerCrash className="h-10 w-10 text-destructive" />
-                    <p className="mt-4 font-semibold text-destructive">Could not load video from {currentSource.name}.</p>
+                    <p className="mt-4 font-semibold text-destructive">Could not load video from {source?.name}.</p>
                     <p className="mt-2 text-sm text-muted-foreground">Please try a different server.</p>
                 </div>
             )}
             
-            {currentSource && videoUrl && (
+            {source && videoUrl && (
                 <iframe
                     key={videoUrl} // This is crucial to force re-render the iframe when the source changes
                     ref={iframeRef}
@@ -90,23 +80,6 @@ export function VideoPlayer({ sources, poster }: VideoPlayerProps) {
                 ></iframe>
             )}
         </div>
-        
-        {sources.length > 0 && (
-            <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Servers</h3>
-                <div className="flex flex-wrap gap-2">
-                    {sources.map((source, index) => (
-                        <Button
-                            key={source.name}
-                            variant={index === currentSourceIndex ? "secondary" : "outline"}
-                            onClick={() => handleSourceChange(index)}
-                        >
-                            {source.name}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-        )}
     </div>
   );
 }

@@ -79,10 +79,9 @@ function SeasonsEpisodesField({ control, getValues }: { control: any, getValues:
 
     return (
         <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
-            <h4 className="font-semibold">Manual Season & Episode Management</h4>
+            <h4 className="font-semibold">Season & Episode Management</h4>
             <p className="text-sm text-muted-foreground">
-                Only use this if automatic source fetching (via TMDB ID) fails or for content not on TMDB.
-                This data will override the automatic fetching.
+                For series and dramas, add seasons and episodes below. Use a Google Drive link for the embed URL.
             </p>
 
             <Accordion type="multiple" className="w-full">
@@ -156,8 +155,8 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.embedUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Embed URL (Streaming)</FormLabel>
-                                <FormControl><Input placeholder="Paste video link here" {...field} /></FormControl>
+                                <FormLabel>Embed URL (Google Drive)</FormLabel>
+                                <FormControl><Input placeholder="Paste Google Drive link here" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -366,7 +365,7 @@ export default function AddContentPage() {
                                     <FormControl>
                                         <Input placeholder="Auto-filled from TMDB Search" {...field} />
                                     </FormControl>
-                                    <FormDescription>This ID is used for automatic source fetching. Leave blank for fully manual content.</FormDescription>
+                                    <FormDescription>The ID from The Movie Database used to fetch images and details.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -376,12 +375,12 @@ export default function AddContentPage() {
                                 name="downloadUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Download URL (Optional)</FormLabel>
+                                        <FormLabel>Download URL (Google Drive)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Paste direct download link for the movie or series package" {...field} />
+                                            <Input placeholder="Paste Google Drive link for the movie or series package" {...field} />
                                         </FormControl>
                                         <FormDescription>
-                                            Provide a single direct download link for the content (e.g., Hindi Dubbed version).
+                                            Provide a single Google Drive share link for the entire content.
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>
@@ -394,12 +393,12 @@ export default function AddContentPage() {
                                     name="embedUrl"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Embed URL / Code (Movie Override)</FormLabel>
+                                            <FormLabel>Embed URL (Google Drive)</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Paste Doodstream, Mixdrop, Bunny.net link, etc." {...field} />
+                                                <Input placeholder="Paste Google Drive link for the movie" {...field} />
                                             </FormControl>
                                             <FormDescription>
-                                                For movies, this will override the automatic TMDB source fetching.
+                                                Provide the Google Drive share link for the movie.
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
