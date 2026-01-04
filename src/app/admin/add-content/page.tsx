@@ -66,8 +66,8 @@ const contentSchema = z.object({
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   tmdbId: z.coerce.number().optional(),
-  googleDriveUrl: z.string().optional(), // For any content type
-  seasons: z.array(seasonSchema).optional(), // For series/dramas
+  googleDriveUrl: z.string().optional(), // For Movie player/download OR Series package download
+  seasons: z.array(seasonSchema).optional(),
 });
 
 
@@ -155,8 +155,8 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.googleDriveUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Google Drive URL</FormLabel>
-                                <FormControl><Input placeholder="Paste Google Drive link here" {...field} /></FormControl>
+                                <FormLabel>Google Drive URL (Episode)</FormLabel>
+                                <FormControl><Input placeholder="Paste Google Drive link for this episode" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -269,19 +269,24 @@ export default function AddContentPage() {
     };
     
     if (values.type === 'movie') {
+        // For movies, the main googleDriveUrl is for both player and download
         contentData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
         contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
     } else {
+        // For series, the main googleDriveUrl is for the package download only
+        contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
+        
+        // Process seasons and episodes
         contentData.seasons = (values.seasons || []).map(season => ({
-            ...season,
+            seasonNumber: season.seasonNumber,
             episodes: season.episodes.map(episode => ({
-                ...episode,
+                episodeNumber: episode.episodeNumber,
+                title: episode.title,
+                // Each episode gets its own embed and download URL from its googleDriveUrl
                 embedUrl: createEmbedUrl(episode.googleDriveUrl),
                 downloadUrl: createDownloadUrl(episode.googleDriveUrl),
-                googleDriveUrl: undefined // Don't save the original URL
             }))
         }));
-        contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : ""; // Package download
     }
 
 
@@ -383,12 +388,17 @@ export default function AddContentPage() {
                                 name="googleDriveUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Google Drive URL (Movie or Series Package)</FormLabel>
+                                        <FormLabel>
+                                            {contentType === 'movie' ? 'Google Drive URL (Movie)' : 'Google Drive URL (Series Package)'}
+                                        </FormLabel>
                                         <FormControl>
                                             <Input placeholder="Paste Google Drive share link here" {...field} />
                                         </FormControl>
                                         <FormDescription>
-                                            For movies, this is the video file. For series, this is the download link for the entire season/series package.
+                                            {contentType === 'movie' 
+                                                ? 'Used for both the movie player and download link.'
+                                                : 'Used for the full series/season package download link. Episode links are managed below.'
+                                            }
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>

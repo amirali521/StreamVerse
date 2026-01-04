@@ -51,6 +51,9 @@ const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
+  // The following are not part of the form, but help with type consistency
+  embedUrl: z.string().optional(),
+  downloadUrl: z.string().optional(),
 });
 
 const seasonSchema = z.object({
@@ -82,7 +85,7 @@ function SeasonsEpisodesField({ control, getValues }: { control: any, getValues:
         <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mt-6">
             <h4 className="font-semibold">Season & Episode Management</h4>
             <p className="text-sm text-muted-foreground">
-                For series and dramas, add seasons and episodes below. Use a Google Drive link for each episode.
+                Manage seasons and episodes below. A Google Drive link is required for each episode.
             </p>
 
             <Accordion type="multiple" className="w-full">
@@ -156,8 +159,8 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.googleDriveUrl`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Google Drive URL</FormLabel>
-                                <FormControl><Input placeholder="Paste Google Drive link here" {...field} /></FormControl>
+                                <FormLabel>Google Drive URL (Episode)</FormLabel>
+                                <FormControl><Input placeholder="Paste Google Drive link for this episode" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -183,13 +186,12 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
     const firestore = useFirestore();
 
+    // This function attempts to reverse-engineer the original Google Drive share link
+    // from an embed or download URL. It's imperfect but useful for editing.
     const getOriginalGoogleDriveUrl = (embedUrl?: string, downloadUrl?: string) => {
-        // Attempt to find a URL that can be reverse-engineered to the original share link.
-        // This is imperfect but can work if the format is consistent.
-        // Let's prioritize the download URL if it exists, as it's less likely to be modified.
-        const urlToParse = downloadUrl || embedUrl;
+        const urlToParse = embedUrl || downloadUrl; // Prioritize embed URL as it's cleaner
         if (urlToParse?.includes('drive.google.com')) {
-            const fileId = urlToParse.split('id=')[1] || urlToParse.split('/d/')[1]?.split('/')[0];
+            const fileId = urlToParse.split('/d/')[1]?.split('/')[0] || urlToParse.split('id=')[1]?.split('&')[0];
             if (fileId) {
                 return `https://drive.google.com/file/d/${fileId}/view`;
             }
@@ -207,7 +209,9 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             imdbRating: contentItem.imdbRating || 0,
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
+            // Get the original GDrive URL for the movie or series package
             googleDriveUrl: getOriginalGoogleDriveUrl(contentItem.embedUrl, contentItem.downloadUrl),
+            // Map seasons and episodes to get their original GDrive URLs
             seasons: contentItem.seasons?.map(s => ({
                 ...s,
                 episodes: s.episodes.map(e => ({
@@ -256,7 +260,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
 
         const categories = values.categories ? values.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
 
-        const updatedData: Partial<Content> & { updatedAt: any } = {
+        let updatedData: Partial<Content> & { updatedAt: any } = {
             title: values.title,
             description: values.description,
             bannerImageUrl: values.bannerImageUrl,
@@ -271,23 +275,25 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             updatedData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
             updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
         } else {
+             // For series, top-level URL is for package download
+             updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
+             
              updatedData.seasons = (values.seasons || []).map(season => ({
-                ...season,
+                seasonNumber: season.seasonNumber,
                 episodes: season.episodes.map(episode => ({
                     episodeNumber: episode.episodeNumber,
                     title: episode.title,
+                    // Generate both URLs for each episode from its own GDrive link
                     embedUrl: createEmbedUrl(episode.googleDriveUrl),
                     downloadUrl: createDownloadUrl(episode.googleDriveUrl),
                 }))
             }));
-            updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : ""; // For series package
         }
 
 
         try {
             const docRef = doc(firestore, "content", contentItem.id);
             await updateDoc(docRef, updatedData as any);
-            // We need to construct the updated content item with the processed URLs for the UI
             const updatedUiContent = { ...contentItem, ...updatedData };
             onUpdate(updatedUiContent);
             toast({ title: "Content Updated", description: `${values.title} has been updated.` });
@@ -305,12 +311,17 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                     name="googleDriveUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Google Drive URL (Movie or Series Package)</FormLabel>
+                            <FormLabel>
+                                {contentType === 'movie' ? 'Google Drive URL (Movie)' : 'Google Drive URL (Series Package)'}
+                            </FormLabel>
                             <FormControl>
-                                <Input placeholder="Paste Google Drive share link" {...field} />
+                                <Input placeholder="Paste Google Drive share link here" {...field} />
                             </FormControl>
                             <FormDescription>
-                                For movies, this sets the player and download link. For series, this is for the full package download.
+                                {contentType === 'movie' 
+                                    ? 'Used for both the movie player and download link.'
+                                    : 'Used for the full series/season package download link. Episode links are managed below.'
+                                }
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
