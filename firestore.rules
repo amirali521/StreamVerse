@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Firestore Security Rules for the application.
  *
@@ -32,7 +31,7 @@ service cloud.firestore {
                get(/databases/$(database)/documents/users/$(userId)).data.isSuperAdmin == true;
     }
     function isRequestingUserAdmin() {
-      return isSignedIn() && isUserAdmin(request.auth.uid);
+      return isSignedIn() && (isUserAdmin(request.auth.uid) || isUserSuperAdmin(request.auth.uid));
     }
     function isRequestingUserSuperAdmin() {
       return isSignedIn() && isUserSuperAdmin(request.auth.uid);
@@ -42,8 +41,9 @@ service cloud.firestore {
      * @description Controls access to user profile documents.
      */
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      // Admins can read any profile and list all users. Users can only get their own.
+      allow get: if isOwner(userId) || isRequestingUserAdmin();
+      allow list: if isRequestingUserAdmin();
       allow create: if isOwner(userId);
       
       // Allow user to update their own non-admin, non-critical fields
@@ -54,8 +54,8 @@ service cloud.firestore {
       allow update: if isRequestingUserSuperAdmin() &&
                        // Prevent super admin from removing their own super admin status
                        (userId != request.auth.uid || request.resource.data.isSuperAdmin == true) &&
-                       // Prevent making another user a super admin
-                       (!request.resource.data.keys().has('isSuperAdmin') || request.resource.data.isSuperAdmin == false);
+                       // Prevent making another user a super admin (for now)
+                       (request.resource.data.isSuperAdmin == false || request.resource.data.isSuperAdmin == resource.data.isSuperAdmin);
       
       // Allow a super admin to delete any user except themselves
       allow delete: if isRequestingUserSuperAdmin() && userId != request.auth.uid;

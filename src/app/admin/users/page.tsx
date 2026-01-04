@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Shield, ShieldOff, UserX, Trash2 } from "lucide-react";
+import { Search, Trash2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -71,13 +71,22 @@ export default function UsersPage() {
     const fetchUsers = async () => {
         if (!firestore) return;
         setLoading(true);
-        const usersCollection = collection(firestore, "users");
-        const usersSnapshot = await getDocs(usersCollection);
-        const userList = usersSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        } as AppUser));
-        setUsers(userList.sort((a, b) => (a.isSuperAdmin ? -1 : 1)));
+        try {
+            const usersCollection = collection(firestore, "users");
+            const usersSnapshot = await getDocs(usersCollection);
+            const userList = usersSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            } as AppUser));
+            setUsers(userList.sort((a, b) => (a.isSuperAdmin ? -1 : b.isSuperAdmin ? 1 : 0)));
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            toast({
+                variant: "destructive",
+                title: "Failed to load users",
+                description: "You may not have permission to view this list."
+            });
+        }
         setLoading(false);
     };
 
@@ -92,7 +101,12 @@ export default function UsersPage() {
         
         try {
             await updateDoc(userDocRef, data);
-            setUsers(users.map(u => u.id === userId ? { ...u, ...data } : u));
+            
+            // Optimistically update local state
+            const updatedUser = { ...editingUser!, ...data };
+            setUsers(users.map(u => u.id === userId ? updatedUser : u));
+            setEditingUser(updatedUser); // Keep dialog open with new state
+
             toast({ title: "User Updated", description: "The user's details have been successfully updated." });
             return true;
         } catch (serverError) {
@@ -140,14 +154,14 @@ export default function UsersPage() {
         );
     }, [users, searchTerm]);
     
-    const canManage = (user: AppUser) => isSuperAdmin && !user.isSuperAdmin;
+    const canManage = (user: AppUser) => isSuperAdmin && user.id !== currentUser?.uid && !user.isSuperAdmin;
 
     return (
         <>
             <Card>
                 <CardHeader>
                     <CardTitle>User Management</CardTitle>
-                    <CardDescription>View all registered users and manage their roles and status.</CardDescription>
+                    <CardDescription>View all registered users and manage their roles and status. Click a user to manage.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center pb-4">
@@ -174,13 +188,17 @@ export default function UsersPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24">
-                                            Loading users...
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                           <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredUsers.length > 0 ? (
                                     filteredUsers.map(user => (
-                                        <TableRow key={user.id} onClick={() => isSuperAdmin && setEditingUser(user)} className={isSuperAdmin ? "cursor-pointer" : ""}>
+                                        <TableRow 
+                                            key={user.id} 
+                                            onClick={() => isSuperAdmin && setEditingUser(user)} 
+                                            className={isSuperAdmin ? "cursor-pointer" : ""}
+                                        >
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     <Avatar>
@@ -195,13 +213,13 @@ export default function UsersPage() {
                                                 <RoleBadge user={user} />
                                             </TableCell>
                                              <TableCell>
-                                                {user.blocked && <Badge variant="destructive">Blocked</Badge>}
+                                                {user.blocked ? <Badge variant="destructive">Blocked</Badge> : <Badge variant="outline">Active</Badge>}
                                             </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24">
+                                        <TableCell colSpan={4} className="h-24 text-center">
                                             No users found.
                                         </TableCell>
                                     </TableRow>
@@ -212,7 +230,7 @@ export default function UsersPage() {
                 </CardContent>
             </Card>
 
-            {editingUser && (
+            {editingUser && isSuperAdmin && (
                 <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
                     <DialogContent>
                         <DialogHeader>
@@ -248,7 +266,9 @@ export default function UsersPage() {
                             </div>
                             
                             {!canManage(editingUser) && (
-                                <p className="text-center text-sm text-yellow-500">Super Admins cannot be modified.</p>
+                                <p className="text-center text-sm text-yellow-600 dark:text-yellow-500">
+                                    {editingUser.isSuperAdmin ? "Super Admins cannot be modified." : "You cannot modify your own account here."}
+                                </p>
                             )}
                         </div>
                         <DialogFooter className="flex-col sm:flex-row sm:justify-between w-full">
@@ -257,7 +277,9 @@ export default function UsersPage() {
                                 onClick={() => setShowDeleteConfirm(true)}
                                 disabled={isSubmitting || !canManage(editingUser)}
                             >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                                <Loader2 className={`mr-2 h-4 w-4 animate-spin ${!isSubmitting && 'hidden'}`} />
+                                <Trash2 className={`mr-2 h-4 w-4 ${isSubmitting && 'hidden'}`} />
+                                Delete User
                             </Button>
                             <Button variant="outline" onClick={() => setEditingUser(null)}>Close</Button>
                         </DialogFooter>
