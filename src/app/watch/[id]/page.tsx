@@ -20,6 +20,10 @@ type ClientContent = Omit<ContentType, 'createdAt' | 'updatedAt'> & {
   updatedAt?: Date;
 };
 
+type DownloadSettings = {
+    globalDownloadEnabled: boolean;
+};
+
 const EPISODES_PER_PAGE = 50;
 
 function EpisodeSelector({ 
@@ -147,6 +151,7 @@ export default function WatchPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ClientContent | null>(null);
+  const [downloadSettings, setDownloadSettings] = useState<DownloadSettings>({ globalDownloadEnabled: false });
   const [related, setRelated] = useState<ClientContent[]>([]);
   const [trending, setTrending] = useState<ClientContent[]>([]);
   const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
@@ -175,30 +180,41 @@ export default function WatchPage() {
         url: url,
     };
   }, [item, selectedSeasonNum, selectedEpisodeNum]);
+  
+  const currentMediaInfo = useMemo(() => {
+      if (!item) return { downloadUrl: null, downloadEnabled: false };
 
-  const downloadUrl: string | null = useMemo(() => {
-    if (!item) return null;
-    
-    let url: string | undefined;
+      if (item.type === 'movie') {
+          return {
+              downloadUrl: item.downloadUrl,
+              downloadEnabled: item.downloadEnabled !== false, // default true
+          };
+      }
 
-    if (item.type === 'movie') {
-      url = item.downloadUrl;
-    } else {
-      // For series, the main downloadUrl is for the package. Episode downloads are separate.
       const season = item.seasons?.find(s => s.seasonNumber === selectedSeasonNum);
       const episode = season?.episodes.find(e => e.episodeNumber === selectedEpisodeNum);
-      url = (episode as any)?.downloadUrl || item.downloadUrl;
-    }
-    
-    return url || null;
+      return {
+          downloadUrl: (episode as any)?.downloadUrl,
+          downloadEnabled: (episode as any)?.downloadEnabled !== false, // default true
+      };
+
   }, [item, selectedSeasonNum, selectedEpisodeNum]);
   
+  const showDownloadButton = downloadSettings.globalDownloadEnabled && currentMediaInfo.downloadEnabled && currentMediaInfo.downloadUrl;
 
   useEffect(() => {
     async function getContentData(id: string) {
       if (!firestore || !id) return;
       
       setLoading(true);
+      
+      // Fetch download settings
+      const settingsRef = doc(firestore, 'settings', 'downloadControls');
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+          setDownloadSettings(settingsSnap.data() as DownloadSettings);
+      }
+
       const contentRef = doc(firestore, 'content', id);
       const contentSnap = await getDoc(contentRef);
 
@@ -301,9 +317,9 @@ export default function WatchPage() {
           <div className="space-y-4">
              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
               <h1 className="text-3xl md:text-4xl font-headline font-bold">{item.title}</h1>
-              {downloadUrl && (
+              {showDownloadButton && (
                   <Button asChild>
-                    <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={currentMediaInfo.downloadUrl!} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>

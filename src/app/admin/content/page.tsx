@@ -53,6 +53,7 @@ const episodeSchema = z.object({
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
   embedUrl: z.string().optional(),
   downloadUrl: z.string().optional(),
+  downloadEnabled: z.boolean().optional(),
 });
 
 const seasonSchema = z.object({
@@ -70,6 +71,7 @@ const editContentSchema = z.object({
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
   googleDriveUrl: z.string().optional(), // For movies only
+  downloadEnabled: z.boolean().optional(), // For movies only
   seasons: z.array(seasonSchema).optional(), // For Series
 });
 
@@ -164,6 +166,26 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             </FormItem>
                         )}
                     />
+                     <FormField
+                      control={control}
+                      name={`seasons.${seasonIndex}.episodes.${episodeIndex}.downloadEnabled`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>Enable Download</FormLabel>
+                            <FormDescription>
+                              Show the download button for this episode.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
                         Remove Episode
                     </Button>
@@ -173,7 +195,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, googleDriveUrl: "" })}
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, googleDriveUrl: "", downloadEnabled: true })}
             >
                 Add Episode
             </Button>
@@ -207,11 +229,13 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
             googleDriveUrl: getOriginalGoogleDriveUrl(contentItem.embedUrl, contentItem.downloadUrl),
+            downloadEnabled: contentItem.downloadEnabled !== false, // default to true if undefined
             seasons: contentItem.seasons?.map(s => ({
                 ...s,
                 episodes: s.episodes.map(e => ({
                     ...e,
                     googleDriveUrl: getOriginalGoogleDriveUrl(e.embedUrl, (e as any).downloadUrl),
+                    downloadEnabled: (e as any).downloadEnabled !== false, // default to true if undefined
                 }))
             })) || [],
         },
@@ -269,6 +293,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         if (contentType === 'movie') {
             updatedData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
             updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
+            updatedData.downloadEnabled = values.downloadEnabled;
         } else {
              updatedData.seasons = (values.seasons || []).map(season => ({
                 seasonNumber: season.seasonNumber,
@@ -277,6 +302,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                     title: episode.title,
                     embedUrl: createEmbedUrl(episode.googleDriveUrl),
                     downloadUrl: createDownloadUrl(episode.googleDriveUrl),
+                    downloadEnabled: episode.downloadEnabled,
                 }))
             }));
             // Clear top-level urls for series
@@ -301,6 +327,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                  {contentType === 'movie' && (
+                  <>
                     <FormField
                         control={form.control}
                         name="googleDriveUrl"
@@ -315,6 +342,27 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                             </FormItem>
                         )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="downloadEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>Enable Download</FormLabel>
+                            <FormDescription>
+                              Show the download button for this movie.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </>
                  )}
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -622,5 +670,3 @@ export default function ManageContentPage() {
     </div>
   );
 }
-
-    

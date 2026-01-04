@@ -48,6 +48,7 @@ const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
+  downloadEnabled: z.boolean().optional(),
 });
 
 const seasonSchema = z.object({
@@ -67,6 +68,7 @@ const contentSchema = z.object({
   isFeatured: z.boolean().optional(),
   tmdbId: z.coerce.number().optional(),
   googleDriveUrl: z.string().optional(), // For Movie player/download
+  downloadEnabled: z.boolean().optional(), // For Movie download
   seasons: z.array(seasonSchema).optional(),
 });
 
@@ -161,6 +163,26 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             </FormItem>
                         )}
                     />
+                    <FormField
+                      control={control}
+                      name={`seasons.${seasonIndex}.episodes.${episodeIndex}.downloadEnabled`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>Enable Download</FormLabel>
+                            <FormDescription>
+                              Show the download button for this episode.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeEpisode(episodeIndex)}>
                         Remove Episode
                     </Button>
@@ -170,7 +192,7 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, googleDriveUrl: "" })}
+                onClick={() => appendEpisode({ episodeNumber: episodeFields.length + 1, googleDriveUrl: "", downloadEnabled: true })}
             >
                 Add Episode
             </Button>
@@ -201,6 +223,7 @@ export default function AddContentPage() {
       isFeatured: false,
       tmdbId: 0,
       googleDriveUrl: "",
+      downloadEnabled: true,
       seasons: [],
     },
   });
@@ -274,6 +297,7 @@ export default function AddContentPage() {
     if (values.type === 'movie') {
         contentData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
         contentData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
+        contentData.downloadEnabled = values.downloadEnabled;
     } else {
         contentData.seasons = (values.seasons || []).map(season => ({
             seasonNumber: season.seasonNumber,
@@ -282,6 +306,7 @@ export default function AddContentPage() {
                 title: episode.title || "",
                 embedUrl: createEmbedUrl(episode.googleDriveUrl),
                 downloadUrl: createDownloadUrl(episode.googleDriveUrl),
+                downloadEnabled: episode.downloadEnabled,
             }))
         }));
     }
@@ -381,6 +406,7 @@ export default function AddContentPage() {
                             )} />
                             
                             {contentType === 'movie' && (
+                              <>
                                 <FormField
                                     control={form.control}
                                     name="googleDriveUrl"
@@ -395,6 +421,27 @@ export default function AddContentPage() {
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                  control={form.control}
+                                  name="downloadEnabled"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                      <div className="space-y-0.5">
+                                        <FormLabel>Enable Download</FormLabel>
+                                        <FormDescription>
+                                          Show the download button for this movie.
+                                        </FormDescription>
+                                      </div>
+                                      <FormControl>
+                                        <Switch
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
                             )}
                             
                             <FormField control={form.control} name="type" render={({ field }) => (
@@ -458,6 +505,3 @@ export default function AddContentPage() {
     </div>
   );
 }
-
-    
-    
