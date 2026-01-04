@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useFirestore } from "@/firebase";
@@ -157,6 +158,17 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                     />
                      <FormField
                         control={control}
+                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.title`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Episode Title (Optional)</FormLabel>
+                                <FormControl><Input placeholder="e.g., The Beginning" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={control}
                         name={`seasons.${seasonIndex}.episodes.${episodeIndex}.googleDriveUrl`}
                         render={({ field }) => (
                             <FormItem>
@@ -210,12 +222,12 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     const getOriginalGoogleDriveUrl = (embedUrl?: string, downloadUrl?: string) => {
         const urlToParse = embedUrl || downloadUrl;
         if (urlToParse?.includes('drive.google.com')) {
-            const fileId = urlToParse.split('/d/')[1]?.split('/')[0] || urlToParse.split('id=')[1]?.split('&')[0];
-            if (fileId) {
-                return `https://drive.google.com/file/d/${fileId}/view`;
+            const fileIdMatch = urlToParse.match(/\/d\/([a-zA-Z0-9_-]+)/) || urlToParse.match(/id=([a-zA-Z0-9_-]+)/);
+            if (fileIdMatch && fileIdMatch[1]) {
+                return `https://drive.google.com/file/d/${fileIdMatch[1]}/view`;
             }
         }
-        return embedUrl || downloadUrl || "";
+        return urlToParse || "";
     };
 
     const form = useForm<z.infer<typeof editContentSchema>>({
@@ -299,7 +311,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 seasonNumber: season.seasonNumber,
                 episodes: season.episodes.map(episode => ({
                     episodeNumber: episode.episodeNumber,
-                    title: episode.title,
+                    title: episode.title || "", // Ensure title is not undefined
                     embedUrl: createEmbedUrl(episode.googleDriveUrl),
                     downloadUrl: createDownloadUrl(episode.googleDriveUrl),
                     downloadEnabled: episode.downloadEnabled,
