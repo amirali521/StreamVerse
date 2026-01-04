@@ -51,7 +51,6 @@ const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
   title: z.string().optional(),
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
-  // The following are not part of the form, but help with type consistency
   embedUrl: z.string().optional(),
   downloadUrl: z.string().optional(),
 });
@@ -70,7 +69,7 @@ const editContentSchema = z.object({
   imdbRating: z.coerce.number().min(0).max(10).optional(),
   categories: z.string().optional(),
   isFeatured: z.boolean().optional(),
-  googleDriveUrl: z.string().optional(), // For movies or series package
+  googleDriveUrl: z.string().optional(), // For movies only
   seasons: z.array(seasonSchema).optional(), // For Series
 });
 
@@ -186,10 +185,8 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
 function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: Content, onUpdate: (updatedContent: Content) => void, closeDialog: () => void }) {
     const firestore = useFirestore();
 
-    // This function attempts to reverse-engineer the original Google Drive share link
-    // from an embed or download URL. It's imperfect but useful for editing.
     const getOriginalGoogleDriveUrl = (embedUrl?: string, downloadUrl?: string) => {
-        const urlToParse = embedUrl || downloadUrl; // Prioritize embed URL as it's cleaner
+        const urlToParse = embedUrl || downloadUrl;
         if (urlToParse?.includes('drive.google.com')) {
             const fileId = urlToParse.split('/d/')[1]?.split('/')[0] || urlToParse.split('id=')[1]?.split('&')[0];
             if (fileId) {
@@ -209,9 +206,7 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             imdbRating: contentItem.imdbRating || 0,
             categories: contentItem.categories?.join(", ") || "",
             isFeatured: contentItem.isFeatured || false,
-            // Get the original GDrive URL for the movie or series package
             googleDriveUrl: getOriginalGoogleDriveUrl(contentItem.embedUrl, contentItem.downloadUrl),
-            // Map seasons and episodes to get their original GDrive URLs
             seasons: contentItem.seasons?.map(s => ({
                 ...s,
                 episodes: s.episodes.map(e => ({
@@ -275,19 +270,18 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
             updatedData.embedUrl = values.googleDriveUrl ? createEmbedUrl(values.googleDriveUrl) : "";
             updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
         } else {
-             // For series, top-level URL is for package download
-             updatedData.downloadUrl = values.googleDriveUrl ? createDownloadUrl(values.googleDriveUrl) : "";
-             
              updatedData.seasons = (values.seasons || []).map(season => ({
                 seasonNumber: season.seasonNumber,
                 episodes: season.episodes.map(episode => ({
                     episodeNumber: episode.episodeNumber,
                     title: episode.title,
-                    // Generate both URLs for each episode from its own GDrive link
                     embedUrl: createEmbedUrl(episode.googleDriveUrl),
                     downloadUrl: createDownloadUrl(episode.googleDriveUrl),
                 }))
             }));
+            // Clear top-level urls for series
+            updatedData.embedUrl = "";
+            updatedData.downloadUrl = "";
         }
 
 
@@ -306,27 +300,22 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                 <FormField
-                    control={form.control}
-                    name="googleDriveUrl"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>
-                                {contentType === 'movie' ? 'Google Drive URL (Movie)' : 'Google Drive URL (Series Package)'}
-                            </FormLabel>
-                            <FormControl>
-                                <Input placeholder="Paste Google Drive share link here" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                {contentType === 'movie' 
-                                    ? 'Used for both the movie player and download link.'
-                                    : 'Used for the full series/season package download link. Episode links are managed below.'
-                                }
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                 {contentType === 'movie' && (
+                    <FormField
+                        control={form.control}
+                        name="googleDriveUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Google Drive URL (Movie)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Paste Google Drive share link here" {...field} />
+                                </FormControl>
+                                <FormDescription>Used for both the movie player and download link.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                 )}
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
