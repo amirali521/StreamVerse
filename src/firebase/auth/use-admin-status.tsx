@@ -10,6 +10,7 @@ export function useAdminStatus() {
   const { user, loaded: userLoaded } = useUser();
   const firestore = useFirestore();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,24 +21,38 @@ export function useAdminStatus() {
 
     if (!user || !firestore) {
       setIsAdmin(false);
+      setIsSuperAdmin(false);
       setIsLoading(false);
       return;
     }
 
     const checkAdminStatus = async () => {
       setIsLoading(true);
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists() && userDoc.data()?.admin === true) {
-        setIsAdmin(true);
-      } else {
+      try {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const userIsAdmin = userData?.admin === true;
+          const userIsSuperAdmin = userData?.isSuperAdmin === true;
+
+          setIsAdmin(userIsAdmin || userIsSuperAdmin); // A super admin is also an admin
+          setIsSuperAdmin(userIsSuperAdmin);
+        } else {
+          setIsAdmin(false);
+          setIsSuperAdmin(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
         setIsAdmin(false);
+        setIsSuperAdmin(false);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     checkAdminStatus();
   }, [user, userLoaded, firestore]);
 
-  return { isAdmin, isLoading };
+  return { isAdmin, isSuperAdmin, isLoading };
 }

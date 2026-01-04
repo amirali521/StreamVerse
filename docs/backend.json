@@ -23,6 +23,10 @@
         "admin": {
           "type": "boolean",
           "description": "Whether the user has admin privileges."
+        },
+        "isSuperAdmin": {
+          "type": "boolean",
+          "description": "Whether the user has super admin privileges."
         }
       },
       "required": ["displayName", "email"]
@@ -151,6 +155,15 @@
     "/content/{contentId}": {
       "schema": { "$ref": "#/entities/Content" },
       "description": "Stores all content items like movies, web series, and dramas."
+    },
+    "/settings/downloadControls": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "globalDownloadEnabled": { "type": "boolean" }
+        }
+      },
+      "description": "Stores global site settings."
     }
   }
 }

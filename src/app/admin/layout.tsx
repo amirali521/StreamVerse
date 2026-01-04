@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, PlusCircle, Bot, Settings } from "lucide-react";
+import { LayoutDashboard, PlusCircle, Bot, Settings, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,7 @@ function AdminHeader() {
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/add-content", label: "Add Manually", icon: PlusCircle },
     { href: "/admin/assistant", label: "AI Assistant", icon: Bot },
+    { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
@@ -47,7 +48,7 @@ function AdminHeader() {
       </Link>
       <div className="flex items-center gap-2 rounded-lg bg-card p-1 border">
         {navItems.map(item => (
-           <Button key={item.href} asChild variant={pathname === item.href ? "secondary" : "ghost"} className="gap-2">
+           <Button key={item.href} asChild variant={pathname.startsWith(item.href) ? "secondary" : "ghost"} className="gap-2">
             <Link href={item.href}>
               <item.icon className="h-4 w-4" />
               <span className="hidden sm:inline">{item.label}</span>

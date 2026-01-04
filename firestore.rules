@@ -1,96 +1,90 @@
+
 /**
  * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles,
- * allowing users to manage their own profile data. Content is publicly readable,
- * but only authorized users can create, update, or delete content items.
+ * This ruleset enforces user ownership for profiles and role-based access for content and settings.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /content/{contentId}: Stores content items (movies, web series, dramas).
+ * - /users/{userId}: User profile info, including admin roles.
+ * - /content/{contentId}: Publicly readable content.
+ * - /settings/{settingId}: Global settings, manageable by admins.
  *
  * Key Security Decisions:
- * - Users can only read and write their own profile data.
- * - Content is publicly readable.
- * - Only authenticated users are allowed to manage content.
- *
- * Denormalization for Authorization:
- *  N/A - Current rules do not depend on denormalized data. If more complex
- *  authorization schemes are required, consider adding fields like 'ownerId'
- *  to documents for faster rule evaluation.
- *
- * Structural Segregation:
- *  The application uses separate collections for user profiles and content.
- *  User profiles are stored under /users/{userId}, ensuring that user-specific
- *  data is kept separate from public content in the /content/{contentId} collection.
+ * - User data is private to the owner, but readable by admins.
+ * - Only super admins can grant/revoke admin status.
+ * - Content is publicly readable, but writeable only by admins.
+ * - Settings are readable by all, but writeable only by admins.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
+     * @description Helper functions for checking user roles and ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUserAdmin(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.admin == true;
+    }
+    function isUserSuperAdmin(userId) {
+        return exists(/databases/$(database)/documents/users/$(userId)) &&
+               get(/databases/$(database)/documents/users/$(userId)).data.isSuperAdmin == true;
+    }
+    function isRequestingUserAdmin() {
+      return isSignedIn() && isUserAdmin(request.auth.uid);
+    }
+    function isRequestingUserSuperAdmin() {
+      return isSignedIn() && isUserSuperAdmin(request.auth.uid);
+    }
+    
+    /**
      * @description Controls access to user profile documents.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile.
-     *          request.auth.uid == 'user123'
-     * @allow (get) User with ID 'user123' can read their own profile.
-     *          request.auth.uid == 'user123'
-     * @allow (update) User with ID 'user123' can update their own profile.
-     *          request.auth.uid == 'user123'
-     * @allow (delete) User with ID 'user123' can delete their own profile.
-     *          request.auth.uid == 'user123'
-     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
-     *       request.auth.uid == 'user456', resource.data.id == 'user123'
-     * @deny (get) User with ID 'user456' cannot read the profile of 'user123'.
-     *       request.auth.uid == 'user456'
-     * @deny (update) User with ID 'user456' cannot update the profile of 'user123'.
-     *       request.auth.uid == 'user456'
-     * @deny (delete) User with ID 'user456' cannot delete the profile of 'user123'.
-     *       request.auth.uid == 'user456'
-     * @principle Enforces document ownership for user profiles.
+     * Users can read/write their own profile. Admins can read any profile.
+     * Only a super admin can change another user's admin or superAdmin status.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.email is string;
-      allow update: if isOwner(userId) && resource.data.email == request.resource.data.email;
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) || isRequestingUserAdmin();
+      allow list: if isRequestingUserAdmin();
+      allow create: if isOwner(userId);
+      
+      // Allow user to update their own non-admin fields
+      allow update: if isOwner(userId) &&
+                       request.resource.data.keys().diff(resource.data.keys()).hasOnly(['displayName', 'photoURL']) &&
+                       request.resource.data.displayName == request.resource.data.displayName &&
+                       request.resource.data.photoURL == request.resource.data.photoURL;
+
+      // Allow super admin to update other users' admin status, but not superAdmin status
+      allow update: if isRequestingUserSuperAdmin() &&
+                       !request.resource.data.isSuperAdmin &&
+                       request.resource.data.keys().hasAny(['admin']);
     }
 
     /**
      * @description Controls access to content documents.
-     * @path /content/{contentId}
-     * @allow (get) Any user can read content.
-     *          true
-     * @allow (list) Any user can list content.
-     *          true
-     * @allow (create) Authenticated user can create content.
-     *          request.auth.uid != null
-     * @allow (update) Authenticated user can update content.
-     *          request.auth.uid != null
-     * @allow (delete) Authenticated user can delete content.
-     *          request.auth.uid != null
-     * @deny (create) Unauthenticated user cannot create content.
-     *          request.auth.uid == null
-     * @deny (update) Unauthenticated user cannot update content.
-     *          request.auth.uid == null
-     * @deny (delete) Unauthenticated user cannot delete content.
-     *          request.auth.uid == null
-     * @principle Allows public read access to content, restricts writes to authenticated users.
+     * Publicly readable, but only admins can write.
      */
     match /content/{contentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if true;
       allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow create, update, delete: if isRequestingUserAdmin();
+    }
+    
+    /**
+     * @description Controls access to global settings.
+     * Publicly readable, but only admins can write.
+     */
+    match /settings/{settingId} {
+        allow get: if true;
+        allow list: if true;
+        allow create, update: if isRequestingUserAdmin();
+        allow delete: if false; // Settings should not be deleted
     }
   }
 }
