@@ -23,52 +23,17 @@
         "admin": {
           "type": "boolean",
           "description": "Whether the user has admin privileges."
+        },
+        "isSuperAdmin": {
+          "type": "boolean",
+          "description": "Whether the user has super admin privileges."
+        },
+        "blocked": {
+            "type": "boolean",
+            "description": "If true, the user is blocked from logging in."
         }
       },
       "required": ["displayName", "email"]
-    },
-    "PlayerSettings": {
-      "title": "Player Settings",
-      "description": "Customization settings for the video player, particularly for Bunny.net.",
-      "type": "object",
-      "properties": {
-        "primaryColor": {
-          "type": "string",
-          "description": "The primary accent color for the player UI (hex code)."
-        },
-        "autoplay": {
-          "type": "boolean",
-          "description": "Whether the video should autoplay."
-        },
-        "loop": {
-          "type": "boolean",
-          "description": "Whether the video should loop."
-        },
-        "muted": {
-          "type": "boolean",
-          "description": "Whether the video should start muted."
-        },
-        "hotkeys": {
-            "type": "boolean",
-            "description": "Enable or disable keyboard shortcuts."
-        },
-        "volume": {
-            "type": "number",
-            "description": "Default volume from 0 to 1."
-        },
-        "customCss": {
-          "type": "string",
-          "description": "Custom CSS rules to apply to the player."
-        },
-        "resume": {
-            "type": "boolean",
-            "description": "Whether the player should remember the last playback position."
-        },
-        "heatmap": {
-            "type": "boolean",
-            "description": "Whether to display the watchtime heatmap on the progress bar."
-        }
-      }
     },
     "Episode": {
         "title": "Episode",
@@ -78,15 +43,9 @@
             "episodeNumber": {
                 "type": "number"
             },
-            "title": {
-                "type": "string"
-            },
             "embedUrl": {
                 "type": "string",
                 "format": "uri"
-            },
-            "playerSettings": {
-                "$ref": "#/entities/PlayerSettings"
             }
         },
         "required": ["episodeNumber", "embedUrl"]
@@ -160,10 +119,6 @@
             "format": "uri",
             "description": "Optional direct embed URL (for movies) or iframe code. This will be used instead of automated sources if provided."
         },
-        "playerSettings": {
-            "$ref": "#/entities/PlayerSettings",
-            "description": "Player customization settings for the movie's embedUrl."
-        },
         "downloadUrl": {
             "type": "string",
             "format": "uri",
@@ -188,6 +143,63 @@
         }
       },
       "required": ["title", "description", "type", "bannerImageUrl"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Represents a single message in the community chat.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The content of the chat message."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who sent the message."
+        },
+        "userName": {
+          "type": "string",
+          "description": "The display name of the user."
+        },
+        "userPhotoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "The profile picture URL of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the message was sent."
+        }
+      },
+      "required": ["text", "userId", "userName", "createdAt"]
+    },
+    "ContentRequest": {
+        "title": "Content Request",
+        "description": "Represents a user's request for new content.",
+        "type": "object",
+        "properties": {
+            "requestText": {
+                "type": "string",
+                "description": "The user's description of the content they want."
+            },
+            "userId": {
+                "type": "string"
+            },
+            "userName": {
+                "type": "string"
+            },
+            "status": {
+                "type": "string",
+                "enum": ["pending", "approved", "rejected"],
+                "description": "The current status of the request."
+            },
+            "createdAt": {
+                "type": "string",
+                "format": "date-time"
+            }
+        },
+        "required": ["requestText", "userId", "userName", "status", "createdAt"]
     }
   },
   "auth": {
@@ -201,8 +213,23 @@
     "/content/{contentId}": {
       "schema": { "$ref": "#/entities/Content" },
       "description": "Stores all content items like movies, web series, and dramas."
+    },
+    "/settings/downloadControls": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "globalDownloadEnabled": { "type": "boolean" }
+        }
+      },
+      "description": "Stores global site settings."
+    },
+    "/community-chat/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Stores messages for the global community chat."
+    },
+    "/content-requests/{requestId}": {
+        "schema": { "$ref": "#/entities/ContentRequest" },
+        "description": "Stores user-submitted requests for new content."
     }
   }
 }
-
-    

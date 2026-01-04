@@ -50,7 +50,6 @@ import { createDownloadUrl, createEmbedUrl } from "@/lib/utils";
 
 const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
-  title: z.string().optional(),
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
   embedUrl: z.string().optional(),
   downloadUrl: z.string().optional(),
@@ -152,17 +151,6 @@ function EpisodeArrayField({ seasonIndex, control }: { seasonIndex: number, cont
                             <FormItem>
                                 <FormLabel>Episode Number</FormLabel>
                                 <FormControl><Input type="number" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={control}
-                        name={`seasons.${seasonIndex}.episodes.${episodeIndex}.title`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Episode Title (Optional)</FormLabel>
-                                <FormControl><Input placeholder="e.g., The Beginning" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -311,7 +299,6 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                 seasonNumber: season.seasonNumber,
                 episodes: season.episodes.map(episode => ({
                     episodeNumber: episode.episodeNumber,
-                    title: episode.title || "", // Ensure title is not undefined
                     embedUrl: createEmbedUrl(episode.googleDriveUrl),
                     downloadUrl: createDownloadUrl(episode.googleDriveUrl),
                     downloadEnabled: episode.downloadEnabled,

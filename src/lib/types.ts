@@ -3,7 +3,6 @@ import type { Timestamp } from "firebase/firestore";
 
 export interface Episode {
   episodeNumber: number;
-  title?: string;
   embedUrl: string;
   downloadUrl?: string;
   downloadEnabled?: boolean;

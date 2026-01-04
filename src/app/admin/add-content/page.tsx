@@ -46,7 +46,6 @@ import { createDownloadUrl, createEmbedUrl } from "@/lib/utils";
 
 const episodeSchema = z.object({
   episodeNumber: z.coerce.number().min(1, "Episode number is required."),
-  title: z.string().optional(),
   googleDriveUrl: z.string().min(1, "Google Drive URL is required."),
   downloadEnabled: z.boolean().optional(),
 });
@@ -303,7 +302,6 @@ export default function AddContentPage() {
             seasonNumber: season.seasonNumber,
             episodes: season.episodes.map(episode => ({
                 episodeNumber: episode.episodeNumber,
-                title: episode.title || "",
                 embedUrl: createEmbedUrl(episode.googleDriveUrl),
                 downloadUrl: createDownloadUrl(episode.googleDriveUrl),
                 downloadEnabled: episode.downloadEnabled,
