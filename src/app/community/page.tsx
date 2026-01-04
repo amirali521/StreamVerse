@@ -32,7 +32,8 @@ import { Loader2, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface ChatMessage {
   id: string;
@@ -125,22 +126,34 @@ export default function CommunityChatPage() {
   async function onSubmit(values: z.infer<typeof chatMessageSchema>) {
     if (!firestore || !user) return;
 
-    try {
-      await addDoc(collection(firestore, 'community-chat'), {
+    const chatCollectionRef = collection(firestore, 'community-chat');
+    const messageData = {
         text: values.text,
         userId: user.uid,
         userName: user.displayName || 'Anonymous',
         userPhotoURL: user.photoURL || null,
         createdAt: serverTimestamp(),
-      });
-      form.reset();
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error sending message',
-        description: error.message || 'Could not send your message.',
-      });
-    }
+      };
+
+    addDoc(chatCollectionRef, messageData)
+        .then(() => {
+            form.reset();
+        })
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: chatCollectionRef.path,
+                operation: 'create',
+                requestResourceData: messageData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            
+            // Show a generic error toast to the user
+            toast({
+                variant: 'destructive',
+                title: 'Error sending message',
+                description: 'You may not have permission to post.',
+            });
+        });
   }
   
   if (!loaded || !user) {
