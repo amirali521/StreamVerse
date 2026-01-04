@@ -15,6 +15,8 @@ import { toast } from "@/hooks/use-toast";
 import { useUser } from "@/firebase/auth/use-user";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { Input } from "@/components/ui/input";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 interface AppUser {
     id: string;
@@ -58,6 +60,7 @@ function UserRow({
                 description: `${user.displayName}'s role has been changed.`,
             });
         } catch (error: any) {
+             // This catch block is for general errors, not permission errors which are now handled globally.
             toast({
                 variant: "destructive",
                 title: "Error Updating Role",
@@ -142,12 +145,29 @@ export default function UsersPage() {
         fetchUsers();
     }, [firestore]);
 
-    const handleRoleChange = async (userId: string, newRole: { admin: boolean, isSuperAdmin?: boolean }) => {
+    const handleRoleChange = (userId: string, newRole: { admin: boolean, isSuperAdmin?: boolean }) => {
         if (!firestore) throw new Error("Firestore not available");
+        
         const userDocRef = doc(firestore, "users", userId);
-        await updateDoc(userDocRef, newRole);
-        // Refresh local state
-        setUsers(users.map(u => u.id === userId ? { ...u, ...newRole } : u));
+        
+        // Return the promise chain
+        return updateDoc(userDocRef, newRole)
+            .then(() => {
+                // Refresh local state on success
+                setUsers(users.map(u => u.id === userId ? { ...u, ...newRole } : u));
+            })
+            .catch((serverError) => {
+                // Create and emit the rich, contextual error
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'update',
+                    requestResourceData: newRole,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                
+                // We re-throw the original error to allow the calling component's catch block to run if needed
+                throw serverError;
+            });
     };
     
     const filteredUsers = useMemo(() => {
