@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAdminStatus } from "@/firebase/auth/use-admin-status";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, PlusCircle, Bot, Settings, Users, MailQuestion } from "lucide-react";
+import { LayoutDashboard, PlusCircle, Settings, Users, MailQuestion } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +34,7 @@ function AdminHeader() {
   const pathname = usePathname();
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/add-content", label: "Add Manually", icon: PlusCircle },
-    { href: "/admin/assistant", label: "AI Assistant", icon: Bot },
+    { href: "/admin/add-content", label: "Add Content", icon: PlusCircle },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/requests", label: "Requests", icon: MailQuestion },
     { href: "/admin/settings", label: "Settings", icon: Settings },
