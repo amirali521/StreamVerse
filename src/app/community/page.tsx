@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +12,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { useUser } from '@/firebase/auth/use-user';
 import {
   addDoc,
@@ -87,6 +86,7 @@ function ChatBubble({ message, isCurrentUser }: { message: ChatMessage, isCurren
 
 function GlobalChatTab({ user }: { user: any }) {
     const firestore = useFirestore();
+    const auth = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,14 +122,16 @@ function GlobalChatTab({ user }: { user: any }) {
     }, [messages]);
 
     async function onSubmit(values: z.infer<typeof chatMessageSchema>) {
-        if (!firestore || !user) return;
+        if (!firestore || !auth?.currentUser) return;
+        
+        const currentUser = auth.currentUser;
 
         const chatCollectionRef = collection(firestore, 'community-chat');
         const messageData = {
             text: values.text,
-            userId: user.uid,
-            userName: user.displayName || 'Anonymous',
-            userPhotoURL: user.photoURL || null,
+            userId: currentUser.uid,
+            userName: currentUser.displayName || 'Anonymous',
+            userPhotoURL: currentUser.photoURL || null,
             createdAt: serverTimestamp(),
         };
 
