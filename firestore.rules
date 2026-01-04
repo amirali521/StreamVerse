@@ -9,12 +9,6 @@
  * - /users/{userId}: User profile info, including admin roles.
  * - /content/{contentId}: Publicly readable content.
  * - /settings/{settingId}: Global settings, manageable by admins.
- *
- * Key Security Decisions:
- * - User data is private to the owner, but readable by admins.
- * - Only super admins can grant/revoke admin status.
- * - Content is publicly readable, but writeable only by admins.
- * - Settings are readable by all, but writeable only by admins.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -85,6 +79,20 @@ service cloud.firestore {
         allow list: if true;
         allow create, update: if isRequestingUserAdmin();
         allow delete: if false; // Settings should not be deleted
+    }
+
+    /**
+     * @description Controls access to community chat messages.
+     * Authenticated users can read and write messages.
+     * Nobody can update or delete messages.
+     */
+    match /community-chat/{messageId} {
+        allow list, get: if isSignedIn();
+        allow create: if isSignedIn() && 
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.text.size() > 0 &&
+                         request.resource.data.text.size() < 500;
+        allow update, delete: if false;
     }
   }
 }
