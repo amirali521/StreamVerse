@@ -172,6 +172,33 @@
         }
       },
       "required": ["text", "userId", "userName", "createdAt"]
+    },
+    "ContentRequest": {
+        "title": "Content Request",
+        "description": "Represents a user's request for new content.",
+        "type": "object",
+        "properties": {
+            "requestText": {
+                "type": "string",
+                "description": "The user's description of the content they want."
+            },
+            "userId": {
+                "type": "string"
+            },
+            "userName": {
+                "type": "string"
+            },
+            "status": {
+                "type": "string",
+                "enum": ["pending", "approved", "rejected"],
+                "description": "The current status of the request."
+            },
+            "createdAt": {
+                "type": "string",
+                "format": "date-time"
+            }
+        },
+        "required": ["requestText", "userId", "userName", "status", "createdAt"]
     }
   },
   "auth": {
@@ -198,6 +225,10 @@
     "/community-chat/{messageId}": {
       "schema": { "$ref": "#/entities/ChatMessage" },
       "description": "Stores messages for the global community chat."
+    },
+    "/content-requests/{requestId}": {
+        "schema": { "$ref": "#/entities/ContentRequest" },
+        "description": "Stores user-submitted requests for new content."
     }
   }
 }

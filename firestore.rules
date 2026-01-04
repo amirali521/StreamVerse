@@ -44,8 +44,8 @@ service cloud.firestore {
      * Only a super admin can change another user's admin or superAdmin status.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isRequestingUserAdmin();
-      allow list: if isRequestingUserAdmin();
+      allow get: if isSignedIn(); // Allow any signed in user to get profile for user list
+      allow list: if isSignedIn(); // Allow any signed in user to list users
       allow create: if isOwner(userId);
       
       // Allow user to update their own non-admin fields
@@ -94,5 +94,24 @@ service cloud.firestore {
                          request.resource.data.text.size() < 500;
         allow update, delete: if false;
     }
+
+    /**
+     * @description Controls access to content requests.
+     * Signed-in users can create requests.
+     * Admins can read, list, and update the status of requests.
+     * Users can only read their own requests.
+     */
+     match /content-requests/{requestId} {
+        allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isRequestingUserAdmin());
+        allow list: if isRequestingUserAdmin();
+        allow create: if isSignedIn() &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.status == 'pending' &&
+                         request.resource.data.requestText.size() > 0 &&
+                         request.resource.data.requestText.size() < 500;
+        allow update: if isRequestingUserAdmin() &&
+                         request.resource.data.keys().hasOnly(['status']);
+        allow delete: if isRequestingUserAdmin();
+     }
   }
 }
