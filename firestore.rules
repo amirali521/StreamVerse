@@ -40,24 +40,25 @@ service cloud.firestore {
     
     /**
      * @description Controls access to user profile documents.
-     * Users can read/write their own profile. Admins can read any profile.
-     * Only a super admin can change another user's admin or superAdmin status.
      */
     match /users/{userId} {
-      allow get: if isSignedIn(); // Allow any signed in user to get profile for user list
-      allow list: if isSignedIn(); // Allow any signed in user to list users
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create: if isOwner(userId);
       
-      // Allow user to update their own non-admin fields
+      // Allow user to update their own non-admin, non-critical fields
       allow update: if isOwner(userId) &&
-                       request.resource.data.keys().diff(resource.data.keys()).hasOnly(['displayName', 'photoURL']) &&
-                       request.resource.data.displayName == request.resource.data.displayName &&
-                       request.resource.data.photoURL == request.resource.data.photoURL;
+                       !request.resource.data.keys().hasAny(['admin', 'isSuperAdmin', 'blocked']);
 
-      // Allow super admin to update other users' admin status, but not superAdmin status
+      // Allow super admin to update other users' roles and blocked status
       allow update: if isRequestingUserSuperAdmin() &&
-                       !request.resource.data.isSuperAdmin &&
-                       request.resource.data.keys().hasAny(['admin']);
+                       // Prevent super admin from removing their own super admin status
+                       (userId != request.auth.uid || request.resource.data.isSuperAdmin == true) &&
+                       // Prevent making another user a super admin
+                       (!request.resource.data.keys().has('isSuperAdmin') || request.resource.data.isSuperAdmin == false);
+      
+      // Allow a super admin to delete any user except themselves
+      allow delete: if isRequestingUserSuperAdmin() && userId != request.auth.uid;
     }
 
     /**

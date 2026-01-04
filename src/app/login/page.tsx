@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { useFirebase } from "@/firebase/provider";
+import { doc, getDoc } from "firebase/firestore";
+import { useFirebase, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -36,6 +38,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { app } = useFirebase();
+  const firestore = useFirestore();
   const router = useRouter();
   const { user, loaded } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,20 +50,31 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // This effect now only handles redirecting an already logged-in and verified user.
-    // The unverified user flow is handled entirely within onSubmit.
     if (loaded && user?.emailVerified) {
       router.push("/");
     }
   }, [user, loaded, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!app) return;
+    if (!app || !firestore) return;
     const auth = getAuth(app);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const signedInUser = userCredential.user;
 
+      const userDocRef = doc(firestore, "users", signedInUser.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists() && userDoc.data()?.blocked === true) {
+        await signOut(auth);
+        toast({
+          variant: "destructive",
+          title: "Account Blocked",
+          description: "Your account has been blocked. Please contact support for assistance.",
+        });
+        return;
+      }
+      
       if (signedInUser.emailVerified) {
         toast({
           title: "Login Successful",
@@ -68,14 +82,12 @@ export default function LoginPage() {
         });
         router.push("/");
       } else {
-        // This is the critical part for unverified users.
-        await signOut(auth); // Log them out immediately.
+        await signOut(auth);
         toast({
             variant: "destructive",
             title: "Email Not Verified",
             description: "Please verify your email before logging in.",
         });
-        // Redirect them to the page where they can resend the verification.
         router.push(`/auth/verify-email`);
       }
     } catch (error: any) {

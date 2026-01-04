@@ -27,6 +27,10 @@
         "isSuperAdmin": {
           "type": "boolean",
           "description": "Whether the user has super admin privileges."
+        },
+        "blocked": {
+            "type": "boolean",
+            "description": "If true, the user is blocked from logging in."
         }
       },
       "required": ["displayName", "email"]

@@ -55,18 +55,38 @@ export default function AdminLoginPage() {
       const userDocRef = doc(firestore, "users", userCredential.user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data()?.admin === true) {
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome back!",
-        });
-        router.push("/admin");
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.blocked) {
+           await auth.signOut();
+           toast({
+             variant: "destructive",
+             title: "Account Blocked",
+             description: "Your account has been blocked. Please contact an administrator.",
+           });
+           return;
+        }
+
+        if (userData.admin === true || userData.isSuperAdmin === true) {
+          toast({
+            title: "Admin Login Successful",
+            description: "Welcome back!",
+          });
+          router.push("/admin");
+        } else {
+            await auth.signOut();
+            toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "You do not have admin privileges.",
+            });
+        }
       } else {
-        await auth.signOut();
-        toast({
+         await auth.signOut();
+         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: "You do not have admin privileges.",
+          description: "User profile not found.",
         });
       }
     } catch (error: any) {
