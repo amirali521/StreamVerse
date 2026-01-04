@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useFirestore } from "@/firebase";
-import { collection, getDocs, doc, updateDoc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
+import { collection, doc, updateDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from 'date-fns';
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ContentRequest {
     id: string;
@@ -108,7 +108,7 @@ export default function RequestsPage() {
         const requestsCollectionRef = collection(firestore, "content-requests");
         const q = query(requestsCollectionRef, orderBy("createdAt", "desc"));
         
-        const unsubscribe = onStatusChange(q, (snapshot) => {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const requestList = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
