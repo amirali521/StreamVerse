@@ -6,7 +6,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from 
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, MoreVertical, Plus } from "lucide-react";
+import { Edit, Trash2, Search, MoreVertical, Plus, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -200,6 +200,37 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
 
     const contentType = contentItem.type;
 
+    const handleDownloadImage = async (imageUrl: string, imageType: 'banner' | 'poster') => {
+        if (!imageUrl) {
+            toast({ variant: "destructive", title: "No URL", description: "Image URL is empty." });
+            return;
+        }
+        try {
+            const response = await fetch(imageUrl);
+            if (!response.ok) throw new Error("Failed to fetch image.");
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+
+            const extension = blob.type.split('/')[1] || 'jpg';
+            const title = contentItem.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            a.download = `${title}_${imageType}.${extension}`;
+            
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            toast({ title: "Download Started", description: `Downloading ${imageType} image.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Download Failed", description: error.message });
+        }
+    };
+
+
     async function onSubmit(values: z.infer<typeof editContentSchema>) {
         if (!firestore) return;
 
@@ -286,11 +317,30 @@ function EditContentForm({ contentItem, onUpdate, closeDialog }: { contentItem: 
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
-                    <FormItem><FormLabel>Banner Image URL (for cards)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                 <FormField control={form.control} name="bannerImageUrl" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Banner Image URL (for cards)</FormLabel>
+                        <div className="flex items-center gap-2">
+                            <FormControl><Input {...field} /></FormControl>
+                            <Button type="button" variant="outline" size="icon" onClick={() => handleDownloadImage(field.value, 'banner')}>
+                                <Download className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
                 )} />
                 <FormField control={form.control} name="posterImageUrl" render={({ field }) => (
-                    <FormItem><FormLabel>Poster Image URL (for player/hero)</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Optional. Used for hero/player. If blank, banner image is used.</FormDescription><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel>Poster Image URL (for player/hero)</FormLabel>
+                         <div className="flex items-center gap-2">
+                            <FormControl><Input {...field} /></FormControl>
+                            <Button type="button" variant="outline" size="icon" onClick={() => handleDownloadImage(field.value, 'poster')}>
+                                <Download className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <FormDescription>Optional. Used for hero/player. If blank, banner image is used.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
                 )} />
                 <FormField control={form.control} name="imdbRating" render={({ field }) => (
                     <FormItem><FormLabel>IMDb Rating</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
