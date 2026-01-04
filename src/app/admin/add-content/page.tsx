@@ -276,7 +276,7 @@ export default function AddContentPage() {
             seasonNumber: season.seasonNumber,
             episodes: season.episodes.map(episode => ({
                 episodeNumber: episode.episodeNumber,
-                title: episode.title,
+                title: episode.title || "",
                 embedUrl: createEmbedUrl(episode.googleDriveUrl),
                 downloadUrl: createDownloadUrl(episode.googleDriveUrl),
             }))
