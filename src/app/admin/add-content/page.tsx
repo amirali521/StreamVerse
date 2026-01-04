@@ -221,7 +221,10 @@ export default function AddContentPage() {
 
     if (details) {
         form.setValue("tmdbId", result.id);
-        form.setValue("title", details.title);
+
+        const titleWithYear = details.releaseYear ? `${details.title} (${details.releaseYear})` : details.title;
+        form.setValue("title", titleWithYear);
+
         form.setValue("description", details.description);
         form.setValue("imdbRating", Number(details.imdbRating));
         
@@ -456,4 +459,5 @@ export default function AddContentPage() {
   );
 }
 
+    
     

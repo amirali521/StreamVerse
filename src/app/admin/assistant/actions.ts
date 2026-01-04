@@ -48,9 +48,11 @@ export async function addContentFromTmdb(
   }
 
   // 2. Prepare the data for Firestore, matching the Content schema
+  const titleWithYear = details.releaseYear ? `${details.title} (${details.releaseYear})` : details.title;
+
   const contentData = {
     tmdbId,
-    title: details.title,
+    title: titleWithYear,
     description: details.description,
     type: mediaType === 'movie' ? 'movie' : 'webseries', // Default 'tv' to 'webseries'
     bannerImageUrl: details.bannerImageUrl,
@@ -74,3 +76,5 @@ export async function addContentFromTmdb(
     throw new Error(`Failed to save content to database: ${error.message}`);
   }
 }
+
+    

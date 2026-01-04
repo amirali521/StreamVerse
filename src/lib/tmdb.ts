@@ -56,10 +56,14 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
         const trailer = data.videos?.results?.find(
           (video: any) => video.site === 'YouTube' && video.type === 'Trailer'
         );
+        
+        const releaseDate = data.release_date || data.first_air_date;
+        const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : null;
 
         return {
             title: data.title || data.name,
             description: data.overview,
+            releaseYear: releaseYear,
             imdbRating: data.vote_average ? (data.vote_average / 2 * 10 / 5).toFixed(1) : 0, // Convert to 10-point scale
             categories: data.genres?.map((g: any) => g.name) || [],
             bannerImageUrl: bannerPath,
@@ -98,3 +102,5 @@ export async function getUpcomingMovies(): Promise<any[]> {
         return [];
     }
 }
+
+    
