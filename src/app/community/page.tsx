@@ -28,7 +28,7 @@ import {
 } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Loader2, Send, MessageSquare, Users, MailQuestion, User, Wifi, WifiOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -234,6 +234,14 @@ function UsersSummaryTab() {
         
         fetchUserCount();
     }, [firestore]);
+    
+    const { activeUsers, offlineUsers } = useMemo(() => {
+        if (totalUsers === 0) return { activeUsers: 0, offlineUsers: 0 };
+        // Estimate: 30% of users are active, but ensure at least 1 is active if total > 0
+        const active = Math.max(1, Math.round(totalUsers * 0.3));
+        const offline = Math.max(0, totalUsers - active);
+        return { activeUsers: active, offlineUsers: offline };
+    }, [totalUsers]);
 
     const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) => (
         <Card>
@@ -251,16 +259,11 @@ function UsersSummaryTab() {
         </Card>
     );
 
-    // Using placeholders for active/offline as real-time presence is complex
-    const activeUsers = totalUsers > 0 ? 1500 : 0;
-    const offlineUsers = totalUsers > 0 ? 3500 : 0;
-    const placeholderTotal = totalUsers > 0 ? activeUsers + offlineUsers : 0;
-
     return (
         <div className="grid gap-4 md:grid-cols-3">
              <StatCard
                 title="Total Users"
-                value={loading ? 0 : formatNumber(placeholderTotal)}
+                value={loading ? 0 : formatNumber(totalUsers)}
                 icon={Users}
                 isLoading={loading}
             />
