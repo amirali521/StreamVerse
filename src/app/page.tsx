@@ -78,7 +78,7 @@ export default function Home() {
           } as ClientContent;
         });
         
-        let generatedCarousels: CarouselData[] = [];
+        const generatedCarousels: CarouselData[] = [];
 
         // 1. Get Hero Content: Filter for items with `isFeatured` set to true
         const featuredContent = allContent.filter(item => item.isFeatured).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
@@ -96,33 +96,44 @@ export default function Home() {
             generatedCarousels.push({ title: "Trending Now", items: sortedTrending.slice(0, 10) });
         }
         
-        // 4. Group content by type (movie, webseries, drama) and categories
+        // 4. Group content by specific types and categories
+        const desiredTypes = ["movie", "webseries"];
+        const desiredCategories = ["Hollywood", "Bollywood", "Action", "Adventure", "Scifi", "Hindi Dubbed"];
+
         const groupedContent: Record<string, ClientContent[]> = {};
+
         allContent.forEach(item => {
-            // Group by type
-            if (item.type) {
-                const typeKey = startCase(item.type.toLowerCase());
+            // Group by desired types
+            if (desiredTypes.includes(item.type)) {
+                const typeKey = startCase(item.type); // "webseries" -> "Web Series"
                 if (!groupedContent[typeKey]) groupedContent[typeKey] = [];
                 groupedContent[typeKey].push(item);
             }
-            // Group by categories
+            // Group by desired categories
             item.categories?.forEach(cat => {
-                const categoryKey = startCase(cat.toLowerCase());
-                if (!groupedContent[categoryKey]) groupedContent[categoryKey] = [];
-                groupedContent[categoryKey].push(item);
+                const casedCategory = startCase(cat.toLowerCase());
+                if (desiredCategories.map(d => d.toLowerCase()).includes(casedCategory.toLowerCase())) {
+                    if (!groupedContent[casedCategory]) groupedContent[casedCategory] = [];
+                    groupedContent[casedCategory].push(item);
+                }
             });
         });
         
         // 5. Create carousels from groups that have enough items
         const dynamicCarousels: CarouselData[] = [];
-        for (const title in groupedContent) {
-             if (groupedContent[title].length >= MIN_ITEMS_FOR_CAROUSEL) {
+        
+        // Add carousels in a specific order if desired
+        const carouselOrder = ["Movies", "Web Series", ...desiredCategories];
+
+        carouselOrder.forEach(title => {
+            const items = groupedContent[title];
+            if (items && items.length >= MIN_ITEMS_FOR_CAROUSEL) {
                 // Avoid duplicating carousels we've already manually created
                 if (!generatedCarousels.some(c => c.title.toLowerCase() === title.toLowerCase())) {
-                    dynamicCarousels.push({ title, items: groupedContent[title].slice(0, 10) });
+                    dynamicCarousels.push({ title, items: items.slice(0, 10) });
                 }
             }
-        }
+        });
 
         // Combine manually created carousels with dynamically generated ones
         setCarousels([...generatedCarousels, ...dynamicCarousels]);
@@ -148,7 +159,7 @@ export default function Home() {
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
-      <div className="py-4 space-y-4">
+      <div className="py-4 space-y-8">
         {carousels.length === 0 && !loading ? (
           <div className="text-center text-muted-foreground px-4">
             <p>No content has been added yet.</p>
