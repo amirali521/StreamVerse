@@ -12,7 +12,7 @@ import { HeroBanner } from "@/components/hero-banner";
 import { getUpcomingMovies } from "@/lib/tmdb";
 import { UpcomingHeroBanner } from "@/components/upcoming-hero-banner";
 import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
-
+import { startCase } from "lodash";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -22,16 +22,18 @@ type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
   posterImageUrl?: string;
 };
 
+interface CarouselData {
+    title: string;
+    items: ClientContent[];
+}
+
+const MIN_ITEMS_FOR_CAROUSEL = 4;
+
 export default function Home() {
   const firestore = useFirestore();
   const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
   const [upcomingMovies, setUpcomingMovies] = useState<any[]>([]);
-  const [trending, setTrending] = useState<ClientContent[]>([]);
-  const [newReleases, setNewReleases] = useState<ClientContent[]>([]);
-  const [popularDramas, setPopularDramas] = useState<ClientContent[]>([]);
-  const [bollywood, setBollywood] = useState<ClientContent[]>([]);
-  const [hollywood, setHollywood] = useState<ClientContent[]>([]);
-  const [tollywood, setTollywood] = useState<ClientContent[]>([]);
+  const [carousels, setCarousels] = useState<CarouselData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,28 +78,56 @@ export default function Home() {
           } as ClientContent;
         });
         
+        const generatedCarousels: CarouselData[] = [];
+
         // 1. Get Hero Content: Filter for items with `isFeatured` set to true
         const featuredContent = allContent.filter(item => item.isFeatured).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
         setHeroContent(featuredContent.slice(0, 5));
         
         // 2. Get New Releases: Sort all content by `createdAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-        setNewReleases(sortedNewReleases.slice(0, 10));
+        if(sortedNewReleases.length >= MIN_ITEMS_FOR_CAROUSEL) {
+            generatedCarousels.push({ title: "New Releases", items: sortedNewReleases.slice(0, 10) });
+        }
 
         // 3. Get Trending: Sort all content by IMDb rating
         const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
-        setTrending(sortedTrending.slice(0, 10));
+        if(sortedTrending.length >= MIN_ITEMS_FOR_CAROUSEL) {
+            generatedCarousels.push({ title: "Trending Now", items: sortedTrending.slice(0, 10) });
+        }
         
-        // 4. Get Popular Dramas: Filter for dramas, then sort by rating
-        const dramas = allContent.filter(item => item.type === 'drama');
-        const sortedDramas = dramas.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
-        setPopularDramas(sortedDramas.slice(0, 10));
+        // 4. Group content by type (movie, webseries, drama)
+        const byType: Record<string, ClientContent[]> = {};
+        allContent.forEach(item => {
+            if (!item.type) return;
+            const key = startCase(item.type); // "webseries" -> "Web Series"
+            if (!byType[key]) byType[key] = [];
+            byType[key].push(item);
+        });
 
-        // 5. Get content by specific categories
-        setBollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'bollywood')).slice(0, 10));
-        setHollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'hollywood')).slice(0, 10));
-        setTollywood(allContent.filter(item => item.categories?.some(c => c.toLowerCase() === 'tollywood')).slice(0, 10));
+        // 5. Group content by categories (e.g., Bollywood, Action)
+        const byCategory: Record<string, ClientContent[]> = {};
+        allContent.forEach(item => {
+            item.categories?.forEach(cat => {
+                const key = startCase(cat.toLowerCase());
+                if (!byCategory[key]) byCategory[key] = [];
+                byCategory[key].push(item);
+            });
+        });
+        
+        // 6. Combine and create carousels if they have enough items
+        const allGroups = {...byType, ...byCategory};
 
+        for (const title in allGroups) {
+             if (allGroups[title].length >= MIN_ITEMS_FOR_CAROUSEL) {
+                // Avoid duplicating "Trending" and "New Releases"
+                if (!generatedCarousels.some(c => c.title.toLowerCase() === title.toLowerCase())) {
+                    generatedCarousels.push({ title, items: allGroups[title].slice(0, 10) });
+                }
+            }
+        }
+
+        setCarousels(generatedCarousels);
 
       } catch (error) {
         console.error("Error fetching homepage content:", error);
@@ -120,21 +150,16 @@ export default function Home() {
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
-      <div className="py-8 px-4 md:px-6 lg:px-8 space-y-8">
-        {trending.length === 0 && popularDramas.length === 0 ? (
-          <div className="text-center text-muted-foreground">
+      <div className="py-8 space-y-4">
+        {carousels.length === 0 ? (
+          <div className="text-center text-muted-foreground px-4">
             <p>No content has been added yet.</p>
             <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
           </div>
         ) : (
-          <>
-            {trending.length > 0 && <ContentCarousel title="Trending Now" items={trending} />}
-            {newReleases.length > 0 && <ContentCarousel title="New Releases" items={newReleases} />}
-            {bollywood.length > 0 && <ContentCarousel title="Bollywood" items={bollywood} />}
-            {hollywood.length > 0 && <ContentCarousel title="Hollywood" items={hollywood} />}
-            {tollywood.length > 0 && <ContentCarousel title="Tollywood" items={tollywood} />}
-            {popularDramas.length > 0 && <ContentCarousel title="Popular Dramas" items={popularDramas} />}
-          </>
+          carousels.map(carousel => (
+            <ContentCarousel key={carousel.title} title={carousel.title} items={carousel.items} />
+          ))
         )}
       </div>
     </div>
