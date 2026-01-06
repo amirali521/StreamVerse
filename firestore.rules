@@ -111,7 +111,9 @@ service cloud.firestore {
                          request.resource.data.requestText.size() > 0 &&
                          request.resource.data.requestText.size() < 500;
         allow update: if isRequestingUserAdmin() &&
-                         request.resource.data.keys().hasOnly(['status']);
+                         request.resource.data.status != resource.data.status &&
+                         request.resource.data.keys().hasAll(['createdAt', 'requestText', 'status', 'userId', 'userName']) &&
+                         request.resource.data.userId == resource.data.userId;
         allow delete: if isRequestingUserAdmin();
      }
   }
