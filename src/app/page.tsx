@@ -78,7 +78,7 @@ export default function Home() {
           } as ClientContent;
         });
         
-        const generatedCarousels: CarouselData[] = [];
+        let generatedCarousels: CarouselData[] = [];
 
         // 1. Get Hero Content: Filter for items with `isFeatured` set to true
         const featuredContent = allContent.filter(item => item.isFeatured).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
@@ -114,16 +114,18 @@ export default function Home() {
         });
         
         // 5. Create carousels from groups that have enough items
+        const dynamicCarousels: CarouselData[] = [];
         for (const title in groupedContent) {
              if (groupedContent[title].length >= MIN_ITEMS_FOR_CAROUSEL) {
                 // Avoid duplicating carousels we've already manually created
                 if (!generatedCarousels.some(c => c.title.toLowerCase() === title.toLowerCase())) {
-                    generatedCarousels.push({ title, items: groupedContent[title].slice(0, 10) });
+                    dynamicCarousels.push({ title, items: groupedContent[title].slice(0, 10) });
                 }
             }
         }
 
-        setCarousels(generatedCarousels);
+        // Combine manually created carousels with dynamically generated ones
+        setCarousels([...generatedCarousels, ...dynamicCarousels]);
 
       } catch (error) {
         console.error("Error fetching homepage content:", error);
@@ -146,7 +148,7 @@ export default function Home() {
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
-      <div className="py-4 space-y-8">
+      <div className="py-4 space-y-4">
         {carousels.length === 0 && !loading ? (
           <div className="text-center text-muted-foreground px-4">
             <p>No content has been added yet.</p>
