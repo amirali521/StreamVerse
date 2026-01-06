@@ -96,33 +96,29 @@ export default function Home() {
             generatedCarousels.push({ title: "Trending Now", items: sortedTrending.slice(0, 10) });
         }
         
-        // 4. Group content by type (movie, webseries, drama)
-        const byType: Record<string, ClientContent[]> = {};
+        // 4. Group content by type (movie, webseries, drama) and categories
+        const groupedContent: Record<string, ClientContent[]> = {};
         allContent.forEach(item => {
-            if (!item.type) return;
-            const key = startCase(item.type); // "webseries" -> "Web Series"
-            if (!byType[key]) byType[key] = [];
-            byType[key].push(item);
-        });
-
-        // 5. Group content by categories (e.g., Bollywood, Action)
-        const byCategory: Record<string, ClientContent[]> = {};
-        allContent.forEach(item => {
+            // Group by type
+            if (item.type) {
+                const typeKey = startCase(item.type.toLowerCase());
+                if (!groupedContent[typeKey]) groupedContent[typeKey] = [];
+                groupedContent[typeKey].push(item);
+            }
+            // Group by categories
             item.categories?.forEach(cat => {
-                const key = startCase(cat.toLowerCase());
-                if (!byCategory[key]) byCategory[key] = [];
-                byCategory[key].push(item);
+                const categoryKey = startCase(cat.toLowerCase());
+                if (!groupedContent[categoryKey]) groupedContent[categoryKey] = [];
+                groupedContent[categoryKey].push(item);
             });
         });
         
-        // 6. Combine and create carousels if they have enough items
-        const allGroups = {...byType, ...byCategory};
-
-        for (const title in allGroups) {
-             if (allGroups[title].length >= MIN_ITEMS_FOR_CAROUSEL) {
-                // Avoid duplicating "Trending" and "New Releases"
+        // 5. Create carousels from groups that have enough items
+        for (const title in groupedContent) {
+             if (groupedContent[title].length >= MIN_ITEMS_FOR_CAROUSEL) {
+                // Avoid duplicating carousels we've already manually created
                 if (!generatedCarousels.some(c => c.title.toLowerCase() === title.toLowerCase())) {
-                    generatedCarousels.push({ title, items: allGroups[title].slice(0, 10) });
+                    generatedCarousels.push({ title, items: groupedContent[title].slice(0, 10) });
                 }
             }
         }
@@ -151,7 +147,7 @@ export default function Home() {
 
       {/* Content Sections */}
       <div className="py-8 space-y-4">
-        {carousels.length === 0 ? (
+        {carousels.length === 0 && !loading ? (
           <div className="text-center text-muted-foreground px-4">
             <p>No content has been added yet.</p>
             <p className="mt-2">Use the admin panel to add movies, series, and dramas.</p>
