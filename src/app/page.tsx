@@ -146,7 +146,7 @@ export default function Home() {
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
 
       {/* Content Sections */}
-      <div className="py-8 space-y-4">
+      <div className="py-4 space-y-8">
         {carousels.length === 0 && !loading ? (
           <div className="text-center text-muted-foreground px-4">
             <p>No content has been added yet.</p>
