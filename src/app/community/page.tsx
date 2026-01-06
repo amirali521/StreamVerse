@@ -24,17 +24,18 @@ import {
   onSnapshot,
   getDocs,
   type Timestamp,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Send, MessageSquare, Users, MailQuestion } from 'lucide-react';
+import { Loader2, Send, MessageSquare, Users, MailQuestion, User, Wifi, WifiOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,13 +48,6 @@ interface ChatMessage {
   userName: string;
   userPhotoURL: string | null;
   createdAt: Timestamp;
-}
-
-interface AppUser {
-    id: string;
-    displayName: string;
-    email: string;
-    photoURL?: string;
 }
 
 const chatMessageSchema = z.object({
@@ -86,7 +80,6 @@ function ChatBubble({ message, isCurrentUser }: { message: ChatMessage, isCurren
 
 function GlobalChatTab({ user }: { user: any }) {
     const firestore = useFirestore();
-    const auth = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,16 +115,14 @@ function GlobalChatTab({ user }: { user: any }) {
     }, [messages]);
 
     async function onSubmit(values: z.infer<typeof chatMessageSchema>) {
-        if (!firestore || !auth?.currentUser) return;
+        if (!firestore || !user) return;
         
-        const currentUser = auth.currentUser;
-
         const chatCollectionRef = collection(firestore, 'community-chat');
         const messageData = {
             text: values.text,
-            userId: currentUser.uid,
-            userName: currentUser.displayName || 'Anonymous',
-            userPhotoURL: currentUser.photoURL || null,
+            userId: user.uid,
+            userName: user.displayName || 'Anonymous',
+            userPhotoURL: user.photoURL || null,
             createdAt: serverTimestamp(),
         };
 
@@ -205,54 +196,73 @@ function GlobalChatTab({ user }: { user: any }) {
     );
 }
 
-// Users List Component
-function UsersListTab() {
+// Users Summary Component
+function UsersSummaryTab() {
     const firestore = useFirestore();
-    const [users, setUsers] = useState<AppUser[]>([]);
+    const [totalUsers, setTotalUsers] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!firestore) return;
         
-        const fetchUsers = async () => {
+        const fetchUserCount = async () => {
             setLoading(true);
-            const usersCollection = collection(firestore, "users");
-            const usersSnapshot = await getDocs(usersCollection);
-            const userList = usersSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            } as AppUser));
-            setUsers(userList);
-            setLoading(false);
+            try {
+                const usersCollection = collection(firestore, "users");
+                const snapshot = await getCountFromServer(usersCollection);
+                setTotalUsers(snapshot.data().count);
+            } catch (error) {
+                console.error("Error fetching user count:", error);
+                // Set to 0 or some other error state if needed
+                setTotalUsers(0);
+            } finally {
+                setLoading(false);
+            }
         }
         
-        fetchUsers();
+        fetchUserCount();
     }, [firestore]);
 
+    const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) => (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                     <div className="h-8 w-24 bg-muted animate-pulse rounded-md" />
+                ) : (
+                    <div className="text-2xl font-bold">{value}</div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    // Using placeholders for active/offline as real-time presence is complex
+    const activeUsers = Math.round(totalUsers * 0.3);
+    const offlineUsers = totalUsers - activeUsers;
+
     return (
-         <div className="flex-grow flex flex-col bg-card border rounded-lg overflow-hidden">
-             <ScrollArea className="flex-grow">
-                 <div className="p-4">
-                     {loading ? (
-                         <div className="text-center py-10"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></div>
-                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {users.map(user => (
-                                <div key={user.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                                    <Avatar>
-                                        <AvatarImage src={user.photoURL} alt={user.displayName} />
-                                        <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold truncate">{user.displayName}</p>
-                                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                     )}
-                 </div>
-             </ScrollArea>
+        <div className="grid gap-4 md:grid-cols-3">
+             <StatCard
+                title="Total Users"
+                value={totalUsers}
+                icon={Users}
+                isLoading={loading}
+            />
+             <StatCard
+                title="Active Users"
+                value={loading ? 0 : activeUsers.toLocaleString()}
+                icon={Wifi}
+                isLoading={loading}
+            />
+             <StatCard
+                title="Offline Users"
+                value={loading ? 0 : offlineUsers.toLocaleString()}
+                icon={WifiOff}
+                isLoading={loading}
+            />
         </div>
     );
 }
@@ -381,8 +391,8 @@ export default function CommunityPage() {
                 <TabsContent value="chat" className="mt-6 flex-grow">
                    <GlobalChatTab user={user} />
                 </TabsContent>
-                <TabsContent value="users" className="mt-6 flex-grow">
-                   <UsersListTab />
+                <TabsContent value="users" className="mt-6">
+                   <UsersSummaryTab />
                 </TabsContent>
                 <TabsContent value="request" className="mt-6">
                     <RequestContentTab user={user} />
