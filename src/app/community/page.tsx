@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useFirestore, useAuth } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { useUser } from '@/firebase/auth/use-user';
 import {
   addDoc,
@@ -22,14 +22,13 @@ import {
   limit,
   serverTimestamp,
   onSnapshot,
-  getDocs,
-  type Timestamp,
   getCountFromServer,
+  type Timestamp,
 } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Loader2, Send, MessageSquare, Users, MailQuestion, User, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, Send, MessageSquare, Users, MailQuestion, Wifi, WifiOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -154,19 +153,19 @@ function GlobalChatTab({ user }: { user: any }) {
     return (
         <div className="flex flex-col h-full bg-card border rounded-lg overflow-hidden">
              <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-                {loading ? (
-                    <div className="flex flex-col flex-grow items-center justify-center text-center p-4 h-full">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                ) : messages.length === 0 ? (
-                    <div className="flex flex-col flex-grow items-center justify-center text-center p-4 h-full">
-                        <p className="text-muted-foreground">No messages yet. Be the first to say something!</p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {messages.map(msg => <ChatBubble key={msg.id} message={msg} isCurrentUser={user.uid === msg.userId} />)}
-                    </div>
-                )}
+                <div className="space-y-6">
+                    {loading ? (
+                        <div className="flex flex-col flex-grow items-center justify-center text-center p-4 h-full">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : messages.length === 0 ? (
+                        <div className="flex flex-col flex-grow items-center justify-center text-center p-4 h-full">
+                            <p className="text-muted-foreground">No messages yet. Be the first to say something!</p>
+                        </div>
+                    ) : (
+                        messages.map(msg => <ChatBubble key={msg.id} message={msg} isCurrentUser={user.uid === msg.userId} />)
+                    )}
+                </div>
             </ScrollArea>
             <div className="p-4 bg-background border-t">
                 <Form {...form}>
@@ -390,7 +389,7 @@ export default function CommunityPage() {
 
     if (!loaded || !user) {
         return (
-            <div className="container py-8 flex flex-col items-center justify-center h-full">
+            <div className="container py-8 flex flex-col items-center justify-center h-[calc(100vh-theme(spacing.14))]">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="mt-4 text-muted-foreground">Loading user authentication...</p>
             </div>
@@ -398,8 +397,8 @@ export default function CommunityPage() {
     }
 
     return (
-        <div className="container py-8 flex flex-col h-full">
-             <div className="text-center mb-8">
+        <div className="container py-8 flex flex-col h-[calc(100vh-theme(spacing.14))]">
+             <div className="text-center mb-8 shrink-0">
                 <h1 className="text-4xl font-headline font-bold">Community Hub</h1>
                 <p className="text-muted-foreground">Chat with others, see who's online, and request new content.</p>
             </div>
