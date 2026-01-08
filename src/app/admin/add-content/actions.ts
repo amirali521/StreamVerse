@@ -2,6 +2,8 @@
 "use server";
 
 import { searchTMDB, getTMDBDetails, getTMDBImages } from "@/lib/tmdb";
+import { generateSocialPost } from "@/ai/flows/generate-social-post";
+import type { SocialPostInput } from "@/ai/flows/generate-social-post";
 
 export async function searchContent(query: string, type: 'movie' | 'webseries' | 'drama', isDubbedSearch: boolean) {
   const tmdbType = type === 'movie' ? 'movie' : 'tv';
@@ -39,4 +41,8 @@ export async function getContentDetails(id: number, type: 'movie' | 'tv') {
 
 export async function getSocialImages(id: number, type: 'movie' | 'tv') {
     return await getTMDBImages(id, type);
+}
+
+export async function generatePostDetails(input: SocialPostInput) {
+    return await generateSocialPost(input);
 }
