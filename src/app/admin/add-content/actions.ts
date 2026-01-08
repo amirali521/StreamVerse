@@ -1,7 +1,7 @@
 
 "use server";
 
-import { searchTMDB, getTMDBDetails } from "@/lib/tmdb";
+import { searchTMDB, getTMDBDetails, getTMDBImages } from "@/lib/tmdb";
 
 export async function searchContent(query: string, type: 'movie' | 'webseries' | 'drama', isDubbedSearch: boolean) {
   const tmdbType = type === 'movie' ? 'movie' : 'tv';
@@ -35,4 +35,8 @@ export async function searchContent(query: string, type: 'movie' | 'webseries' |
 
 export async function getContentDetails(id: number, type: 'movie' | 'tv') {
   return await getTMDBDetails(id, type);
+}
+
+export async function getSocialImages(id: number, type: 'movie' | 'tv') {
+    return await getTMDBImages(id, type);
 }

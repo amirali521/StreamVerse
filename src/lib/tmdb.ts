@@ -76,6 +76,24 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
     }
 }
 
+export async function getTMDBImages(id: number, type: 'movie' | 'tv'): Promise<{ posters: any[], backdrops: any[] }> {
+    if (!TMDB_API_KEY) return { posters: [], backdrops: [] };
+
+    const url = `${TMDB_BASE_URL}/${type}/${id}/images?api_key=${TMDB_API_KEY}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return {
+            posters: data.posters || [],
+            backdrops: data.backdrops || []
+        };
+    } catch (error) {
+        console.error("Error getting TMDB images:", error);
+        return { posters: [], backdrops: [] };
+    }
+}
+
+
 export async function getUpcomingMovies(): Promise<any[]> {
     if (!TMDB_API_KEY) return [];
 
@@ -102,5 +120,3 @@ export async function getUpcomingMovies(): Promise<any[]> {
         return [];
     }
 }
-
-    
