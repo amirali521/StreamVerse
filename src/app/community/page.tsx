@@ -82,7 +82,7 @@ function GlobalChatTab({ user }: { user: any }) {
     const firestore = useFirestore();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(true);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     const form = useForm<z.infer<typeof chatMessageSchema>>({
         resolver: zodResolver(chatMessageSchema),
@@ -111,7 +111,15 @@ function GlobalChatTab({ user }: { user: any }) {
     }, [firestore]);
   
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Scroll to bottom when messages change
+      if (scrollAreaRef.current) {
+        const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          setTimeout(() => {
+            viewport.scrollTop = viewport.scrollHeight;
+          }, 100);
+        }
+      }
     }, [messages]);
 
     async function onSubmit(values: z.infer<typeof chatMessageSchema>) {
@@ -144,8 +152,8 @@ function GlobalChatTab({ user }: { user: any }) {
     }
 
     return (
-        <div className="flex-grow flex flex-col bg-card border rounded-lg overflow-hidden">
-            <ScrollArea className="flex-grow p-4 space-y-6">
+        <div className="flex flex-col h-full bg-card border rounded-lg overflow-hidden">
+             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                 {loading ? (
                     <div className="flex flex-col flex-grow items-center justify-center text-center p-4 h-full">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -159,7 +167,6 @@ function GlobalChatTab({ user }: { user: any }) {
                         {messages.map(msg => <ChatBubble key={msg.id} message={msg} isCurrentUser={user.uid === msg.userId} />)}
                     </div>
                 )}
-                <div ref={messagesEndRef} />
             </ScrollArea>
             <div className="p-4 bg-background border-t">
                 <Form {...form}>
@@ -391,7 +398,7 @@ export default function CommunityPage() {
     }
 
     return (
-        <div className="container py-8 flex flex-col h-[calc(100vh-80px)]">
+        <div className="container py-8 flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-80px)]">
              <div className="text-center mb-8">
                 <h1 className="text-4xl font-headline font-bold">Community Hub</h1>
                 <p className="text-muted-foreground">Chat with others, see who's online, and request new content.</p>
@@ -404,7 +411,7 @@ export default function CommunityPage() {
                     <TabsTrigger value="request"><MailQuestion className="mr-2 h-4 w-4"/>Request Content</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="chat" className="mt-6 flex-grow">
+                <TabsContent value="chat" className="mt-6 flex-1 min-h-0">
                    <GlobalChatTab user={user} />
                 </TabsContent>
                 <TabsContent value="users" className="mt-6">
