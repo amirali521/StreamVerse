@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Search, Loader2, Download, Copy } from "lucide-react";
+import { Search, Loader2, Download, Copy, Image as ImageIcon, FileText } from "lucide-react";
 import { searchContent, getSocialImages, getContentDetails, generatePostDetails } from "../add-content/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,14 +90,10 @@ function ImageDownloadCard({ image, contentTitle }: { image: SocialImage, conten
     );
 }
 
-function PostDetailsCard({ title, post, onCopy }: { title: string, post: SocialPost, onCopy: (text: string, type: string) => void }) {
+function PostDetailsCard({ post, onCopy }: { post: SocialPost, onCopy: (text: string, type: string) => void }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Post Details for: {title}</CardTitle>
-                <CardDescription>Use the generated caption and hashtags for your social media post.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card className="border-0 shadow-none">
+            <CardContent className="p-1 space-y-4">
                 <div>
                     <div className="flex justify-between items-center mb-1">
                         <h4 className="font-semibold">Generated Caption</h4>
@@ -242,49 +238,55 @@ export default function SocialPage() {
                     )}
                     
                     {!isFetchingDetails && selectedContent && (
-                        <div className="space-y-6">
-                            {postDetails && (
-                                <div>
-                                    <h4 className="text-lg font-semibold text-center mb-4">2. Copy Post Details</h4>
-                                    <PostDetailsCard title={selectedContent.title} post={postDetails} onCopy={handleCopyToClipboard} />
-                                </div>
-                            )}
-
-                             <div>
-                                <h4 className="text-lg font-semibold text-center mb-4">3. Download Images</h4>
-                                <Tabs defaultValue="posters">
-                                    <TabsList className="grid w-full grid-cols-3">
-                                        <TabsTrigger value="posters" disabled={images.posters.length === 0}>Posters ({images.posters.length})</TabsTrigger>
-                                        <TabsTrigger value="backdrops" disabled={images.backdrops.length === 0}>Backdrops ({images.backdrops.length})</TabsTrigger>
-                                        <TabsTrigger value="logos" disabled={images.logos.length === 0}>Logos ({images.logos.length})</TabsTrigger>
-                                    </TabsList>
-                                    <ScrollArea className="h-96 w-full rounded-md border mt-2">
-                                        <div className="p-4">
-                                            <TabsContent value="posters">
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                                    {images.posters.map((image) => (
-                                                        <ImageDownloadCard key={image.file_path} image={image} contentTitle={selectedContent.title} />
-                                                    ))}
-                                                </div>
-                                            </TabsContent>
-                                            <TabsContent value="backdrops">
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                                    {images.backdrops.map((image) => (
-                                                        <ImageDownloadCard key={image.file_path} image={{...image, type: 'backdrop'}} contentTitle={selectedContent.title} />
-                                                    ))}
-                                                </div>
-                                            </TabsContent>
-                                            <TabsContent value="logos">
-                                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                                    {images.logos.map((image) => (
-                                                        <ImageDownloadCard key={image.file_path} image={{...image, type: 'logo'}} contentTitle={selectedContent.title} />
-                                                    ))}
-                                                </div>
-                                            </TabsContent>
-                                        </div>
-                                    </ScrollArea>
-                                </Tabs>
-                            </div>
+                        <div>
+                             <h4 className="text-lg font-semibold text-center mb-4">2. Generate Assets for: {selectedContent.title}</h4>
+                             <Tabs defaultValue="post">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="post"><FileText className="mr-2"/> Post Details</TabsTrigger>
+                                    <TabsTrigger value="images"><ImageIcon className="mr-2"/> Download Images</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="post" className="py-4">
+                                    {postDetails ? (
+                                        <PostDetailsCard post={postDetails} onCopy={handleCopyToClipboard} />
+                                     ) : (
+                                        <p className="text-center text-muted-foreground">Could not generate post details.</p>
+                                     )}
+                                </TabsContent>
+                                <TabsContent value="images">
+                                    <Tabs defaultValue="posters" className="mt-4">
+                                        <TabsList className="grid w-full grid-cols-3">
+                                            <TabsTrigger value="posters" disabled={images.posters.length === 0}>Posters ({images.posters.length})</TabsTrigger>
+                                            <TabsTrigger value="backdrops" disabled={images.backdrops.length === 0}>Backdrops ({images.backdrops.length})</TabsTrigger>
+                                            <TabsTrigger value="logos" disabled={images.logos.length === 0}>Logos ({images.logos.length})</TabsTrigger>
+                                        </TabsList>
+                                        <ScrollArea className="h-96 w-full rounded-md border mt-2">
+                                            <div className="p-4">
+                                                <TabsContent value="posters">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                                        {images.posters.map((image) => (
+                                                            <ImageDownloadCard key={image.file_path} image={image} contentTitle={selectedContent.title} />
+                                                        ))}
+                                                    </div>
+                                                </TabsContent>
+                                                <TabsContent value="backdrops">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                        {images.backdrops.map((image) => (
+                                                            <ImageDownloadCard key={image.file_path} image={{...image, type: 'backdrop'}} contentTitle={selectedContent.title} />
+                                                        ))}
+                                                    </div>
+                                                </TabsContent>
+                                                <TabsContent value="logos">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                                        {images.logos.map((image) => (
+                                                            <ImageDownloadCard key={image.file_path} image={{...image, type: 'logo'}} contentTitle={selectedContent.title} />
+                                                        ))}
+                                                    </div>
+                                                </TabsContent>
+                                            </div>
+                                        </ScrollArea>
+                                    </Tabs>
+                                </TabsContent>
+                             </Tabs>
                         </div>
                     )}
                 </div>
@@ -292,4 +294,3 @@ export default function SocialPage() {
         </Card>
     );
 }
-
