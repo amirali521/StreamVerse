@@ -390,7 +390,7 @@ export default function CommunityPage() {
 
     if (!loaded || !user) {
         return (
-            <div className="container py-8 flex flex-col h-[calc(100vh-80px)] items-center justify-center">
+            <div className="container py-8 flex flex-col items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="mt-4 text-muted-foreground">Loading user authentication...</p>
             </div>
@@ -398,14 +398,14 @@ export default function CommunityPage() {
     }
 
     return (
-        <div className="container py-8 flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-80px)]">
+        <div className="container py-8 flex flex-col h-full">
              <div className="text-center mb-8">
                 <h1 className="text-4xl font-headline font-bold">Community Hub</h1>
                 <p className="text-muted-foreground">Chat with others, see who's online, and request new content.</p>
             </div>
             
-            <Tabs defaultValue="chat" className="flex-grow flex flex-col">
-                <TabsList className="mx-auto">
+            <Tabs defaultValue="chat" className="flex-grow flex flex-col min-h-0">
+                <TabsList className="mx-auto shrink-0">
                     <TabsTrigger value="chat"><MessageSquare className="mr-2 h-4 w-4"/>Global Chat</TabsTrigger>
                     <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Users</TabsTrigger>
                     <TabsTrigger value="request"><MailQuestion className="mr-2 h-4 w-4"/>Request Content</TabsTrigger>
