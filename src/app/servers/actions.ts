@@ -90,12 +90,18 @@ export async function getVidSrcUrl(tmdbId: string, type: 'movie' | 'tv', season?
     }
 }
 
-export async function searchExternalContent(query: string, type: 'movie' | 'tv') {
-    const aiAnalysis = await analyzeSearchQueryFlow({ query });
-    
-    // Construct a more targeted query for TMDB
-    const searchKeywords = [aiAnalysis.keywords, aiAnalysis.genre].filter(Boolean).join(" ");
-    const searchType = aiAnalysis.type === 'any' ? type : aiAnalysis.type;
+export async function searchExternalContent(query: string, type: 'movie' | 'tv', useAiAnalysis: boolean = true) {
+    if (useAiAnalysis) {
+        const aiAnalysis = await analyzeSearchQueryFlow({ query });
+        
+        // Construct a more targeted query for TMDB
+        const searchKeywords = [aiAnalysis.keywords, aiAnalysis.genre].filter(Boolean).join(" ");
+        const searchType = aiAnalysis.type === 'any' ? type : aiAnalysis.type;
 
-    return await searchContent(searchKeywords, searchType, false);
+        return await searchContent(searchKeywords, searchType, false);
+    } else {
+        // Bypass AI for simple searches (like from category tabs)
+        const searchType = type === 'tv' && query.toLowerCase().includes('series') ? 'tv' : 'movie';
+        return await searchContent(query, searchType, false);
+    }
 }

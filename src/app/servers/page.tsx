@@ -59,7 +59,8 @@ export default function ServersPage() {
       const aiSuggestions = await generateServerSuggestions();
       const detailedSuggestions = await Promise.all(
         aiSuggestions.suggestions.map(async (suggestion) => {
-          const results = await searchExternalContent(suggestion.title, suggestion.type);
+          // Use AI analysis for these suggestions as they can be complex
+          const results = await searchExternalContent(suggestion.title, suggestion.type, true);
           return results.length > 0 ? results[0] : null;
         })
       );
@@ -75,7 +76,7 @@ export default function ServersPage() {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  const handleSearch = useCallback(async (query?: string) => {
+  const handleSearch = useCallback(async (query?: string, useAi: boolean = true) => {
     const finalQuery = query || searchQuery;
     if (!finalQuery) return;
 
@@ -83,7 +84,7 @@ export default function ServersPage() {
     setSearchResults([]);
     setSelectedContent(null);
     try {
-      const results = await searchExternalContent(finalQuery, searchType);
+      const results = await searchExternalContent(finalQuery, searchType, useAi);
       setSearchResults(results);
       setActiveTab("search"); // Switch to search results tab
     } catch (error) {
@@ -112,14 +113,16 @@ export default function ServersPage() {
   };
   
   const handleTabChange = (value: string) => {
+    setActiveTab(value);
     if (value === "suggestions") {
-      setActiveTab(value);
       setSearchResults([]);
       setSearchQuery("");
       if (suggestions.length === 0) fetchSuggestions();
-    } else {
-      setSearchQuery(value); // Pre-fill search with tab name
-      handleSearch(value); // Immediately search
+    } else if (value !== "search") {
+      setSearchQuery(value);
+      // For tab-based searches, we bypass the AI analysis.
+      const type = value.toLowerCase().includes('series') ? 'tv' : 'movie';
+      handleSearch(value, false);
     }
   }
 
@@ -169,7 +172,7 @@ export default function ServersPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }}}
                     />
-                    <Button type="button" onClick={() => handleSearch()} disabled={isSearching}>
+                    <Button type="button" onClick={() => handleSearch(undefined, true)} disabled={isSearching}>
                       {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
@@ -192,7 +195,7 @@ export default function ServersPage() {
                             </div>
                         ) : (searchResults.length > 0 || suggestions.length > 0) ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                            {(searchResults.length > 0 ? searchResults : suggestions).map((item) => (
+                            {(activeTab === 'search' ? searchResults : suggestions).map((item) => (
                                 <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
                             ))}
                             </div>
