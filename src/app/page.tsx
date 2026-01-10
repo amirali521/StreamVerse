@@ -9,7 +9,6 @@ import { collection, getDocs, type Timestamp } from "firebase/firestore";
 import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
 import { HeroBanner } from "@/components/hero-banner";
-import { getUpcomingMovies } from "@/lib/tmdb";
 import { startCase } from "lodash";
 import { Button } from "@/components/ui/button";
 import { Clapperboard } from "lucide-react";
@@ -32,7 +31,7 @@ const MIN_ITEMS_FOR_CAROUSEL = 4;
 
 export default function Home() {
   const firestore = useFirestore();
-  const [heroContent, setHeroContent] = useState<any[]>([]);
+  const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
   const [carousels, setCarousels] = useState<CarouselData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,11 +43,6 @@ export default function Home() {
 
       setLoading(true);
       try {
-        // Fetch upcoming movies from TMDB and AI summaries for the hero banner
-        const upcoming = await getUpcomingMovies();
-        setHeroContent(upcoming);
-
-
         const contentCol = collection(firestore, 'content');
         const contentSnapshot = await getDocs(contentCol);
 
@@ -68,6 +62,10 @@ export default function Home() {
             updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : new Date(0),
           } as ClientContent;
         });
+
+        // Set Hero Content from featured items
+        const featuredContent = allContent.filter(item => item.isFeatured);
+        setHeroContent(featuredContent);
         
         const generatedCarousels: CarouselData[] = [];
         

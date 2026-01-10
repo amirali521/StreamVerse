@@ -3,6 +3,9 @@
 /**
  * @fileOverview A flow to generate a cinematic summary for a movie hero banner.
  *
+ * This file is currently not in use as the hero banner now displays manually featured content.
+ * It is kept for potential future use.
+ *
  * - generateHeroSummary - A function that takes a movie title and description and returns a short, engaging summary.
  * - HeroSummaryInput - The input type for the generateHeroSummary function.
  * - HeroSummaryOutput - The return type for the generateHeroSummary function.

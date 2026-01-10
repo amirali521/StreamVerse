@@ -1,4 +1,5 @@
 
+
 import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
@@ -93,38 +94,5 @@ export async function getTMDBImages(id: number, type: 'movie' | 'tv'): Promise<{
     } catch (error) {
         console.error("Error getting TMDB images:", error);
         return { posters: [], backdrops: [], logos: [] };
-    }
-}
-
-
-export async function getUpcomingMovies(): Promise<any[]> {
-    if (!TMDB_API_KEY) return [];
-
-    const url = `${TMDB_BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-
-        // Get details for each upcoming movie to fetch trailers and generate summaries
-        const moviesWithDetails = await Promise.all(
-            data.results.slice(0, 5).map(async (movie: any) => {
-                const details = await getTMDBDetails(movie.id, 'movie');
-                const summary = await generateHeroSummary({
-                    title: movie.title,
-                    description: movie.overview,
-                });
-                return {
-                    ...movie,
-                    ...details,
-                    aiSummary: summary.cinematicDescription,
-                };
-            })
-        );
-        return moviesWithDetails;
-
-    } catch (error) {
-        console.error("Error fetching upcoming movies:", error);
-        return [];
     }
 }
