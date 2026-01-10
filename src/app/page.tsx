@@ -13,6 +13,8 @@ import { getUpcomingMovies } from "@/lib/tmdb";
 import { UpcomingHeroBanner } from "@/components/upcoming-hero-banner";
 import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
 import { startCase } from "lodash";
+import { Button } from "@/components/ui/button";
+import { Clapperboard } from "lucide-react";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -28,6 +30,29 @@ interface CarouselData {
 }
 
 const MIN_ITEMS_FOR_CAROUSEL = 4;
+
+function FloatingServerLink() {
+  return (
+    <div className="relative h-20 overflow-hidden">
+      <div className="absolute animate-marquee whitespace-nowrap py-4">
+        <Button asChild className="mx-4 text-lg font-bold" size="lg">
+          <Link href="/servers">
+            <Clapperboard className="mr-2" />
+            Explore More Servers
+          </Link>
+        </Button>
+      </div>
+      <div className="absolute animate-marquee2 whitespace-nowrap py-4">
+        <Button asChild className="mx-4 text-lg font-bold" size="lg">
+          <Link href="/servers">
+            <Clapperboard className="mr-2" />
+            Explore More Servers
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const firestore = useFirestore();
@@ -105,7 +130,7 @@ export default function Home() {
         allContent.forEach(item => {
             // Group by desired types
             if (desiredTypes.includes(item.type)) {
-                const typeKey = startCase(item.type); // "webseries" -> "Web Series"
+                const typeKey = startCase(item.type === 'webseries' ? 'Web Series' : item.type);
                 if (!groupedContent[typeKey]) groupedContent[typeKey] = [];
                 groupedContent[typeKey].push(item);
             }
@@ -157,6 +182,8 @@ export default function Home() {
     <div className="flex flex-col">
       {heroContent.length > 0 && <HeroBanner items={heroContent} />}
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
+      
+      <FloatingServerLink />
 
       {/* Content Sections */}
       <div className="py-4 space-y-8">

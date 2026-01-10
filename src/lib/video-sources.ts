@@ -1,6 +1,8 @@
 
+
 // This file is no longer used for generating multiple sources.
 // The logic has been simplified to handle Google Drive links directly via utility functions.
+// For third-party servers, see /src/app/servers/actions.ts
 
 export interface VideoSource {
   name: string;
