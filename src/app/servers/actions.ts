@@ -25,6 +25,26 @@ const servers: { name: string, movieUrl: string, tvUrl: string }[] = [
         name: "SuperEmbed",
         movieUrl: "https://multiembed.mov/directstream.php?video_id={tmdbId}&tmdb=1",
         tvUrl: "https://multiembed.mov/directstream.php?video_id={tmdbId}&tmdb=1&s={season}&e={episode}"
+    },
+    {
+        name: "2Embed",
+        movieUrl: "https://www.2embed.cc/embed/tmdb/movie?id={tmdbId}",
+        tvUrl: "https://www.2embed.cc/embed/tmdb/tv?id={tmdbId}&s={season}&e={episode}"
+    },
+    {
+        name: "Blackvid",
+        movieUrl: "https://blackvid.space/embed?tmdb={tmdbId}",
+        tvUrl: "https://blackvid.space/embed?tmdb={tmdbId}&s={season}&e={episode}"
+    },
+    {
+        name: "Movie-web",
+        movieUrl: "https://movie-web.app/media/tmdb-movie-{tmdbId}",
+        tvUrl: "https://movie-web.app/media/tmdb-tv-{tmdbId}-{season}-{episode}"
+    },
+    {
+        name: "Player-api",
+        movieUrl: "https://player-api.com/embed/movie/{tmdbId}",
+        tvUrl: "https://player-api.com/embed/tv/{tmdbId}/{season}/{episode}"
     }
 ];
 
