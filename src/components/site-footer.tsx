@@ -34,7 +34,7 @@ export function SiteFooter() {
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <Link href="#" className="hover:text-foreground">About</Link>
-            <Link href="#" className="hover:text-foreground">Help Center</Link>
+            <Link href="/dmca" className="hover:text-foreground">DMCA</Link>
             <Link href="#" className="hover:text-foreground">Terms of Use</Link>
             <Link href="#" className="hover:text-foreground">Privacy Policy</Link>
             <Link href="/admin/login" className="hover:text-foreground">Admin</Link>

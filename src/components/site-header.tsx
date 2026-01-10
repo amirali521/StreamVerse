@@ -202,6 +202,7 @@ export function SiteHeader() {
     { title: "Bollywood", href: "/category/bollywood" },
     { title: "Hollywood", href: "/category/hollywood" },
     { title: "Community", href: "/community" },
+    { title: "DMCA", href: "/dmca" },
   ];
 
   // Add keyboard shortcut for search (Cmd+K or Ctrl+K)
