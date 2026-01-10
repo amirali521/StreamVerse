@@ -1,7 +1,7 @@
 
 "use server";
 
-import { searchTMDB, getTMDBDetails, getTMDBImages } from "@/lib/tmdb";
+import { searchContent as searchTMDB, getTMDBDetails, getTMDBImages } from "@/lib/tmdb";
 import { generateSocialPost } from "@/ai/flows/generate-social-post";
 import type { SocialPostInput } from "@/ai/flows/generate-social-post";
 
