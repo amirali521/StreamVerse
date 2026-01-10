@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -52,29 +52,33 @@ export default function ServersPage() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [selectedContent, setSelectedContent] = useState<{ title: string; videoUrl: string } | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
-  
-  const fetchSuggestions = useCallback(async () => {
-    setIsLoadingSuggestions(true);
-    try {
-      const aiSuggestions = await generateServerSuggestions();
-      const detailedSuggestions = await Promise.all(
-        aiSuggestions.suggestions.map(async (suggestion) => {
-          // Bypassing AI analysis here since we already have the title and type
-          const results = await searchExternalContent(suggestion.title, suggestion.type, false);
-          return results.length > 0 ? results[0] : null;
-        })
-      );
-      setSuggestions(detailedSuggestions.filter(Boolean) as SearchResult[]);
-    } catch (error) {
-      console.error("Failed to get AI suggestions:", error);
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  }, []);
+  const suggestionsFetched = useRef(false);
 
   useEffect(() => {
+    // Prevent double-fetching in React 18 Strict Mode (development)
+    if (suggestionsFetched.current) return;
+    suggestionsFetched.current = true;
+
+    const fetchSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const aiSuggestions = await generateServerSuggestions();
+        const detailedSuggestions = await Promise.all(
+          aiSuggestions.suggestions.map(async (suggestion) => {
+            const results = await searchExternalContent(suggestion.title, suggestion.type, false);
+            return results.length > 0 ? results[0] : null;
+          })
+        );
+        setSuggestions(detailedSuggestions.filter(Boolean) as SearchResult[]);
+      } catch (error) {
+        console.error("Failed to get AI suggestions:", error);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+    
     fetchSuggestions();
-  }, [fetchSuggestions]);
+  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery) {
