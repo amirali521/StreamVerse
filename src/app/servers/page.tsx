@@ -10,6 +10,8 @@ import Image from "next/image";
 import { generateServerSuggestions, getVidSrcUrl, searchExternalContent } from "./actions";
 import { VideoPlayer } from "@/components/video-player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 interface SearchResult {
   id: number;
@@ -76,7 +78,7 @@ export default function ServersPage() {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  const handleSearch = useCallback(async (query?: string, useAi: boolean = true) => {
+  const handleSearch = useCallback(async (query?: string, type?: 'movie' | 'tv', useAi: boolean = true) => {
     const finalQuery = query || searchQuery;
     if (!finalQuery) return;
 
@@ -84,7 +86,7 @@ export default function ServersPage() {
     setSearchResults([]);
     setSelectedContent(null);
     try {
-      const results = await searchExternalContent(finalQuery, searchType, useAi);
+      const results = await searchExternalContent(finalQuery, type || searchType, useAi);
       setSearchResults(results);
       setActiveTab("search"); // Switch to search results tab
     } catch (error) {
@@ -119,10 +121,19 @@ export default function ServersPage() {
       setSearchQuery("");
       if (suggestions.length === 0) fetchSuggestions();
     } else if (value !== "search") {
-      setSearchQuery(value);
-      // For tab-based searches, we bypass the AI analysis.
-      const type = value.toLowerCase().includes('series') ? 'tv' : 'movie';
-      handleSearch(value, false);
+        setSearchQuery(value);
+        let type: 'movie' | 'tv' = 'movie';
+        
+        if (value.toLowerCase().includes('web series')) {
+            type = 'tv';
+        } else if (value.toLowerCase().includes('movies')) {
+            type = 'movie';
+        } else {
+             // For genre searches like "Action", search both by passing 'tv' to TMDB's 'multi' search which covers both
+            type = 'tv';
+        }
+        
+        handleSearch(value, type, false);
     }
   }
 
@@ -165,14 +176,26 @@ export default function ServersPage() {
                 <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
                   <h4 className="font-semibold text-center">Search for Content</h4>
                   <div className="flex w-full items-center space-x-2">
+                    <Select
+                      value={searchType}
+                      onValueChange={(value) => setSearchType(value as any)}
+                    >
+                      <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="movie">Movie</SelectItem>
+                          <SelectItem value="tv">Series/Drama</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Input
                       type="text"
-                      placeholder="e.g., 'The Dark Knight', 'funny tv shows'..."
+                      placeholder={`Search for a ${searchType}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }}}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(undefined, undefined, true); }}}
                     />
-                    <Button type="button" onClick={() => handleSearch(undefined, true)} disabled={isSearching}>
+                    <Button type="button" onClick={() => handleSearch(undefined, undefined, true)} disabled={isSearching}>
                       {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
@@ -193,14 +216,14 @@ export default function ServersPage() {
                             <div className="flex items-center justify-center h-48">
                                 <Loader2 className="h-8 w-8 animate-spin" />
                             </div>
-                        ) : (searchResults.length > 0 || suggestions.length > 0) ? (
+                        ) : (searchResults.length > 0 || (suggestions.length > 0 && activeTab === 'suggestions')) ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                             {(activeTab === 'search' ? searchResults : suggestions).map((item) => (
                                 <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
                             ))}
                             </div>
                         ) : (
-                            <p className="text-muted-foreground text-center pt-10">No content found.</p>
+                            <p className="text-muted-foreground text-center pt-10">No content found for this category.</p>
                         )}
                     </div>
                 </Tabs>
