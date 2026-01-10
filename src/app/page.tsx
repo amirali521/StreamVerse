@@ -15,6 +15,7 @@ import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
 import { startCase } from "lodash";
 import { Button } from "@/components/ui/button";
 import { Clapperboard } from "lucide-react";
+import { FloatingLink } from "@/components/floating-link";
 
 // A version of the Content type for client-side processing with JS Dates
 type ClientContent = Omit<Content, 'createdAt' | 'updatedAt'> & {
@@ -160,6 +161,8 @@ export default function Home() {
       {heroContent.length > 0 && <HeroBanner items={heroContent} />}
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
       
+      <FloatingLink />
+
       {/* Content Sections */}
       <div className="py-4 space-y-8">
         {carousels.length === 0 && !loading ? (
