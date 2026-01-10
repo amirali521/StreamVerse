@@ -124,9 +124,9 @@ export default function ServersPage() {
         setSearchQuery(value);
         let type: 'movie' | 'tv' = 'movie';
         
-        if (value.toLowerCase().includes('web series')) {
+        if (value.toLowerCase() === 'web series') {
             type = 'tv';
-        } else if (value.toLowerCase().includes('movies')) {
+        } else if (value.toLowerCase() === 'movies') {
             type = 'movie';
         } else {
              // For genre searches like "Action", search both by passing 'tv' to TMDB's 'multi' search which covers both
@@ -136,6 +136,10 @@ export default function ServersPage() {
         handleSearch(value, type, false);
     }
   }
+
+  const currentDisplayContent = activeTab === 'suggestions' ? suggestions : searchResults;
+  const isLoadingCurrentContent = (activeTab === 'suggestions' && isLoadingSuggestions) || (activeTab !== 'suggestions' && isSearching);
+
 
   return (
     <div className="container py-8 px-4">
@@ -202,23 +206,23 @@ export default function ServersPage() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
-                        <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
                         <TabsTrigger value="Movies">Movies</TabsTrigger>
                         <TabsTrigger value="Web Series">Web Series</TabsTrigger>
                         <TabsTrigger value="Action">Action</TabsTrigger>
                         <TabsTrigger value="Comedy">Comedy</TabsTrigger>
                         <TabsTrigger value="search" className="hidden">Search</TabsTrigger>
+                        <TabsTrigger value="suggestions" className="hidden">Suggestions</TabsTrigger>
                     </TabsList>
                     
                     <div className="mt-6">
-                        {isSearching || (isLoadingSuggestions && activeTab === 'suggestions') ? (
+                        {isLoadingCurrentContent ? (
                             <div className="flex items-center justify-center h-48">
                                 <Loader2 className="h-8 w-8 animate-spin" />
                             </div>
-                        ) : (searchResults.length > 0 || (suggestions.length > 0 && activeTab === 'suggestions')) ? (
+                        ) : (currentDisplayContent.length > 0) ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                            {(activeTab === 'search' ? searchResults : suggestions).map((item) => (
+                            {currentDisplayContent.map((item) => (
                                 <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
                             ))}
                             </div>
