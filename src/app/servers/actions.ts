@@ -5,6 +5,29 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { searchContent } from '../admin/add-content/actions';
 
+export interface EmbedSource {
+    name: string;
+    url: string;
+}
+
+const servers: { name: string, movieUrl: string, tvUrl: string }[] = [
+    {
+        name: "VidSrc.to",
+        movieUrl: "https://vidsrc.to/embed/movie/{tmdbId}",
+        tvUrl: "https://vidsrc.to/embed/tv/{tmdbId}/{season}-{episode}"
+    },
+    {
+        name: "VidSrc.pro",
+        movieUrl: "https://vidsrc.pro/embed/movie/{tmdbId}",
+        tvUrl: "https://vidsrc.pro/embed/tv/{tmdbId}/{season}-{episode}"
+    },
+    {
+        name: "SuperEmbed",
+        movieUrl: "https://multiembed.mov/directstream.php?video_id={tmdbId}&tmdb=1",
+        tvUrl: "https://multiembed.mov/directstream.php?video_id={tmdbId}&tmdb=1&s={season}&e={episode}"
+    }
+];
+
 const ServerSuggestionSchema = z.object({
   title: z.string().describe("The title of the movie or web series."),
   type: z.enum(['movie', 'tv']).describe("The type of content, either 'movie' or 'tv' for a web series."),
@@ -49,6 +72,7 @@ export async function generateServerSuggestions() {
 interface SearchInput {
     query: string;
     type: 'movie' | 'tv';
+    isAISuggestion?: boolean;
 }
 
 export async function searchExternalContent({ query, type }: SearchInput) {
@@ -56,19 +80,12 @@ export async function searchExternalContent({ query, type }: SearchInput) {
     return await searchContent(query, tmdbType, false);
 }
 
-export async function getVidSrcUrl(tmdbId: number, type: 'movie' | 'tv'): Promise<string | null> {
-    const mediaType = type === 'tv' ? 'show' : 'movie';
-    try {
-        const url = `https://vidsrc.to/embed/${mediaType}/${tmdbId}`;
-        // We can't directly check if the URL is valid without a headless browser,
-        // but we can check if the base URL resolves. This is a basic check.
-        const response = await fetch(`https://vidsrc.to`, { method: 'HEAD' });
-        if (response.ok) {
-            return url;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error generating VidSrc URL:", error);
-        return null;
-    }
+export async function getEmbedUrls(tmdbId: number, type: 'movie' | 'tv', season: number = 1, episode: number = 1): Promise<EmbedSource[]> {
+    return servers.map(server => {
+        let url = type === 'movie' ? server.movieUrl : server.tvUrl;
+        url = url.replace('{tmdbId}', tmdbId.toString())
+                 .replace('{season}', season.toString())
+                 .replace('{episode}', episode.toString());
+        return { name: server.name, url };
+    });
 }
