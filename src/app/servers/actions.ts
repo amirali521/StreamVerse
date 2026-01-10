@@ -3,7 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { searchTMDB } from '../admin/add-content/actions';
+import { searchContent } from '../admin/add-content/actions';
 
 const ServerSuggestionSchema = z.object({
   title: z.string().describe("The title of the movie or web series."),
@@ -49,12 +49,11 @@ export async function generateServerSuggestions() {
 interface SearchInput {
     query: string;
     type: 'movie' | 'tv';
-    isAISuggestion?: boolean;
 }
 
 export async function searchExternalContent({ query, type }: SearchInput) {
-    const tmdbType = type === 'tv' ? 'tv' : 'movie';
-    return await searchTMDB(query, tmdbType);
+    const tmdbType = type === 'tv' ? 'webseries' : 'movie';
+    return await searchContent(query, tmdbType, false);
 }
 
 export async function getVidSrcUrl(tmdbId: number, type: 'movie' | 'tv'): Promise<string | null> {
