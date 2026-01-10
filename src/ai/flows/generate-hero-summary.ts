@@ -23,7 +23,18 @@ const HeroSummaryOutputSchema = z.object({
 export type HeroSummaryOutput = z.infer<typeof HeroSummaryOutputSchema>;
 
 export async function generateHeroSummary(input: HeroSummaryInput): Promise<HeroSummaryOutput> {
-  return generateHeroSummaryFlow(input);
+  try {
+    const result = await generateHeroSummaryFlow(input);
+    return result;
+  } catch (error) {
+    console.error("AI summary generation failed, using original description.", error);
+    // Fallback to a shortened version of the original description
+    return {
+      cinematicDescription: input.description.length > 150 
+        ? input.description.substring(0, 147) + "..." 
+        : input.description,
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -32,7 +43,7 @@ const prompt = ai.definePrompt({
   output: { schema: HeroSummaryOutputSchema },
   prompt: `You are a professional movie trailer editor and copywriter. Your task is to take the provided movie title and description and write a new, short, and punchy summary that would be perfect for a hero banner on a streaming website.
 
-The summary should be cinematic, exciting, and make the user want to watch the movie immediately. Keep it to one or two sentences at most.
+The summary should be cinematic, exciting, and make the user want to watch the movie immediately. Keep it to one or two sentences at most. Focus on action, mystery, or emotion.
 
 Movie Title: {{{title}}}
 Original Description: {{{description}}}

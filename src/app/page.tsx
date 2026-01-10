@@ -10,8 +10,6 @@ import { ContentCarousel } from "@/components/content-carousel";
 import type { Content } from "@/lib/types";
 import { HeroBanner } from "@/components/hero-banner";
 import { getUpcomingMovies } from "@/lib/tmdb";
-import { UpcomingHeroBanner } from "@/components/upcoming-hero-banner";
-import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
 import { startCase } from "lodash";
 import { Button } from "@/components/ui/button";
 import { Clapperboard } from "lucide-react";
@@ -34,8 +32,7 @@ const MIN_ITEMS_FOR_CAROUSEL = 4;
 
 export default function Home() {
   const firestore = useFirestore();
-  const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
-  const [upcomingMovies, setUpcomingMovies] = useState<any[]>([]);
+  const [heroContent, setHeroContent] = useState<any[]>([]);
   const [carousels, setCarousels] = useState<CarouselData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,18 +44,9 @@ export default function Home() {
 
       setLoading(true);
       try {
-        // Fetch upcoming movies from TMDB and generate AI summaries
+        // Fetch upcoming movies from TMDB and AI summaries for the hero banner
         const upcoming = await getUpcomingMovies();
-        const upcomingWithSummaries = await Promise.all(
-          upcoming.map(async (movie) => {
-            const summary = await generateHeroSummary({
-              title: movie.title,
-              description: movie.overview,
-            });
-            return { ...movie, aiSummary: summary.cinematicDescription };
-          })
-        );
-        setUpcomingMovies(upcomingWithSummaries);
+        setHeroContent(upcoming);
 
 
         const contentCol = collection(firestore, 'content');
@@ -82,24 +70,20 @@ export default function Home() {
         });
         
         const generatedCarousels: CarouselData[] = [];
-
-        // 1. Get Hero Content: Filter for items with `isFeatured` set to true
-        const featuredContent = allContent.filter(item => item.isFeatured).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-        setHeroContent(featuredContent.slice(0, 5));
         
-        // 2. Get New Releases: Sort all content by `createdAt` date
+        // Get New Releases: Sort all content by `createdAt` date
         const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime()- 0) - (a.createdAt?.getTime() || 0));
         if(sortedNewReleases.length >= MIN_ITEMS_FOR_CAROUSEL) {
             generatedCarousels.push({ title: "New Releases", items: sortedNewReleases.slice(0, 10) });
         }
 
-        // 3. Get Trending: Sort all content by IMDb rating
+        // Get Trending: Sort all content by IMDb rating
         const sortedTrending = [...allContent].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
         if(sortedTrending.length >= MIN_ITEMS_FOR_CAROUSEL) {
             generatedCarousels.push({ title: "Trending Now", items: sortedTrending.slice(0, 10) });
         }
         
-        // 4. Group content by specific types and categories
+        // Group content by specific types and categories
         const desiredTypes = ["movie", "webseries"];
         const desiredCategories = ["Hollywood", "Bollywood", "Action", "Adventure", "Scifi", "Hindi Dubbed"];
 
@@ -122,7 +106,7 @@ export default function Home() {
             });
         });
         
-        // 5. Create carousels from groups that have enough items
+        // Create carousels from groups that have enough items
         const dynamicCarousels: CarouselData[] = [];
         
         // Add carousels in a specific order if desired
@@ -159,7 +143,6 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {heroContent.length > 0 && <HeroBanner items={heroContent} />}
-      {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
       
       <FloatingLink />
 

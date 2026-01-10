@@ -1,4 +1,6 @@
 
+import { generateHeroSummary } from "@/ai/flows/generate-hero-summary";
+
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/original';
@@ -76,8 +78,8 @@ export async function getTMDBDetails(id: number, type: 'movie' | 'tv'): Promise<
     }
 }
 
-export async function getTMDBImages(id: number, type: 'movie' | 'tv'): Promise<{ posters: any[], backdrops: any[] }> {
-    if (!TMDB_API_KEY) return { posters: [], backdrops: [] };
+export async function getTMDBImages(id: number, type: 'movie' | 'tv'): Promise<{ posters: any[], backdrops: any[], logos: any[] }> {
+    if (!TMDB_API_KEY) return { posters: [], backdrops: [], logos: [] };
 
     const url = `${TMDB_BASE_URL}/${type}/${id}/images?api_key=${TMDB_API_KEY}`;
     try {
@@ -85,11 +87,12 @@ export async function getTMDBImages(id: number, type: 'movie' | 'tv'): Promise<{
         const data = await response.json();
         return {
             posters: data.posters || [],
-            backdrops: data.backdrops || []
+            backdrops: data.backdrops || [],
+            logos: data.logos || []
         };
     } catch (error) {
         console.error("Error getting TMDB images:", error);
-        return { posters: [], backdrops: [] };
+        return { posters: [], backdrops: [], logos: [] };
     }
 }
 
@@ -103,13 +106,18 @@ export async function getUpcomingMovies(): Promise<any[]> {
         const response = await fetch(url);
         const data = await response.json();
 
-        // Get details for each upcoming movie to fetch trailers
+        // Get details for each upcoming movie to fetch trailers and generate summaries
         const moviesWithDetails = await Promise.all(
             data.results.slice(0, 5).map(async (movie: any) => {
                 const details = await getTMDBDetails(movie.id, 'movie');
+                const summary = await generateHeroSummary({
+                    title: movie.title,
+                    description: movie.overview,
+                });
                 return {
                     ...movie,
-                    ...details
+                    ...details,
+                    aiSummary: summary.cinematicDescription,
                 };
             })
         );
