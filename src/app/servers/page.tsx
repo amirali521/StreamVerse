@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Search, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { searchContent } from "../admin/add-content/actions";
-import { generateServerSuggestions, getVidSrcUrl } from "./actions";
+import { generateServerSuggestions, getVidSrcUrl, searchExternalContent } from "./actions";
 import { VideoPlayer } from "@/components/video-player";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SearchResult {
   id: number;
@@ -51,43 +51,47 @@ export default function ServersPage() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [selectedContent, setSelectedContent] = useState<{ title: string; videoUrl: string } | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [activeTab, setActiveTab] = useState("suggestions");
 
-  useEffect(() => {
-    async function fetchSuggestions() {
-      setIsLoadingSuggestions(true);
-      try {
-        const aiSuggestions = await generateServerSuggestions();
-        // Fetch details for each suggestion to get poster images
-        const detailedSuggestions = await Promise.all(
-          aiSuggestions.suggestions.map(async (suggestion) => {
-            const results = await searchContent(suggestion.title, suggestion.type, false);
-            return results.length > 0 ? results[0] : null;
-          })
-        );
-        setSuggestions(detailedSuggestions.filter(Boolean) as SearchResult[]);
-      } catch (error) {
-        console.error("Failed to get AI suggestions:", error);
-      } finally {
-        setIsLoadingSuggestions(false);
-      }
+  const fetchSuggestions = useCallback(async () => {
+    setIsLoadingSuggestions(true);
+    try {
+      const aiSuggestions = await generateServerSuggestions();
+      const detailedSuggestions = await Promise.all(
+        aiSuggestions.suggestions.map(async (suggestion) => {
+          const results = await searchExternalContent(suggestion.title, suggestion.type);
+          return results.length > 0 ? results[0] : null;
+        })
+      );
+      setSuggestions(detailedSuggestions.filter(Boolean) as SearchResult[]);
+    } catch (error) {
+      console.error("Failed to get AI suggestions:", error);
+    } finally {
+      setIsLoadingSuggestions(false);
     }
-    fetchSuggestions();
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery) return;
+  useEffect(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
+
+  const handleSearch = useCallback(async (query?: string) => {
+    const finalQuery = query || searchQuery;
+    if (!finalQuery) return;
+
     setIsSearching(true);
     setSearchResults([]);
     setSelectedContent(null);
     try {
-      const results = await searchContent(searchQuery, searchType, false);
+      const results = await searchExternalContent(finalQuery, searchType);
       setSearchResults(results);
+      setActiveTab("search"); // Switch to search results tab
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [searchQuery, searchType]);
 
   const handleSelectContent = async (item: SearchResult) => {
     setIsLoadingVideo(true);
@@ -107,22 +111,46 @@ export default function ServersPage() {
      window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  const contentToDisplay = searchResults.length > 0 ? searchResults : suggestions;
+  const handleTabChange = (value: string) => {
+    if (value === "suggestions") {
+      setActiveTab(value);
+      setSearchResults([]);
+      setSearchQuery("");
+      if (suggestions.length === 0) fetchSuggestions();
+    } else {
+      setSearchQuery(value); // Pre-fill search with tab name
+      handleSearch(value); // Immediately search
+    }
+  }
 
   return (
     <div className="container py-8 px-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Explore External Servers</CardTitle>
-          <CardDescription>Search for any movie or series and stream from third-party sources.</CardDescription>
+          <CardDescription>Search for any movie or series and stream from third-party sources. You can use natural language like "funny movies from the 90s".</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-8">
             {selectedContent ? (
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold">{selectedContent.title}</h2>
-                    <VideoPlayer source={{ name: "VidSrc", url: selectedContent.videoUrl }} poster="" />
-                    <Button onClick={() => setSelectedContent(null)}>Back to Search</Button>
+                <div className="space-y-8">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-4">{selectedContent.title}</h2>
+                        <VideoPlayer source={{ name: "VidSrc", url: selectedContent.videoUrl }} poster="" />
+                        <Button onClick={() => setSelectedContent(null)} className="mt-4">Back to Search</Button>
+                    </div>
+                    <div>
+                        <h3 className="text-2xl font-headline font-semibold mb-4">You Might Also Like</h3>
+                         {isLoadingSuggestions ? (
+                            <div className="flex items-center justify-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                         ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                                {suggestions.map((item) => (
+                                    <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
+                                ))}
+                            </div>
+                         )}
+                    </div>
                 </div>
             ) : isLoadingVideo ? (
                  <div className="flex flex-col items-center justify-center py-10 gap-4">
@@ -136,35 +164,43 @@ export default function ServersPage() {
                   <div className="flex w-full items-center space-x-2">
                     <Input
                       type="text"
-                      placeholder="e.g., 'The Dark Knight', 'Breaking Bad'..."
+                      placeholder="e.g., 'The Dark Knight', 'funny tv shows'..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }}}
                     />
-                    <Button type="button" onClick={handleSearch} disabled={isSearching}>
+                    <Button type="button" onClick={() => handleSearch()} disabled={isSearching}>
                       {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-2xl font-headline font-semibold mb-4">
-                    {searchResults.length > 0 ? "Search Results" : "AI Suggestions"}
-                  </h3>
-                  {isLoadingSuggestions && suggestions.length === 0 ? (
-                    <div className="flex items-center justify-center h-48">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                <Tabs value={activeTab} onValueChange={handleTabChange}>
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
+                        <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+                        <TabsTrigger value="Movies">Movies</TabsTrigger>
+                        <TabsTrigger value="Web Series">Web Series</TabsTrigger>
+                        <TabsTrigger value="Action">Action</TabsTrigger>
+                        <TabsTrigger value="Comedy">Comedy</TabsTrigger>
+                        <TabsTrigger value="search" className="hidden">Search</TabsTrigger>
+                    </TabsList>
+                    
+                    <div className="mt-6">
+                        {isSearching || (isLoadingSuggestions && activeTab === 'suggestions') ? (
+                            <div className="flex items-center justify-center h-48">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        ) : (searchResults.length > 0 || suggestions.length > 0) ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                            {(searchResults.length > 0 ? searchResults : suggestions).map((item) => (
+                                <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
+                            ))}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground text-center pt-10">No content found.</p>
+                        )}
                     </div>
-                  ) : contentToDisplay.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                      {contentToDisplay.map((item) => (
-                        <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center">No content found.</p>
-                  )}
-                </div>
+                </Tabs>
               </>
             )}
           </div>
