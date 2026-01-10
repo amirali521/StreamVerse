@@ -2,7 +2,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { searchTMDB } from '../admin/add-content/actions';
+import { searchContent } from '../admin/add-content/actions';
 
 const ServerSuggestionSchema = z.object({
   title: z.string().describe("The title of the movie or web series."),
@@ -57,7 +57,7 @@ const analyzeSearchQueryFlow = ai.defineFlow(
             - Query: "action movies with Tom Cruise" -> keywords: "Tom Cruise", genre: "action", type: "movie"
             - Query: "funny tv shows" -> keywords: "funny", genre: "comedy", type: "tv"
             - Query: "The Dark Knight" -> keywords: "The Dark Knight", genre: null, type: "any"
-            - Query: "new sci-fi series" -> keywords: "sci-fi", genre: "sci-fi", type: "tv"
+            - Query: "new sci-fi series" -> keywords: "sci-fi", genre: "tv"
 
             User Query: "${query}"`,
             output: { schema: analyzeSearchQueryOutputSchema },
@@ -97,5 +97,5 @@ export async function searchExternalContent(query: string, type: 'movie' | 'tv')
     const searchKeywords = [aiAnalysis.keywords, aiAnalysis.genre].filter(Boolean).join(" ");
     const searchType = aiAnalysis.type === 'any' ? type : aiAnalysis.type;
 
-    return await searchTMDB(searchKeywords, searchType);
+    return await searchContent(searchKeywords, searchType, false);
 }
