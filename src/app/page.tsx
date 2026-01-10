@@ -31,29 +31,6 @@ interface CarouselData {
 
 const MIN_ITEMS_FOR_CAROUSEL = 4;
 
-function FloatingServerLink() {
-  return (
-    <div className="relative h-20 overflow-hidden">
-      <div className="absolute animate-marquee whitespace-nowrap py-4">
-        <Button asChild className="mx-4 text-lg font-bold" size="lg">
-          <Link href="/servers">
-            <Clapperboard className="mr-2" />
-            Explore More Servers
-          </Link>
-        </Button>
-      </div>
-      <div className="absolute animate-marquee2 whitespace-nowrap py-4">
-        <Button asChild className="mx-4 text-lg font-bold" size="lg">
-          <Link href="/servers">
-            <Clapperboard className="mr-2" />
-            Explore More Servers
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   const firestore = useFirestore();
   const [heroContent, setHeroContent] = useState<ClientContent[]>([]);
@@ -110,7 +87,7 @@ export default function Home() {
         setHeroContent(featuredContent.slice(0, 5));
         
         // 2. Get New Releases: Sort all content by `createdAt` date
-        const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+        const sortedNewReleases = [...allContent].sort((a, b) => (b.createdAt?.getTime()- 0) - (a.createdAt?.getTime() || 0));
         if(sortedNewReleases.length >= MIN_ITEMS_FOR_CAROUSEL) {
             generatedCarousels.push({ title: "New Releases", items: sortedNewReleases.slice(0, 10) });
         }
@@ -183,8 +160,6 @@ export default function Home() {
       {heroContent.length > 0 && <HeroBanner items={heroContent} />}
       {upcomingMovies.length > 0 && <UpcomingHeroBanner items={upcomingMovies} />}
       
-      <FloatingServerLink />
-
       {/* Content Sections */}
       <div className="py-4 space-y-8">
         {carousels.length === 0 && !loading ? (
