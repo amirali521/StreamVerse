@@ -9,7 +9,6 @@ import { Search, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { generateServerSuggestions, getVidSrcUrl, searchExternalContent } from "./actions";
 import { VideoPlayer } from "@/components/video-player";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
@@ -53,15 +52,13 @@ export default function ServersPage() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [selectedContent, setSelectedContent] = useState<{ title: string; videoUrl: string } | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
-  const [activeTab, setActiveTab] = useState("suggestions");
-
+  
   const fetchSuggestions = useCallback(async () => {
     setIsLoadingSuggestions(true);
     try {
       const aiSuggestions = await generateServerSuggestions();
       const detailedSuggestions = await Promise.all(
         aiSuggestions.suggestions.map(async (suggestion) => {
-          // Use AI analysis for these suggestions as they can be complex
           const results = await searchExternalContent(suggestion.title, suggestion.type, true);
           return results.length > 0 ? results[0] : null;
         })
@@ -78,17 +75,17 @@ export default function ServersPage() {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  const handleSearch = useCallback(async (query?: string, type?: 'movie' | 'tv', useAi: boolean = true) => {
-    const finalQuery = query || searchQuery;
-    if (!finalQuery) return;
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery) {
+        setSearchResults([]); // Clear search results if query is empty
+        return;
+    };
 
     setIsSearching(true);
-    setSearchResults([]);
     setSelectedContent(null);
     try {
-      const results = await searchExternalContent(finalQuery, type || searchType, useAi);
+      const results = await searchExternalContent(searchQuery, searchType, true);
       setSearchResults(results);
-      setActiveTab("search"); // Switch to search results tab
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
@@ -114,39 +111,15 @@ export default function ServersPage() {
      window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === "suggestions") {
-      setSearchResults([]);
-      setSearchQuery("");
-      if (suggestions.length === 0) fetchSuggestions();
-    } else if (value !== "search") {
-        setSearchQuery(value);
-        let type: 'movie' | 'tv' = 'movie';
-        
-        if (value.toLowerCase() === 'web series') {
-            type = 'tv';
-        } else if (value.toLowerCase() === 'movies') {
-            type = 'movie';
-        } else {
-             // For genre searches like "Action", search both by passing 'tv' to TMDB's 'multi' search which covers both
-            type = 'tv';
-        }
-        
-        handleSearch(value, type, false);
-    }
-  }
-
-  const currentDisplayContent = activeTab === 'suggestions' ? suggestions : searchResults;
-  const isLoadingCurrentContent = (activeTab === 'suggestions' && isLoadingSuggestions) || (activeTab !== 'suggestions' && isSearching);
-
+  const currentDisplayContent = searchResults.length > 0 ? searchResults : suggestions;
+  const isLoadingCurrentContent = isSearching || isLoadingSuggestions;
 
   return (
     <div className="container py-8 px-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Explore External Servers</CardTitle>
-          <CardDescription>Search for any movie or series and stream from third-party sources. You can use natural language like "funny movies from the 90s".</CardDescription>
+          <CardDescription>Discover and stream from third-party sources. AI will suggest content, or you can search for anything you want.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-8">
@@ -197,40 +170,32 @@ export default function ServersPage() {
                       placeholder={`Search for a ${searchType}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(undefined, undefined, true); }}}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }}}
                     />
-                    <Button type="button" onClick={() => handleSearch(undefined, undefined, true)} disabled={isSearching}>
+                    <Button type="button" onClick={handleSearch} disabled={isSearching}>
                       {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
 
-                <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
-                        <TabsTrigger value="Movies">Movies</TabsTrigger>
-                        <TabsTrigger value="Web Series">Web Series</TabsTrigger>
-                        <TabsTrigger value="Action">Action</TabsTrigger>
-                        <TabsTrigger value="Comedy">Comedy</TabsTrigger>
-                        <TabsTrigger value="search" className="hidden">Search</TabsTrigger>
-                        <TabsTrigger value="suggestions" className="hidden">Suggestions</TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="mt-6">
-                        {isLoadingCurrentContent ? (
-                            <div className="flex items-center justify-center h-48">
-                                <Loader2 className="h-8 w-8 animate-spin" />
-                            </div>
-                        ) : (currentDisplayContent.length > 0) ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                            {currentDisplayContent.map((item) => (
-                                <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
-                            ))}
-                            </div>
-                        ) : (
-                            <p className="text-muted-foreground text-center pt-10">No content found for this category.</p>
-                        )}
-                    </div>
-                </Tabs>
+                <div className="mt-6">
+                    <h3 className="text-2xl font-headline font-semibold mb-4">
+                        {searchResults.length > 0 ? 'Search Results' : 'AI Suggestions'}
+                    </h3>
+                    {isLoadingCurrentContent ? (
+                        <div className="flex items-center justify-center h-48">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (currentDisplayContent.length > 0) ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                        {currentDisplayContent.map((item) => (
+                            <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
+                        ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center pt-10">No content found.</p>
+                    )}
+                </div>
               </>
             )}
           </div>
