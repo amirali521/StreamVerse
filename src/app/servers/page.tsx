@@ -59,7 +59,8 @@ export default function ServersPage() {
       const aiSuggestions = await generateServerSuggestions();
       const detailedSuggestions = await Promise.all(
         aiSuggestions.suggestions.map(async (suggestion) => {
-          const results = await searchExternalContent(suggestion.title, suggestion.type, true);
+          // Bypassing AI analysis here since we already have the title and type
+          const results = await searchExternalContent(suggestion.title, suggestion.type, false);
           return results.length > 0 ? results[0] : null;
         })
       );
