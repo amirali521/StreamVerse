@@ -46,7 +46,7 @@ function ContentCard({ item, onSelect }: { item: SearchResult, onSelect: (item: 
 export default function ServersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<'movie' | 'tv'>("movie");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
@@ -82,17 +82,19 @@ export default function ServersPage() {
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery) {
-        setSearchResults([]); // Clear search results if query is empty
+        setSearchResults(null); // Clear search results if query is empty
         return;
     };
 
     setIsSearching(true);
+    setSearchResults([]); // Reset to empty array to show loading state for search
     setSelectedContent(null);
     try {
       const results = await searchExternalContent(searchQuery, searchType, true);
       setSearchResults(results);
     } catch (error) {
       console.error("Search failed:", error);
+      setSearchResults([]); // Set to empty array on error
     } finally {
       setIsSearching(false);
     }
@@ -116,8 +118,9 @@ export default function ServersPage() {
      window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  const currentDisplayContent = searchResults.length > 0 ? searchResults : suggestions;
-  const isLoadingCurrentContent = isSearching || isLoadingSuggestions;
+  const hasSearched = searchResults !== null;
+  const currentDisplayContent = hasSearched ? searchResults : suggestions;
+  const isLoadingCurrentContent = isSearching || (isLoadingSuggestions && !hasSearched);
 
   return (
     <div className="container py-8 px-4">
@@ -185,20 +188,22 @@ export default function ServersPage() {
 
                 <div className="mt-6">
                     <h3 className="text-2xl font-headline font-semibold mb-4">
-                        {searchResults.length > 0 ? 'Search Results' : 'AI Suggestions'}
+                        {hasSearched ? 'Search Results' : 'AI Suggestions'}
                     </h3>
                     {isLoadingCurrentContent ? (
                         <div className="flex items-center justify-center h-48">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
-                    ) : (currentDisplayContent.length > 0) ? (
+                    ) : (currentDisplayContent && currentDisplayContent.length > 0) ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                         {currentDisplayContent.map((item) => (
                             <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
                         ))}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-center pt-10">No content found.</p>
+                        <p className="text-muted-foreground text-center pt-10">
+                            {hasSearched ? "No results found for your search." : "Could not load suggestions."}
+                        </p>
                     )}
                 </div>
               </>
