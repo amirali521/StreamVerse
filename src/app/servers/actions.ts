@@ -48,6 +48,9 @@ const servers: { name: string, movieUrl: string, tvUrl: string }[] = [
     }
 ];
 
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
 const ServerSuggestionSchema = z.object({
   title: z.string().describe("The title of the movie or web series."),
   type: z.enum(['movie', 'tv']).describe("The type of content, either 'movie' or 'tv' for a web series."),
@@ -107,6 +110,68 @@ export async function searchExternalContent({ query, type }: SearchInput) {
     const tmdbType = type === 'tv' ? 'webseries' : 'movie';
     return await searchContent(query, tmdbType, false);
 }
+
+export async function getExternalContentDetails(id: number, type: 'movie' | 'tv') {
+  if (!TMDB_API_KEY) return null;
+  const url = `${TMDB_BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching external content details:", error);
+    return null;
+  }
+}
+
+export async function getRelatedExternalContent(id: number, type: 'movie' | 'tv') {
+    if (!TMDB_API_KEY) return [];
+
+    let url;
+    if (type === 'movie') {
+        // First try to get the movie's collection (for franchises)
+        const movieDetailsUrl = `${TMDB_BASE_URL}/movie/${id}?api_key=${TMDB_API_KEY}`;
+        const movieDetailsRes = await fetch(movieDetailsUrl);
+        if (movieDetailsRes.ok) {
+            const movieDetails = await movieDetailsRes.json();
+            if (movieDetails.belongs_to_collection) {
+                url = `${TMDB_BASE_URL}/collection/${movieDetails.belongs_to_collection.id}?api_key=${TMDB_API_KEY}`;
+                const collectionRes = await fetch(url);
+                if (collectionRes.ok) {
+                    const collectionData = await collectionRes.json();
+                    return (collectionData.parts || [])
+                        .filter((item: any) => item.id !== id) // Exclude the movie itself
+                        .map((item: any) => ({
+                            id: item.id,
+                            title: item.title || item.name,
+                            poster_path: item.poster_path,
+                            release_date: item.release_date || item.first_air_date,
+                            media_type: 'movie',
+                        }));
+                }
+            }
+        }
+    }
+    
+    // Fallback to recommendations if no collection or if it's a TV show
+    url = `${TMDB_BASE_URL}/${type}/${id}/recommendations?api_key=${TMDB_API_KEY}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return (data.results || []).map((item: any) => ({
+            id: item.id,
+            title: item.title || item.name,
+            poster_path: item.poster_path,
+            release_date: item.release_date || item.first_air_date,
+            media_type: item.media_type,
+        }));
+    } catch (error) {
+        console.error("Error fetching related content:", error);
+        return [];
+    }
+}
+
 
 export async function getEmbedUrls(tmdbId: number, type: 'movie' | 'tv', season: number = 1, episode: number = 1): Promise<EmbedSource[]> {
     return servers.map(server => {
