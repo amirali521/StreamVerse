@@ -65,8 +65,9 @@ const generateSuggestionsFlow = ai.defineFlow(
   async () => {
     const { output } = await ai.generate({
       prompt: `You are a movie and TV show recommendation engine.
-      Your task is to suggest a list of 5 popular and critically acclaimed movies and web series.
+      Your task is to suggest a list of 12 popular and critically acclaimed movies and web series.
       Include a mix of genres and release years. Provide the title and the correct type ('movie' or 'tv').`,
+      output: { schema: ServerSuggestionsOutputSchema },
     });
     return output!;
   }
@@ -85,6 +86,13 @@ export async function generateServerSuggestions() {
       { title: "The Dark Knight", type: "movie" },
       { title: "Stranger Things", type: "tv" },
       { title: "Parasite", type: "movie" },
+      { title: "The Office", type: "tv" },
+      { title: "Pulp Fiction", type: "movie" },
+      { title: "Game of Thrones", type: "tv" },
+      { title: "Forrest Gump", type: "movie" },
+      { title: "Friends", type: "tv" },
+      { title: "The Matrix", type: "movie" },
+      { title: "The Simpsons", type: "tv" },
     ];
   }
 }
