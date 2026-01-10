@@ -5,12 +5,14 @@ import { useEffect, useState, useMemo, Suspense, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Clapperboard, ServerCrash, ChevronLeft, ChevronRight } from "lucide-react";
-import { searchExternalContent, generateServerSuggestions, getEmbedUrls, getExternalContentDetails, getRelatedExternalContent, type EmbedSource } from "./actions";
+import { Loader2, Search, Clapperboard, ServerCrash, ChevronLeft, ChevronRight, Download, Image as ImageIcon, Film } from "lucide-react";
+import { searchExternalContent, generateServerSuggestions, getEmbedUrls, getExternalContentDetails, getRelatedExternalContent, type EmbedSource, getSocialImages } from "./actions";
 import { VideoPlayer } from "@/components/video-player";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
+import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TMDBResult {
   id: number;
@@ -20,7 +22,66 @@ interface TMDBResult {
   media_type: 'movie' | 'tv';
 }
 
+interface SocialImage {
+    file_path: string;
+    aspect_ratio: number;
+    type: 'poster' | 'backdrop' | 'logo';
+}
+
 const EPISODES_PER_PAGE = 50;
+
+function ImageDownloadCard({ image, contentTitle }: { image: SocialImage, contentTitle: string }) {
+    const imageUrl = `https://image.tmdb.org/t/p/original${image.file_path}`;
+
+    const handleDownload = async () => {
+        try {
+            const response = await fetch(imageUrl);
+            if (!response.ok) throw new Error("Failed to fetch image.");
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+
+            const extension = blob.type.split('/')[1] || 'jpg';
+            const title = contentTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const imageType = image.type;
+            const shortPath = image.file_path.substring(image.file_path.lastIndexOf('/') + 1).split('.')[0];
+            
+            a.download = `${title}_${imageType}_${shortPath}.${extension}`;
+            
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            toast({ title: "Download Started", description: `Downloading ${imageType} image.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Download Failed", description: error.message });
+        }
+    };
+
+    return (
+        <Card className="overflow-hidden group relative">
+            <div className="aspect-[2/3] w-full bg-muted">
+                <Image
+                    src={`https://image.tmdb.org/t/p/w500${image.file_path}`}
+                    alt={`${contentTitle} ${image.type}`}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                />
+            </div>
+             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <Button onClick={handleDownload}>
+                    <Download className="mr-2 h-4 w-4"/>
+                    Download
+                </Button>
+            </div>
+        </Card>
+    );
+}
 
 function EpisodeSelector({ 
   details,
@@ -217,6 +278,7 @@ function ServersPageComponent() {
 
   const [selectedSeasonNum, setSelectedSeasonNum] = useState(1);
   const [selectedEpisodeNum, setSelectedEpisodeNum] = useState(1);
+  const [images, setImages] = useState<{posters: SocialImage[], backdrops: SocialImage[], logos: SocialImage[]}>({posters: [], backdrops: [], logos: []});
   
   const videoSource = useMemo(() => {
     if (!selectedContent || embedUrls.length === 0) return null;
@@ -271,14 +333,22 @@ function ServersPageComponent() {
       setEmbedUrls([]);
       setActiveSource(null);
       setSelectedContentDetails(null);
+      setImages({posters: [], backdrops: [], logos: []});
       
-      const [urls, details] = await Promise.all([
+      const [urls, details, fetchedImages] = await Promise.all([
           getEmbedUrls(item.id, item.media_type),
-          getExternalContentDetails(item.id, item.media_type)
+          getExternalContentDetails(item.id, item.media_type),
+          getSocialImages(item.id, item.media_type)
       ]);
       
       setEmbedUrls(urls);
       setSelectedContentDetails(details);
+      
+      const posters: SocialImage[] = (fetchedImages.posters || []).map((p: any) => ({...p, type: 'poster'}));
+      const backdrops: SocialImage[] = (fetchedImages.backdrops || []).map((b: any) => ({...b, type: 'backdrop'}));
+      const logos: SocialImage[] = (fetchedImages.logos || []).map((l: any) => ({...l, type: 'logo'}));
+      setImages({ posters: posters.slice(0, 20), backdrops: backdrops.slice(0, 20), logos: logos.slice(0, 10) });
+
 
       if (urls.length > 0) {
         setActiveSource(urls[0]);
@@ -346,26 +416,70 @@ function ServersPageComponent() {
                     <p className="text-sm text-muted-foreground mt-1">Try searching for a different title.</p>
                 </div>
            )}
-           {embedUrls.length > 1 && (
-             <div className="mt-4">
-                <Tabs value={activeSource?.name} onValueChange={(value) => setActiveSource(embedUrls.find(s => s.name === value) || null)}>
-                    <TabsList>
-                        {embedUrls.map(source => (
-                            <TabsTrigger key={source.name} value={source.name}>{source.name}</TabsTrigger>
-                        ))}
-                    </TabsList>
-                </Tabs>
-             </div>
-           )}
-            {selectedContent.media_type === 'tv' && selectedContentDetails && (
-              <EpisodeSelector
-                details={selectedContentDetails}
-                selectedSeasonNum={selectedSeasonNum}
-                setSelectedSeasonNum={setSelectedSeasonNum}
-                selectedEpisodeNum={selectedEpisodeNum}
-                setSelectedEpisodeNum={setSelectedEpisodeNum}
-              />
-            )}
+           
+           <Tabs defaultValue="controls" className="mt-4">
+              <TabsList>
+                <TabsTrigger value="controls"><Film className="mr-2"/>Player Controls</TabsTrigger>
+                <TabsTrigger value="images"><ImageIcon className="mr-2"/>Download Images</TabsTrigger>
+              </TabsList>
+              <TabsContent value="controls">
+                {embedUrls.length > 1 && (
+                  <div className="mt-4">
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">Servers</h3>
+                      <Tabs value={activeSource?.name} onValueChange={(value) => setActiveSource(embedUrls.find(s => s.name === value) || null)}>
+                          <TabsList>
+                              {embedUrls.map(source => (
+                                  <TabsTrigger key={source.name} value={source.name}>{source.name}</TabsTrigger>
+                              ))}
+                          </TabsList>
+                      </Tabs>
+                  </div>
+                )}
+                {selectedContent.media_type === 'tv' && selectedContentDetails && (
+                  <EpisodeSelector
+                    details={selectedContentDetails}
+                    selectedSeasonNum={selectedSeasonNum}
+                    setSelectedSeasonNum={setSelectedSeasonNum}
+                    selectedEpisodeNum={selectedEpisodeNum}
+                    setSelectedEpisodeNum={setSelectedEpisodeNum}
+                  />
+                )}
+              </TabsContent>
+               <TabsContent value="images">
+                  <Tabs defaultValue="posters" className="mt-4">
+                      <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="posters" disabled={images.posters.length === 0}>Posters ({images.posters.length})</TabsTrigger>
+                          <TabsTrigger value="backdrops" disabled={images.backdrops.length === 0}>Backdrops ({images.backdrops.length})</TabsTrigger>
+                          <TabsTrigger value="logos" disabled={images.logos.length === 0}>Logos ({images.logos.length})</TabsTrigger>
+                      </TabsList>
+                      <ScrollArea className="h-96 w-full rounded-md border mt-2">
+                          <div className="p-4">
+                              <TabsContent value="posters">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                      {images.posters.map((image) => (
+                                          <ImageDownloadCard key={image.file_path} image={image} contentTitle={selectedContent.title} />
+                                      ))}
+                                  </div>
+                              </TabsContent>
+                              <TabsContent value="backdrops">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                      {images.backdrops.map((image) => (
+                                          <ImageDownloadCard key={image.file_path} image={{...image, type: 'backdrop'}} contentTitle={selectedContent.title} />
+                                      ))}
+                                  </div>
+                              </TabsContent>
+                              <TabsContent value="logos">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                      {images.logos.map((image) => (
+                                          <ImageDownloadCard key={image.file_path} image={{...image, type: 'logo'}} contentTitle={selectedContent.title} />
+                                      ))}
+                                  </div>
+                              </TabsContent>
+                          </div>
+                      </ScrollArea>
+                  </Tabs>
+              </TabsContent>
+           </Tabs>
         </div>
       )}
 

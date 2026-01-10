@@ -182,3 +182,22 @@ export async function getEmbedUrls(tmdbId: number, type: 'movie' | 'tv', season:
         return { name: server.name, url };
     });
 }
+
+
+export async function getSocialImages(id: number, type: 'movie' | 'tv'): Promise<{ posters: any[], backdrops: any[], logos: any[] }> {
+    if (!TMDB_API_KEY) return { posters: [], backdrops: [], logos: [] };
+
+    const url = `${TMDB_BASE_URL}/${type}/${id}/images?api_key=${TMDB_API_KEY}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return {
+            posters: data.posters || [],
+            backdrops: data.backdrops || [],
+            logos: data.logos || []
+        };
+    } catch (error) {
+        console.error("Error getting TMDB images:", error);
+        return { posters: [], backdrops: [], logos: [] };
+    }
+}
