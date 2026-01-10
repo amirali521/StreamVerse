@@ -46,12 +46,13 @@ function ContentCard({ item, onSelect }: { item: SearchResult, onSelect: (item: 
 export default function ServersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<'movie' | 'tv'>("movie");
-  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [selectedContent, setSelectedContent] = useState<{ title: string; videoUrl: string } | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const suggestionsFetched = useRef(false);
 
   useEffect(() => {
@@ -82,12 +83,13 @@ export default function ServersPage() {
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery) {
-        setSearchResults(null); // Clear search results if query is empty
+        setHasSearched(false);
+        setSearchResults([]);
         return;
     };
 
     setIsSearching(true);
-    setSearchResults([]); // Reset to empty array to show loading state for search
+    setHasSearched(true);
     setSelectedContent(null);
     try {
       const results = await searchExternalContent(searchQuery, searchType, true);
@@ -104,7 +106,11 @@ export default function ServersPage() {
     setIsLoadingVideo(true);
     setSelectedContent(null);
     try {
-      const source = await getVidSrcUrl(String(item.id), item.media_type);
+      // For TV series, we need to ask for season and episode, for now, default to S1E1
+      const source = item.media_type === 'tv'
+        ? await getVidSrcUrl(String(item.id), 'tv', '1', '1')
+        : await getVidSrcUrl(String(item.id), 'movie');
+        
       if (source?.url) {
         setSelectedContent({ title: item.title, videoUrl: source.url });
       } else {
@@ -118,9 +124,8 @@ export default function ServersPage() {
      window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  const hasSearched = searchResults !== null;
-  const currentDisplayContent = hasSearched ? searchResults : suggestions;
-  const isLoadingCurrentContent = isSearching || (isLoadingSuggestions && !hasSearched);
+  const contentToDisplay = hasSearched ? searchResults : suggestions;
+  const isLoading = hasSearched ? isSearching : isLoadingSuggestions;
 
   return (
     <div className="container py-8 px-4">
@@ -190,13 +195,13 @@ export default function ServersPage() {
                     <h3 className="text-2xl font-headline font-semibold mb-4">
                         {hasSearched ? 'Search Results' : 'AI Suggestions'}
                     </h3>
-                    {isLoadingCurrentContent ? (
+                    {isLoading ? (
                         <div className="flex items-center justify-center h-48">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
-                    ) : (currentDisplayContent && currentDisplayContent.length > 0) ? (
+                    ) : (contentToDisplay && contentToDisplay.length > 0) ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                        {currentDisplayContent.map((item) => (
+                        {contentToDisplay.map((item) => (
                             <ContentCard key={item.id} item={item} onSelect={handleSelectContent} />
                         ))}
                         </div>
