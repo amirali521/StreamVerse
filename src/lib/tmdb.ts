@@ -17,7 +17,7 @@ interface SearchResult {
   media_type: 'movie' | 'tv';
 }
 
-export async function searchTMDB(query: string, type: 'movie' | 'tv' | 'multi'): Promise<SearchResult[]> {
+export async function searchContent(query: string, type: 'movie' | 'tv' | 'multi'): Promise<SearchResult[]> {
   if (!TMDB_API_KEY) return [];
 
   const searchType = type === 'movie' || type === 'tv' ? type : 'multi';
