@@ -75,7 +75,6 @@ export function VideoPlayer({ source, poster }: VideoPlayerProps) {
                     frameBorder="0"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
-                    sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
                     onLoad={handleLoad}
                     onError={handleError}
                 ></iframe>
