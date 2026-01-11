@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface TMDBResult {
   id: number;
@@ -286,10 +287,13 @@ function ServersPageComponent() {
     const episode = selectedContent.media_type === 'tv' ? selectedEpisodeNum : 1;
 
     const source = activeSource || embedUrls[0];
-    const url = source.url
-        .replace('{season}', String(season))
-        .replace('{episode}', String(episode));
+    let url = source.url;
 
+    if (selectedContent.media_type === 'tv') {
+        url = url.replace('{season}', String(season))
+                 .replace('{episode}', String(episode));
+    }
+    
     return { ...source, url };
 }, [selectedContent, embedUrls, activeSource, selectedSeasonNum, selectedEpisodeNum]);
 
@@ -369,6 +373,17 @@ function ServersPageComponent() {
 
   const contentToDisplay = searchResults.length > 0 ? searchResults : suggestions;
 
+  const nowPlayingTitle = useMemo(() => {
+    if (!selectedContent) return "";
+    let title = `Now Playing: ${selectedContent.title}`;
+    if (selectedContent.media_type === 'tv') {
+        const season = String(selectedSeasonNum).padStart(2, '0');
+        const episode = String(selectedEpisodeNum).padStart(2, '0');
+        title += ` - S${season}E${episode}`;
+    }
+    return title;
+  }, [selectedContent, selectedSeasonNum, selectedEpisodeNum]);
+
   return (
     <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
       <div className="text-center mb-8">
@@ -402,7 +417,7 @@ function ServersPageComponent() {
 
       {selectedContent && (
         <div id="player-section" className="mb-12">
-           <h2 className="text-2xl font-bold mb-4">Now Playing: {selectedContent.title}</h2>
+           <h2 className="text-2xl font-bold mb-4">{nowPlayingTitle}</h2>
            {isVideoLoading ? (
                <div className="aspect-video bg-black flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -427,7 +442,7 @@ function ServersPageComponent() {
                   <div className="mt-4">
                       <h3 className="text-sm font-semibold text-muted-foreground mb-2">Servers</h3>
                       <Tabs value={activeSource?.name} onValueChange={(value) => setActiveSource(embedUrls.find(s => s.name === value) || null)}>
-                          <TabsList>
+                          <TabsList className="h-auto flex-wrap justify-start">
                               {embedUrls.map(source => (
                                   <TabsTrigger key={source.name} value={source.name}>{source.name}</TabsTrigger>
                               ))}
@@ -526,3 +541,5 @@ export default function ServersPage() {
         </Suspense>
     )
 }
+
+    

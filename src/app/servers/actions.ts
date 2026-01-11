@@ -199,3 +199,5 @@ export async function getSocialImages(id: number, type: 'movie' | 'tv'): Promise
         return { posters: [], backdrops: [], logos: [] };
     }
 }
+
+    
