@@ -173,12 +173,10 @@ export async function getRelatedExternalContent(id: number, type: 'movie' | 'tv'
 }
 
 
-export async function getEmbedUrls(tmdbId: number, type: 'movie' | 'tv', season: number = 1, episode: number = 1): Promise<EmbedSource[]> {
+export async function getEmbedUrls(tmdbId: number, type: 'movie' | 'tv'): Promise<EmbedSource[]> {
     return servers.map(server => {
         let url = type === 'movie' ? server.movieUrl : server.tvUrl;
-        url = url.replace('{tmdbId}', tmdbId.toString())
-                 .replace('{season}', season.toString())
-                 .replace('{episode}', episode.toString());
+        url = url.replace('{tmdbId}', tmdbId.toString());
         return { name: server.name, url };
     });
 }
